@@ -3,11 +3,11 @@ from typing import Optional
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
 from pydantic import BaseModel
-from backend.app.config import TEMP_MEDIA_DIR
-from backend.app.services.downloader import download_audio_from_url
-from backend.app.services.transcriber import transcribe_audio_file
-from backend.app.services.cleaner import secure_delete_file
-from backend.app.services.database import (
+from app.config import TEMP_MEDIA_DIR
+from app.services.downloader import download_audio_from_url
+from app.services.transcriber import transcribe_audio_file
+from app.services.cleaner import secure_delete_file
+from app.services.database import (
     verify_token_and_get_user,
     check_and_deduct_credits,
     save_transcription_record,
@@ -215,8 +215,8 @@ def get_history(authorization: Optional[str] = Header(None)):
 
 @router.get("/health")
 def transcription_health():
-    from backend.app.config import GROQ_API_KEY
-    from backend.app.services.downloader import has_ffmpeg
+    from app.config import GROQ_API_KEY
+    from app.services.downloader import has_ffmpeg
     return {
         "status": "ready",
         "has_ffmpeg": has_ffmpeg(),

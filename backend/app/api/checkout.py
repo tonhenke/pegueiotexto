@@ -1,12 +1,12 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel
-from backend.app.services.stripe_service import (
+from app.services.stripe_service import (
     create_checkout_session,
     verify_webhook,
     PLANS
 )
-from backend.app.services.database import add_user_credits
+from app.services.database import add_user_credits
 
 router = APIRouter(prefix="/api/checkout", tags=["Stripe Payments"])
 

@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 import stripe
-from backend.app.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, FRONTEND_URL
-from backend.app.services.database import add_user_credits
+from app.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, FRONTEND_URL
+from app.services.database import add_user_credits
 
 stripe.api_key = STRIPE_SECRET_KEY
 

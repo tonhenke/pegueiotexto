@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from backend.app.config import TEMP_MEDIA_DIR
+from app.config import TEMP_MEDIA_DIR
 
 def secure_delete_file(file_path: str | Path | None) -> bool:
     """

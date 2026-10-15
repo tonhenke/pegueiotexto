@@ -1,9 +1,17 @@
+import sys
+from pathlib import Path
+
+# Add backend directory to sys.path so 'app' is always importable
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.api.transcribe import router as transcribe_router
-from backend.app.api.checkout import router as checkout_router
-from backend.app.services.cleaner import cleanup_stale_temp_files
+from app.api.transcribe import router as transcribe_router
+from app.api.checkout import router as checkout_router
+from app.services.cleaner import cleanup_stale_temp_files
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

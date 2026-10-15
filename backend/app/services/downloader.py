@@ -2,7 +2,7 @@ import uuid
 import shutil
 from pathlib import Path
 import yt_dlp
-from backend.app.config import TEMP_MEDIA_DIR
+from app.config import TEMP_MEDIA_DIR
 
 def has_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None

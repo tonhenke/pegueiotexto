@@ -2,7 +2,7 @@ import os
 import math
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
-from backend.app.config import env_path
+from app.config import env_path
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=env_path)

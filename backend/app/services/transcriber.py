@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Dict, Any
 from groq import Groq
-from backend.app.config import GROQ_API_KEY
+from app.config import GROQ_API_KEY
 
 def format_timestamp_srt(seconds: float) -> str:
     """Format seconds into SRT timestamp (HH:MM:SS,mmm)"""
