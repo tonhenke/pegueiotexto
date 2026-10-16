@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
-  Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw
+  Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "url" | "upload";
-type Status = "idle" | "loading" | "done" | "error";
+type Status = "idle" | "loading" | "done" | "error" | "insufficient_credits";
 
 const DEMO_TRANSCRIPT = `[00:00] Bem-vindos ao nosso canal! Hoje vamos falar sobre como a inteligência artificial está transformando a forma como trabalhamos com conteúdo audiovisual.
 
@@ -48,6 +48,7 @@ export default function TranscribeForm() {
   const [mediaDeleted, setMediaDeleted] = useState(false);
   const [engineUsed, setEngineUsed] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [insufficientMsg, setInsufficientMsg] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
@@ -58,22 +59,34 @@ export default function TranscribeForm() {
       const savedUrl = localStorage.getItem("pegueiotexto_pending_url");
       if (savedUrl) {
         setUrl(savedUrl);
-        setIsRestored(true);
         localStorage.removeItem("pegueiotexto_pending_url");
+
+        // Verify if user is logged in
+        const supabase = createClient();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            // User just arrived from login, auto-trigger transcription in dashboard!
+            handleTranscribe(savedUrl);
+          } else {
+            setIsRestored(true);
+          }
+        });
       }
     }
   }, []);
 
-  const handleTranscribe = async () => {
+  const handleTranscribe = async (overrideUrl?: string) => {
+    const targetUrl = (overrideUrl || url).trim();
+
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     // If user is not authenticated, redirect to login/signup to earn 5 free minutes!
     if (!session) {
-      if (mode === "url" && url.trim()) {
-        localStorage.setItem("pegueiotexto_pending_url", url.trim());
+      if (mode === "url" && targetUrl) {
+        localStorage.setItem("pegueiotexto_pending_url", targetUrl);
       }
-      router.push("/login?signup=true&reason=transcribe");
+      router.push("/login?signup=true&reason=transcribe&redirect=/dashboard?auto_transcribe=true");
       return;
     }
 
@@ -81,6 +94,7 @@ export default function TranscribeForm() {
     setProgress(15);
     setTranscript("");
     setErrorMsg("");
+    setInsufficientMsg("");
     setMediaDeleted(false);
     setMinutesDeducted(0);
 
@@ -103,7 +117,7 @@ export default function TranscribeForm() {
             "Content-Type": "application/json",
             ...authHeaders,
           },
-          body: JSON.stringify({ url: url.trim(), language: "pt" }),
+          body: JSON.stringify({ url: targetUrl, language: "pt" }),
         });
       } else {
         if (!file) throw new Error("Selecione um arquivo de áudio ou vídeo.");
@@ -123,7 +137,16 @@ export default function TranscribeForm() {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.detail || `Erro no servidor (${res.status})`);
+        const detail = typeof errJson.detail === "string" ? errJson.detail : (errJson.detail?.message || "Erro no processamento.");
+
+        // Handled: Insufficient Credits / Time Limit Exceeded
+        if (res.status === 402 || detail.toLowerCase().includes("saldo") || detail.toLowerCase().includes("insuficiente")) {
+          setStatus("insufficient_credits");
+          setInsufficientMsg(detail);
+          return;
+        }
+
+        throw new Error(detail || `Erro no servidor (${res.status})`);
       }
 
       const data = await res.json();
@@ -200,6 +223,7 @@ export default function TranscribeForm() {
     setUrl("");
     setFile(null);
     setErrorMsg("");
+    setInsufficientMsg("");
   };
 
   const canSubmit = mode === "url" ? url.trim().length > 5 : !!file;
@@ -284,7 +308,7 @@ export default function TranscribeForm() {
                 <button
                   id="btn-transcribe-url"
                   className="btn-primary"
-                  onClick={handleTranscribe}
+                  onClick={() => handleTranscribe()}
                   disabled={!canSubmit}
                   style={{ opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}
                 >
@@ -376,7 +400,7 @@ export default function TranscribeForm() {
                 <button
                   id="btn-transcribe-upload"
                   className="btn-primary"
-                  onClick={handleTranscribe}
+                  onClick={() => handleTranscribe()}
                   disabled={!canSubmit}
                   style={{ opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? "pointer" : "not-allowed" }}
                 >
@@ -409,6 +433,112 @@ export default function TranscribeForm() {
             <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <p style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "8px" }}>{progress}%</p>
+        </div>
+      )}
+
+      {/* INSUFFICIENT CREDITS / EXCEEDED TIME UPSELL STATE */}
+      {status === "insufficient_credits" && (
+        <div className="glass-card" style={{
+          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1))",
+          border: "1px solid rgba(124, 58, 237, 0.4)",
+          borderRadius: "16px",
+          padding: "36px 24px",
+          textAlign: "center",
+          boxShadow: "0 10px 40px rgba(124, 58, 237, 0.2)",
+          marginTop: "16px"
+        }}>
+          <div style={{
+            width: 56, height: 56,
+            background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
+            borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 16px",
+            boxShadow: "0 8px 24px rgba(124, 58, 237, 0.4)"
+          }}>
+            <Zap size={28} color="white" />
+          </div>
+
+          <h3 style={{ fontSize: "1.45rem", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
+            Você precisa de mais minutos para este vídeo
+          </h3>
+
+          <p style={{ color: "#cbd5e1", fontSize: "15px", maxWidth: 520, margin: "0 auto 24px", lineHeight: 1.6 }}>
+            {insufficientMsg || "A duração deste vídeo excede o tempo disponível no seu saldo atual."}
+          </p>
+
+          {/* Packages Showcase (NO per-minute pricing) */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: "12px",
+            maxWidth: 580,
+            margin: "0 auto 28px"
+          }}>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "12px",
+              padding: "16px 12px",
+              textAlign: "center"
+            }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Starter</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>60 minutos</div>
+              <div style={{ fontSize: "15px", color: "#A78BFA", fontWeight: 700 }}>R$ 4,90</div>
+            </div>
+
+            <div style={{
+              background: "rgba(124, 58, 237, 0.16)",
+              border: "1px solid rgba(124, 58, 237, 0.45)",
+              borderRadius: "12px",
+              padding: "16px 12px",
+              textAlign: "center",
+              position: "relative"
+            }}>
+              <div style={{ position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)", background: "#7C3AED", color: "white", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "100px" }}>POPULAR</div>
+              <div style={{ fontSize: "11px", color: "#C4B5FD", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Pro</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>300 minutos</div>
+              <div style={{ fontSize: "15px", color: "#67E8F9", fontWeight: 700 }}>R$ 17,90</div>
+            </div>
+
+            <div style={{
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "12px",
+              padding: "16px 12px",
+              textAlign: "center"
+            }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Business</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>1.000 minutos</div>
+              <div style={{ fontSize: "15px", color: "#10B981", fontWeight: 700 }}>R$ 79,90</div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            <Link
+              href="/precos"
+              className="btn-primary"
+              style={{
+                padding: "14px 32px",
+                fontSize: "15px",
+                fontWeight: 700,
+                textDecoration: "none",
+                boxShadow: "0 8px 25px rgba(124, 58, 237, 0.4)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
+            >
+              <Zap size={16} /> Recarregar Mais Minutos Agora <ArrowRight size={16} />
+            </Link>
+            <button
+              className="btn-secondary"
+              onClick={handleReset}
+              style={{ padding: "14px 22px", fontSize: "14px" }}
+            >
+              <RotateCcw size={15} /> Tentar outro vídeo
+            </button>
+          </div>
         </div>
       )}
 

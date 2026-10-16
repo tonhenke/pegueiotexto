@@ -28,8 +28,7 @@ function LoginForm() {
     setErrorMsg("");
     setLoading(true);
     try {
-      const hasPendingUrl = typeof window !== "undefined" && !!localStorage.getItem("pegueiotexto_pending_url");
-      const target = hasPendingUrl ? `${window.location.origin}/` : `${window.location.origin}/dashboard`;
+      const target = `${window.location.origin}/dashboard?auto_transcribe=true`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -46,13 +45,10 @@ function LoginForm() {
   };
 
   const redirectAfterAuth = () => {
-    const hasPendingUrl = typeof window !== "undefined" && !!localStorage.getItem("pegueiotexto_pending_url");
     if (redirectParam) {
       router.push(redirectParam);
-    } else if (hasPendingUrl) {
-      router.push("/?restored=true");
     } else {
-      router.push("/dashboard");
+      router.push("/dashboard?auto_transcribe=true");
     }
   };
 
