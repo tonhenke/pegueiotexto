@@ -33,8 +33,13 @@ async def transcribe_from_url(
     if not req.url or not req.url.startswith("http"):
         raise HTTPException(status_code=400, detail="URL inválida. Forneça uma URL completa iniciando com http:// ou https://")
 
-    # 1. Identify user (if logged in)
+    # 1. Identify user (mandatory for transcription)
     user = verify_token_and_get_user(authorization)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticação necessária. Crie sua conta grátis em segundos para transcrever e liberar seus 5 minutos grátis!"
+        )
 
     downloaded_audio = None
     try:
@@ -43,24 +48,12 @@ async def transcribe_from_url(
         downloaded_audio = download_info["audio_path"]
         duration_seconds = int(download_info.get("duration") or 60)
 
-        credits_remaining = None
-        minutes_deducted = 0
-
         # 3. Credit verification & deduction
-        if user:
-            credit_check = check_and_deduct_credits(user["id"], duration_seconds)
-            if not credit_check["allowed"]:
-                # Insufficient credits: delete audio immediately and reject
-                raise HTTPException(status_code=402, detail=credit_check["error"])
-            credits_remaining = credit_check["credits_remaining"]
-            minutes_deducted = credit_check["minutes_deducted"]
-        else:
-            # Guest visitor on landing page (demo limit 120s)
-            if duration_seconds > 180:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Este vídeo tem mais de 3 minutos. Crie sua conta grátis para receber 5 minutos de bônus e transcrever agora!"
-                )
+        credit_check = check_and_deduct_credits(user["id"], duration_seconds)
+        if not credit_check["allowed"]:
+            raise HTTPException(status_code=402, detail=credit_check["error"])
+        credits_remaining = credit_check["credits_remaining"]
+        minutes_deducted = credit_check["minutes_deducted"]
 
         # 4. Transcribe using Whisper
         transcription = transcribe_audio_file(
@@ -134,6 +127,11 @@ async def transcribe_from_upload(
         )
 
     user = verify_token_and_get_user(authorization)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticação necessária. Crie sua conta grátis em segundos para transcrever e liberar seus 5 minutos grátis!"
+        )
 
     temp_file_path = None
     try:
@@ -152,16 +150,13 @@ async def transcribe_from_upload(
         )
 
         duration_seconds = int(transcription.get("duration") or 60)
-        credits_remaining = None
-        minutes_deducted = 0
 
         # Credit check & deduction
-        if user:
-            credit_check = check_and_deduct_credits(user["id"], duration_seconds)
-            if not credit_check["allowed"]:
-                raise HTTPException(status_code=402, detail=credit_check["error"])
-            credits_remaining = credit_check["credits_remaining"]
-            minutes_deducted = credit_check["minutes_deducted"]
+        credit_check = check_and_deduct_credits(user["id"], duration_seconds)
+        if not credit_check["allowed"]:
+            raise HTTPException(status_code=402, detail=credit_check["error"])
+        credits_remaining = credit_check["credits_remaining"]
+        minutes_deducted = credit_check["minutes_deducted"]
 
         title = file.filename or "Arquivo de mídia"
         text = transcription.get("text", "")

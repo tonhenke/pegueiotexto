@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
   Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw
@@ -32,6 +33,7 @@ const platforms = [
 ];
 
 export default function TranscribeForm() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("url");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -48,9 +50,33 @@ export default function TranscribeForm() {
   const [errorMsg, setErrorMsg] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isRestored, setIsRestored] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedUrl = localStorage.getItem("pegueiotexto_pending_url");
+      if (savedUrl) {
+        setUrl(savedUrl);
+        setIsRestored(true);
+        localStorage.removeItem("pegueiotexto_pending_url");
+      }
+    }
+  }, []);
+
   const handleTranscribe = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // If user is not authenticated, redirect to login/signup to earn 5 free minutes!
+    if (!session) {
+      if (mode === "url" && url.trim()) {
+        localStorage.setItem("pegueiotexto_pending_url", url.trim());
+      }
+      router.push("/login?signup=true&reason=transcribe");
+      return;
+    }
+
     setStatus("loading");
     setProgress(15);
     setTranscript("");
@@ -186,6 +212,34 @@ export default function TranscribeForm() {
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      {/* Restored notice banner */}
+      {isRestored && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
+          background: "rgba(16, 185, 129, 0.12)",
+          border: "1px solid rgba(16, 185, 129, 0.3)",
+          borderRadius: "12px",
+          padding: "12px 16px",
+          marginBottom: "20px",
+          color: "#6ee7b7",
+          fontSize: "13px",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <CheckCircle2 size={16} color="#10B981" />
+            <span>Link do seu vídeo recuperado! Seus <strong>5 minutos grátis</strong> já estão prontos para usar. Clique em &quot;Transcrever Vídeo Agora&quot; abaixo.</span>
+          </span>
+          <button
+            onClick={() => setIsRestored(false)}
+            style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: "16px" }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* MODE TABS */}
       <div className="tab-list" style={{ marginBottom: "24px" }}>
         <button
