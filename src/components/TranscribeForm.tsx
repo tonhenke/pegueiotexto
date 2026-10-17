@@ -32,10 +32,15 @@ const platforms = [
   { name: "Twitch", color: "#9146FF", emoji: "🎮" },
 ];
 
-export default function TranscribeForm() {
+interface TranscribeFormProps {
+  initialPlaceholder?: string;
+  defaultUrl?: string;
+}
+
+export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: TranscribeFormProps = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("url");
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(defaultUrl);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState(0);
@@ -299,7 +304,7 @@ export default function TranscribeForm() {
                   id="video-url-input"
                   type="url"
                   className="input-base"
-                  placeholder="https://youtube.com/watch?v=..."
+                  placeholder={initialPlaceholder || "https://youtube.com/watch?v=..."}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && canSubmit && handleTranscribe()}

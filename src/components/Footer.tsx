@@ -32,10 +32,10 @@ const footerLinks = {
     { label: "Changelog", href: "#changelog" },
   ],
   "Plataformas": [
-    { label: "YouTube", href: "#" },
-    { label: "Instagram", href: "#" },
-    { label: "TikTok", href: "#" },
-    { label: "Vimeo", href: "#" },
+    { label: "YouTube Transcrição", href: "/transcrever-youtube" },
+    { label: "Instagram Reels", href: "/transcrever-instagram" },
+    { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
+    { label: "Todos os Formatos", href: "/#como-funciona" },
   ],
   "Empresa": [
     { label: "Sobre nós", href: "#" },
