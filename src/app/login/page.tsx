@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { Mic2, Eye, EyeOff, ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
@@ -120,16 +121,16 @@ function LoginForm() {
     <div style={{ width: "100%", maxWidth: 440 }}>
       {/* Logo */}
       <div style={{ textAlign: "center", marginBottom: "32px" }}>
-        <div style={{
-          width: 52, height: 52,
-          background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-          borderRadius: "16px",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          margin: "0 auto 16px",
-          boxShadow: "0 8px 32px rgba(124,58,237,0.4)",
-        }}>
-          <Mic2 size={24} color="white" />
-        </div>
+        <Link href="/" style={{ display: "inline-block", textDecoration: "none", marginBottom: "16px" }}>
+          <Image
+            src="/logo.png"
+            alt="Peguei o Texto"
+            width={160}
+            height={75}
+            priority
+            style={{ height: "54px", width: "auto", objectFit: "contain" }}
+          />
+        </Link>
         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: "6px" }}>
           {isLogin ? "Bem-vindo de volta" : "Criar conta grátis"}
         </h1>

@@ -53,6 +53,15 @@ export const metadata: Metadata = {
     title: "Peguei o Texto — Transcrição de Vídeos em Segundos",
     description: "Cole o link. Pegue o texto. Transcreva YouTube, TikTok, Instagram e áudios com IA.",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png" },
+    ],
+  },
 };
 
 const jsonLd = {

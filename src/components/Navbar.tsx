@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Mic2, Menu, X, User, LogOut } from "lucide-react";
+import Image from "next/image";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
@@ -48,19 +49,15 @@ export default function Navbar() {
       <div className="container">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* Logo */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-            <div style={{
-              width: 36, height: 36,
-              background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-              borderRadius: "10px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 16px rgba(124,58,237,0.4)"
-            }}>
-              <Mic2 size={18} color="white" />
-            </div>
-            <span style={{ fontWeight: 800, fontSize: "18px", color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              Peguei o <span className="text-gradient">Texto</span>
-            </span>
+          <Link href="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
+            <Image
+              src="/logo.png"
+              alt="Peguei o Texto"
+              width={120}
+              height={56}
+              priority
+              style={{ height: "38px", width: "auto", objectFit: "contain" }}
+            />
           </Link>
 
           {/* Desktop Nav */}

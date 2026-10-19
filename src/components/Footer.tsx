@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Mic2 } from "lucide-react";
+import Image from "next/image";
 
 const TwitterIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -52,18 +52,14 @@ export default function Footer() {
         <div className="footer-grid">
           {/* Brand */}
           <div>
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", marginBottom: "16px" }}>
-              <div style={{
-                width: 36, height: 36,
-                background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-                borderRadius: "10px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Mic2 size={18} color="white" />
-              </div>
-              <span style={{ fontWeight: 800, fontSize: "18px", color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-                Peguei o <span className="text-gradient">Texto</span>
-              </span>
+            <Link href="/" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", marginBottom: "16px" }}>
+              <Image
+                src="/logo.png"
+                alt="Peguei o Texto"
+                width={130}
+                height={60}
+                style={{ height: "42px", width: "auto", objectFit: "contain" }}
+              />
             </Link>
             <p style={{ color: "var(--text-muted)", fontSize: "14px", lineHeight: "1.7", maxWidth: "280px", marginBottom: "24px" }}>
               Transcrição de vídeos e áudios com IA. Rápido, preciso e com privacidade garantida.
