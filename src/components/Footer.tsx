@@ -17,7 +17,7 @@ const footerLinks = {
     { label: "Sobre nós", href: "/sobre-nos" },
     { label: "Blog", href: "#" },
     { label: "Privacidade", href: "/privacidade" },
-    { label: "Termos de uso", href: "#" },
+    { label: "Termos de uso", href: "/termos-de-uso", target: "_blank" },
   ],
 };
 
@@ -49,10 +49,12 @@ export default function Footer() {
                 {category}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {links.map((link) => (
+                {links.map((link: any) => (
                   <Link
                     key={link.label}
                     href={link.href}
+                    target={link.target}
+                    rel={link.target === "_blank" ? "noopener noreferrer" : undefined}
                     style={{ color: "var(--text-muted)", textDecoration: "none", fontSize: "14px", transition: "color 0.2s" }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
                     onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
@@ -75,9 +77,14 @@ export default function Footer() {
             <Link href="/privacidade" style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}>
               Privacidade
             </Link>
-            <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+            <Link
+              href="/termos-de-uso"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}
+            >
               Termos de uso
-            </span>
+            </Link>
             <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>
               Cookies
             </span>
