@@ -101,7 +101,14 @@ async def transcribe_from_url(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao processar vídeo: {str(e)}")
+        err_str = str(e)
+        if "Sign in to confirm you're not a bot" in err_str:
+            friendly_err = (
+                "O YouTube solicitou temporariamente uma confirmação antibot para este link. "
+                "Tente novamente em instantes ou faça o upload direto do arquivo pela aba 'Enviar arquivo'."
+            )
+            raise HTTPException(status_code=500, detail=friendly_err)
+        raise HTTPException(status_code=500, detail=f"Erro ao processar vídeo: {err_str}")
     finally:
         # CRITICAL PRIVACY: Delete media immediately
         if downloaded_audio:

@@ -1,11 +1,29 @@
+import os
 import uuid
 import shutil
+from typing import Optional
 from pathlib import Path
 import yt_dlp
 from app.config import TEMP_MEDIA_DIR
 
 def has_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None
+
+def get_cookie_file_path() -> Optional[str]:
+    """
+    Checks for cookies in environment variable YOUTUBE_COOKIES or local cookies.txt.
+    """
+    env_cookies = os.environ.get("YOUTUBE_COOKIES", "").strip()
+    if env_cookies:
+        cookie_path = TEMP_MEDIA_DIR / "youtube_cookies.txt"
+        cookie_path.write_text(env_cookies, encoding="utf-8")
+        return str(cookie_path)
+    
+    local_cookies = Path(__file__).resolve().parent.parent.parent / "cookies.txt"
+    if local_cookies.exists():
+        return str(local_cookies)
+        
+    return None
 
 def download_audio_from_url(url: str) -> dict:
     """
@@ -29,7 +47,20 @@ def download_audio_from_url(url: str) -> dict:
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios", "mweb"]
+            }
+        },
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
     }
+
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        ydl_opts["cookiefile"] = cookie_file
 
     if has_ffmpeg():
         ydl_opts["postprocessors"] = [{
