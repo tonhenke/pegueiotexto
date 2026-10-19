@@ -14,7 +14,7 @@ const footerLinks = {
     { label: "Todos os Formatos", href: "/#como-funciona" },
   ],
   "Empresa": [
-    { label: "Sobre nós", href: "#" },
+    { label: "Sobre nós", href: "/sobre-nos" },
     { label: "Blog", href: "#" },
     { label: "Privacidade", href: "#" },
     { label: "Termos de uso", href: "#" },
