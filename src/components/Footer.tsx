@@ -16,7 +16,7 @@ const footerLinks = {
   "Empresa": [
     { label: "Sobre nós", href: "/sobre-nos" },
     { label: "Blog", href: "#" },
-    { label: "Privacidade", href: "#" },
+    { label: "Privacidade", href: "/privacidade" },
     { label: "Termos de uso", href: "#" },
   ],
 };
@@ -72,11 +72,15 @@ export default function Footer() {
             © {new Date().getFullYear()} Peguei o Texto. Todos os direitos reservados.
           </p>
           <div style={{ display: "flex", gap: "24px" }}>
-            {["Privacidade", "Termos", "Cookies"].map((item) => (
-              <a key={item} href="#" style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}>
-                {item}
-              </a>
-            ))}
+            <Link href="/privacidade" style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}>
+              Privacidade
+            </Link>
+            <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+              Termos de uso
+            </span>
+            <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+              Cookies
+            </span>
           </div>
         </div>
       </div>
