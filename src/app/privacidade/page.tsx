@@ -416,16 +416,7 @@ export default function PrivacidadePage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "15px" }}>
                 <div>
-                  <strong style={{ color: "var(--text-primary)" }}>E-mail de Contato:</strong>{" "}
-                  <a
-                    href="mailto:contato@pegueiotexto.com.br"
-                    style={{ color: "#06B6D4", textDecoration: "none", fontWeight: 600 }}
-                  >
-                    contato@pegueiotexto.com.br
-                  </a>
-                </div>
-                <div>
-                  <strong style={{ color: "var(--text-primary)" }}>E-mail de Suporte Alternativo:</strong>{" "}
+                  <strong style={{ color: "var(--text-primary)" }}>E-mail de Contato e Suporte:</strong>{" "}
                   <a
                     href="mailto:pegueiotexto@gmail.com"
                     style={{ color: "#06B6D4", textDecoration: "none", fontWeight: 600 }}
