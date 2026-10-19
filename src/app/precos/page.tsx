@@ -119,10 +119,10 @@ export default function PrecosPage() {
         }),
       });
       const data = await res.json();
-      if (data.checkout_url) {
+      if (res.ok && data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        alert("Erro ao iniciar pagamento. Tente novamente.");
+        alert(data.detail || "Erro ao iniciar pagamento. Tente novamente.");
       }
     } catch (err) {
       console.error("Erro no checkout:", err);
