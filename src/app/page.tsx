@@ -45,7 +45,7 @@ const features = [
   {
     icon: <Zap size={20} />,
     title: "Transcrição em segundos",
-    desc: "Processado com Whisper Large v3 via Groq LPU — muito mais rápido que GPU convencional.",
+    desc: "Processado com Inteligência Artificial avançada — muito mais rápido que ferramentas convencionais.",
     color: "#06B6D4",
   },
   {
@@ -123,13 +123,6 @@ export default function HomePage() {
 
         <div className="container" style={{ position: "relative", zIndex: 1 }}>
           <div style={{ maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
-            {/* Badge */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
-              <span className="badge badge-purple">
-                <Sparkles size={10} />
-                Whisper Large v3 · Groq LPU · 98% de precisão
-              </span>
-            </div>
 
             {/* Heading */}
             <h1 className="hero-title" style={{ marginBottom: "24px", color: "var(--text-primary)" }}>
