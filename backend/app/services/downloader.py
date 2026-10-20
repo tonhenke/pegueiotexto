@@ -40,41 +40,68 @@ def download_audio_from_url(url: str) -> dict:
     file_id = str(uuid.uuid4())
     output_template = str(TEMP_MEDIA_DIR / f"{file_id}.%(ext)s")
 
-    ydl_opts = {
+    base_opts = {
         "outtmpl": output_template,
         "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android", "ios", "mweb"]
-            }
-        },
-        "http_headers": {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        }
     }
 
     cookie_file = get_cookie_file_path()
     if cookie_file:
-        ydl_opts["cookiefile"] = cookie_file
+        base_opts["cookiefile"] = cookie_file
 
     if has_ffmpeg():
-        ydl_opts["postprocessors"] = [{
+        base_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
             "preferredquality": "128",
         }]
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        title = info.get("title", "Áudio da Internet")
-        duration = int(info.get("duration") or 0)
-        uploader = info.get("uploader", "Desconhecido")
-        extractor = info.get("extractor_key", "Web")
+    # Strategy 1 (Primary): Direct Mobile InnerTube API (android)
+    # player_skip skips downloading the browser HTML page, bypassing datacenter IP bot detection
+    opts_mobile_android = {
+        **base_opts,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android"],
+                "player_skip": ["webpage", "configs", "js"]
+            }
+        }
+    }
+
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_mobile_android) as ydl:
+            info = ydl.extract_info(url, download=True)
+    except Exception as e1:
+        print(f"[Downloader] Estratégia android direta falhou: {e1}. Tentando android + ios...")
+        try:
+            opts_mobile_combo = {
+                **base_opts,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios"],
+                        "player_skip": ["webpage", "configs", "js"]
+                    }
+                }
+            }
+            with yt_dlp.YoutubeDL(opts_mobile_combo) as ydl:
+                info = ydl.extract_info(url, download=True)
+        except Exception as e2:
+            print(f"[Downloader] Estratégia combo falhou: {e2}. Tentando fallback genérico...")
+            with yt_dlp.YoutubeDL(base_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+
+    if not info:
+        raise RuntimeError("Não foi possível extrair informações do vídeo.")
+
+    title = info.get("title", "Áudio da Internet")
+    duration = int(info.get("duration") or 0)
+    uploader = info.get("uploader", "Desconhecido")
+    extractor = info.get("extractor_key", "Web")
 
     # Locate the downloaded file
     matching_files = list(TEMP_MEDIA_DIR.glob(f"{file_id}.*"))
