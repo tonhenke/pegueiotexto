@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
-  Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight
+  Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight,
+  Sparkles, Check, FileDown
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { exportToTxt, exportToSrt, exportToVtt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
 
 type Mode = "url" | "upload";
 type Status = "idle" | "loading" | "done" | "error" | "insufficient_credits";
@@ -57,6 +59,16 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
+  const [resultTab, setResultTab] = useState<"transcript" | "summary" | "srt">("transcript");
+  const [summaryData, setSummaryData] = useState<{
+    executive_summary?: string;
+    key_points?: string[];
+    takeaway?: string;
+  } | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryCopied, setSummaryCopied] = useState(false);
+  const [isExportingDocx, setIsExportingDocx] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -193,19 +205,87 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     URL.revokeObjectURL(blobUrl);
   };
 
+  const getFullSummaryText = () => {
+    if (!summaryData) return undefined;
+    return `RESUMO EXECUTIVO:\n${summaryData.executive_summary || ""}\n\nPRINCIPAIS PONTOS:\n${(summaryData.key_points || []).map((p) => `• ${p}`).join("\n")}\n\nCONCLUSÃO:\n${summaryData.takeaway || ""}`;
+  };
+
   const handleDownloadTxt = () => {
-    const safeTitle = (resultTitle || "transcricao").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
-    downloadFile(transcript, `${safeTitle}.txt`, "text/plain;charset=utf-8");
+    exportToTxt(transcript, resultTitle || "transcricao");
   };
 
   const handleDownloadSrt = () => {
-    const safeTitle = (resultTitle || "transcricao").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
-    downloadFile(resultSrt || transcript, `${safeTitle}.srt`, "text/plain;charset=utf-8");
+    exportToSrt(resultSrt || transcript, resultTitle || "legendas");
   };
 
   const handleDownloadVtt = () => {
-    const safeTitle = (resultTitle || "transcricao").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
-    downloadFile(resultVtt || transcript, `${safeTitle}.vtt`, "text/vtt;charset=utf-8");
+    exportToVtt(resultVtt || transcript, resultTitle || "legendas");
+  };
+
+  const handleDownloadDocx = async () => {
+    setIsExportingDocx(true);
+    try {
+      await exportToDocx(transcript, resultTitle || "Transcrição", {
+        duration: resultDuration ?? undefined,
+        summary: getFullSummaryText(),
+      });
+    } catch (err) {
+      console.error("Erro ao gerar DOCX:", err);
+      alert("Erro ao gerar arquivo Word. Tente novamente.");
+    } finally {
+      setIsExportingDocx(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    setIsExportingPdf(true);
+    try {
+      exportToPdf(transcript, resultTitle || "Transcrição", {
+        duration: resultDuration ?? undefined,
+        summary: getFullSummaryText(),
+      });
+    } catch (err) {
+      console.error("Erro ao gerar PDF:", err);
+      alert("Erro ao gerar arquivo PDF. Tente novamente.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    if (!transcript) return;
+    setIsSummarizing(true);
+    try {
+      const res = await fetch("/api/transcribe/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: transcript,
+          title: resultTitle || "Transcrição",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSummaryData(data);
+        setResultTab("summary");
+      } else {
+        alert(data.detail || "Não foi possível gerar o resumo.");
+      }
+    } catch (err) {
+      console.error("Erro ao gerar resumo:", err);
+      alert("Falha de conexão com o servidor ao gerar resumo.");
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleCopySummary = () => {
+    const text = getFullSummaryText();
+    if (text) {
+      navigator.clipboard.writeText(text);
+      setSummaryCopied(true);
+      setTimeout(() => setSummaryCopied(false), 2000);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -229,6 +309,8 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     setFile(null);
     setErrorMsg("");
     setInsufficientMsg("");
+    setSummaryData(null);
+    setResultTab("transcript");
   };
 
   const canSubmit = mode === "url" ? url.trim().length > 5 : !!file;
@@ -611,46 +693,336 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             </button>
           </div>
 
-          {/* Transcript box */}
-          <div className="glass-card" style={{ padding: "0" }}>
-            {/* Toolbar */}
-            <div style={{
-              padding: "14px 20px",
-              borderBottom: "1px solid var(--border-subtle)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <FileText size={15} color="#A78BFA" />
-                <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
-                  Texto Transcrito
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button id="btn-copy" className="btn-ghost" style={{ fontSize: "13px" }} onClick={handleCopy}>
-                  <Copy size={13} />
-                  {copied ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-            </div>
+          {/* RESULT TABS NAVIGATION */}
+          <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "8px" }}>
+            <button
+              onClick={() => setResultTab("transcript")}
+              style={{
+                background: resultTab === "transcript" ? "rgba(124, 58, 237, 0.15)" : "transparent",
+                color: resultTab === "transcript" ? "#A78BFA" : "var(--text-muted)",
+                border: resultTab === "transcript" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s"
+              }}
+            >
+              <FileText size={15} /> Texto Completo
+            </button>
 
-            {/* Text content */}
-            <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 360, overflowY: "auto" }}>
-              {transcript}
-            </div>
+            <button
+              onClick={() => setResultTab("summary")}
+              style={{
+                background: resultTab === "summary" ? "rgba(124, 58, 237, 0.15)" : "rgba(255, 255, 255, 0.03)",
+                color: resultTab === "summary" ? "#C4B5FD" : "var(--text-secondary)",
+                border: resultTab === "summary" ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid var(--border-subtle)",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s",
+                position: "relative"
+              }}
+            >
+              <Sparkles size={15} color="#A78BFA" />
+              <span>Resumo com IA</span>
+              {summaryData && (
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
+              )}
+            </button>
+
+            <button
+              onClick={() => setResultTab("srt")}
+              style={{
+                background: resultTab === "srt" ? "rgba(124, 58, 237, 0.15)" : "transparent",
+                color: resultTab === "srt" ? "#A78BFA" : "var(--text-muted)",
+                border: resultTab === "srt" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s"
+              }}
+            >
+              <FileCode size={15} /> Legendas (.SRT)
+            </button>
           </div>
 
-          {/* Download buttons */}
+          {/* TAB CONTENT: 1. FULL TRANSCRIPT */}
+          {resultTab === "transcript" && (
+            <div className="glass-card" style={{ padding: "0" }}>
+              <div style={{
+                padding: "14px 20px",
+                borderBottom: "1px solid var(--border-subtle)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FileText size={15} color="#A78BFA" />
+                  <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
+                    Texto Transcrito
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {!summaryData && (
+                    <button
+                      className="btn-ghost"
+                      style={{ fontSize: "13px", color: "#A78BFA", borderColor: "rgba(124, 58, 237, 0.35)", background: "rgba(124, 58, 237, 0.08)" }}
+                      onClick={handleGenerateSummary}
+                      disabled={isSummarizing}
+                    >
+                      {isSummarizing ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" /> Gerando resumo...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={13} /> Gerar resumo com IA
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button id="btn-copy" className="btn-ghost" style={{ fontSize: "13px" }} onClick={handleCopy}>
+                    {copied ? (
+                      <>
+                        <Check size={13} color="#10B981" /> Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={13} /> Copiar texto
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 380, overflowY: "auto" }}>
+                {transcript}
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: 2. AI SUMMARY */}
+          {resultTab === "summary" && (
+            <div className="glass-card" style={{ padding: "24px" }}>
+              {!summaryData ? (
+                <div style={{ textAlign: "center", padding: "24px 16px" }}>
+                  <div style={{
+                    width: 52, height: 52,
+                    background: "rgba(124, 58, 237, 0.15)",
+                    border: "1px solid rgba(124, 58, 237, 0.3)",
+                    borderRadius: "16px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    margin: "0 auto 16px",
+                  }}>
+                    <Sparkles size={24} color="#A78BFA" />
+                  </div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
+                    Resumo Inteligente e Tópicos com IA
+                  </h3>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 460, margin: "0 auto 24px", lineHeight: 1.6 }}>
+                    Nossa IA sintetiza esta transcrição em segundos com um resumo executivo, principais aprendizados e conclusões práticas.
+                  </p>
+                  <button
+                    className="btn-primary"
+                    onClick={handleGenerateSummary}
+                    disabled={isSummarizing}
+                    style={{ padding: "12px 28px", fontSize: "15px" }}
+                  >
+                    {isSummarizing ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Sintetizando com IA...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} /> Gerar Resumo Agora
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Sparkles size={16} color="#A78BFA" />
+                      <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)" }}>
+                        Síntese Inteligente do Conteúdo
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: "13px", color: summaryCopied ? "#10B981" : undefined }}
+                        onClick={handleCopySummary}
+                      >
+                        {summaryCopied ? (
+                          <>
+                            <Check size={13} color="#10B981" /> Resumo Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={13} /> Copiar Resumo
+                          </>
+                        )}
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        style={{ fontSize: "13px" }}
+                        onClick={handleGenerateSummary}
+                        disabled={isSummarizing}
+                        title="Regenerar resumo com IA"
+                      >
+                        <RotateCcw size={13} /> {isSummarizing ? "Regenerando..." : "Regenerar"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Executive Summary */}
+                  <div>
+                    <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                      📌 Resumo Executivo
+                    </h4>
+                    <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--text-secondary)", background: "rgba(255, 255, 255, 0.03)", padding: "14px 18px", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
+                      {summaryData.executive_summary}
+                    </p>
+                  </div>
+
+                  {/* Key Points */}
+                  {summaryData.key_points && summaryData.key_points.length > 0 && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#67E8F9", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>
+                        💡 Principais Pontos e Aprendizados
+                      </h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {summaryData.key_points.map((point, idx) => (
+                          <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", background: "rgba(255, 255, 255, 0.02)", padding: "10px 14px", borderRadius: "8px" }}>
+                            <Check size={15} color="#A78BFA" style={{ flexShrink: 0, marginTop: "3px" }} />
+                            <span style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6 }}>{point}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Takeaway */}
+                  {summaryData.takeaway && (
+                    <div>
+                      <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                        🎯 Conclusão e Próximos Passos
+                      </h4>
+                      <p style={{ fontSize: "14px", lineHeight: 1.6, color: "var(--text-secondary)", fontStyle: "italic", borderLeft: "3px solid #10B981", paddingLeft: "14px" }}>
+                        &quot;{summaryData.takeaway}&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB CONTENT: 3. SRT SUBTITLES */}
+          {resultTab === "srt" && (
+            <div className="glass-card" style={{ padding: "0" }}>
+              <div style={{
+                padding: "14px 20px",
+                borderBottom: "1px solid var(--border-subtle)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FileCode size={15} color="#A78BFA" />
+                  <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
+                    Legendas com Marcas de Tempo (.SRT)
+                  </span>
+                </div>
+                <button
+                  className="btn-ghost"
+                  style={{ fontSize: "13px" }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(resultSrt || transcript);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  {copied ? (
+                    <>
+                      <Check size={13} color="#10B981" /> Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} /> Copiar SRT
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 380, overflowY: "auto", fontFamily: "monospace", fontSize: "13px", lineHeight: 1.6 }}>
+                {resultSrt || transcript}
+              </div>
+            </div>
+          )}
+
+          {/* Download buttons: TXT, DOCX, PDF, SRT, VTT */}
           <div className="glass-card" style={{ padding: "20px 24px" }}>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Baixar Transcrição
             </p>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button id="btn-download-txt" className="btn-primary" style={{ fontSize: "14px" }} onClick={handleDownloadTxt}>
-                <FileText size={16} /> .TXT (Texto Completo)
+              <button id="btn-download-txt" className="btn-secondary" style={{ fontSize: "14px" }} onClick={handleDownloadTxt}>
+                <FileText size={16} /> .TXT (Texto)
+              </button>
+              <button
+                id="btn-download-docx"
+                className="btn-primary"
+                style={{ fontSize: "14px", background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)", borderColor: "#3B82F6" }}
+                onClick={handleDownloadDocx}
+                disabled={isExportingDocx}
+              >
+                {isExportingDocx ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Gerando Word...
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={16} /> .DOCX (Word Formatado)
+                  </>
+                )}
+              </button>
+              <button
+                id="btn-download-pdf"
+                className="btn-secondary"
+                style={{ fontSize: "14px", borderColor: "rgba(239, 68, 68, 0.4)", color: "#FCA5A5" }}
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+              >
+                {isExportingPdf ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Gerando PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={16} color="#EF4444" /> .PDF (Documento)
+                  </>
+                )}
               </button>
               <button id="btn-download-srt" className="btn-secondary" style={{ fontSize: "14px" }} onClick={handleDownloadSrt}>
                 <FileCode size={16} /> .SRT (Legendas)

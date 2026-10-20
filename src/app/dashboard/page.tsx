@@ -4,8 +4,13 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
-import { Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check } from "lucide-react";
+import { 
+  Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
+  Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
+  FileDown, Loader2, BookOpen, ListChecks, Lightbulb 
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -209,19 +214,89 @@ export default function DashboardPage() {
     window.location.href = "/";
   };
 
-  const downloadText = (text: string, title: string) => {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${title.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [summariesByItem, setSummariesByItem] = useState<Record<string, any>>({});
+  const [loadingSummaryId, setLoadingSummaryId] = useState<string | null>(null);
+  const [exportingDocxId, setExportingDocxId] = useState<string | null>(null);
+  const [exportingPdfId, setExportingPdfId] = useState<string | null>(null);
+
+  const getItemSummaryText = (itemId: string) => {
+    const s = summariesByItem[itemId];
+    if (!s) return "";
+    let str = "";
+    if (s.executive_summary) str += `RESUMO EXECUTIVO:\n${s.executive_summary}\n\n`;
+    if (s.key_points && s.key_points.length > 0) {
+      str += `PONTOS PRINCIPAIS:\n${s.key_points.map((p: string) => `• ${p}`).join("\n")}\n\n`;
+    }
+    if (s.takeaway) str += `PRINCIPAL CONCLUSAO:\n${s.takeaway}\n`;
+    return str.trim();
   };
 
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const handleExportTxt = (item: any) => {
+    const summary = getItemSummaryText(item.id);
+    const content = summary ? `${summary}\n\n====================\nTRANSCRIÇÃO COMPLETA:\n====================\n\n${item.text_content}` : item.text_content;
+    exportToTxt(content, item.title || "transcricao");
+  };
+
+  const handleExportDocx = async (item: any) => {
+    setExportingDocxId(item.id);
+    try {
+      await exportToDocx(item.text_content, item.title || "Transcrição", {
+        duration: item.duration_seconds,
+        platform: item.platform,
+        summary: getItemSummaryText(item.id),
+      });
+    } catch (err) {
+      console.error("Erro ao exportar Word:", err);
+      alert("Erro ao exportar arquivo Word (.docx).");
+    } finally {
+      setExportingDocxId(null);
+    }
+  };
+
+  const handleExportPdf = async (item: any) => {
+    setExportingPdfId(item.id);
+    try {
+      await exportToPdf(item.text_content, item.title || "Transcrição", {
+        duration: item.duration_seconds,
+        platform: item.platform,
+        summary: getItemSummaryText(item.id),
+      });
+    } catch (err) {
+      console.error("Erro ao exportar PDF:", err);
+      alert("Erro ao exportar arquivo PDF.");
+    } finally {
+      setExportingPdfId(null);
+    }
+  };
+
+  const handleGenerateSummary = async (item: any) => {
+    setLoadingSummaryId(item.id);
+    try {
+      const res = await fetch("/api/transcribe/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: item.text_content,
+          title: item.title || "Transcrição",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSummariesByItem((prev) => ({
+          ...prev,
+          [item.id]: data,
+        }));
+      } else {
+        alert(data.detail || "Não foi possível gerar o resumo com IA.");
+      }
+    } catch (err) {
+      console.error("Erro ao gerar resumo:", err);
+      alert("Falha de conexão com o servidor ao gerar resumo.");
+    } finally {
+      setLoadingSummaryId(null);
+    }
+  };
 
   const handleCopyText = (text: string, id: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -505,12 +580,12 @@ export default function DashboardPage() {
                         <span style={{ color: "#6EE7B7" }}>-{item.minutes_deducted || 1} min</span>
                       </p>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
                       <button
                         className="btn-ghost"
                         onClick={() => handleCopyText(item.text_content, item.id)}
                         style={{
-                          fontSize: "13px", padding: "6px 14px",
+                          fontSize: "13px", padding: "6px 12px",
                           display: "inline-flex", alignItems: "center", gap: "6px",
                           color: copiedId === item.id ? "#6EE7B7" : undefined,
                           borderColor: copiedId === item.id ? "rgba(16, 185, 129, 0.4)" : undefined,
@@ -532,80 +607,285 @@ export default function DashboardPage() {
                       <button
                         className="btn-ghost"
                         onClick={() => setActiveItem(activeItem?.id === item.id ? null : item)}
-                        style={{ fontSize: "13px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                        style={{
+                          fontSize: "13px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px",
+                          borderColor: activeItem?.id === item.id ? "rgba(124, 58, 237, 0.5)" : undefined,
+                          background: activeItem?.id === item.id ? "rgba(124, 58, 237, 0.12)" : undefined,
+                          color: activeItem?.id === item.id ? "#A78BFA" : undefined
+                        }}
                       >
-                        <Eye size={14} /> {activeItem?.id === item.id ? "Fechar" : "Ler texto"}
+                        <Eye size={14} /> {activeItem?.id === item.id ? "Ocultar" : "Ver texto & IA"}
+                      </button>
+
+                      <button
+                        className="btn-ghost"
+                        onClick={() => handleExportTxt(item)}
+                        style={{ fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px" }}
+                        title="Baixar arquivo de texto puro (.txt)"
+                      >
+                        <Download size={13} /> .TXT
+                      </button>
+
+                      <button
+                        className="btn-ghost"
+                        onClick={() => handleExportDocx(item)}
+                        disabled={exportingDocxId === item.id}
+                        style={{
+                          fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px",
+                          borderColor: "rgba(59, 130, 246, 0.35)", background: "rgba(59, 130, 246, 0.08)", color: "#93C5FD"
+                        }}
+                        title="Baixar documento formatado para Microsoft Word (.docx)"
+                      >
+                        {exportingDocxId === item.id ? (
+                          <>
+                            <Loader2 size={13} className="spin" /> Gerando Word...
+                          </>
+                        ) : (
+                          <>
+                            <FileDown size={13} /> .DOCX (Word)
+                          </>
+                        )}
                       </button>
 
                       <button
                         className="btn-primary"
-                        onClick={() => downloadText(item.text_content, item.title)}
-                        style={{ fontSize: "13px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                        onClick={() => handleExportPdf(item)}
+                        disabled={exportingPdfId === item.id}
+                        style={{
+                          fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "5px",
+                          background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+                          boxShadow: "0 2px 10px rgba(239, 68, 68, 0.3)"
+                        }}
+                        title="Baixar documento em formato PDF (.pdf)"
                       >
-                        <Download size={14} /> Baixar .TXT
+                        {exportingPdfId === item.id ? (
+                          <>
+                            <Loader2 size={13} className="spin" /> Gerando PDF...
+                          </>
+                        ) : (
+                          <>
+                            <FileDown size={13} /> .PDF
+                          </>
+                        )}
                       </button>
                     </div>
 
-                    {/* Expandable text preview */}
+                    {/* Expandable text preview with AI Summary & Full Transcript */}
                     {activeItem?.id === item.id && (
                       <div style={{
                         width: "100%",
-                        marginTop: "12px",
-                        padding: "16px",
-                        background: "rgba(0,0,0,0.3)",
-                        borderRadius: "10px",
-                        border: "1px solid var(--border-subtle)",
+                        marginTop: "16px",
+                        padding: "20px",
+                        background: "rgba(10, 10, 15, 0.65)",
+                        borderRadius: "14px",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
                         fontSize: "14px",
                         lineHeight: 1.6
                       }}>
+                        {/* Top bar */}
                         <div style={{
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          paddingBottom: "10px",
-                          marginBottom: "12px",
+                          paddingBottom: "14px",
+                          marginBottom: "16px",
                           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                           flexWrap: "wrap",
-                          gap: "8px"
+                          gap: "10px"
                         }}>
-                          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
-                            Transcrição completa • {item.text_content.length} caracteres
-                          </span>
-                          <button
-                            onClick={() => handleCopyText(item.text_content, `inner-${item.id}`)}
-                            className="btn-ghost"
-                            style={{
-                              fontSize: "12px",
-                              padding: "5px 14px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "6px",
-                              borderRadius: "8px",
-                              background: copiedId === `inner-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(124, 58, 237, 0.15)",
-                              border: copiedId === `inner-${item.id}` ? "1px solid rgba(16, 185, 129, 0.5)" : "1px solid rgba(124, 58, 237, 0.35)",
-                              color: copiedId === `inner-${item.id}` ? "#6EE7B7" : "#A78BFA",
-                              cursor: "pointer"
-                            }}
-                          >
-                            {copiedId === `inner-${item.id}` ? (
-                              <>
-                                <Check size={13} color="#6EE7B7" /> Texto copiado!
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={13} /> Copiar texto completo
-                              </>
-                            )}
-                          </button>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span className="badge badge-purple" style={{ fontSize: "11px" }}>
+                              Detalhes
+                            </span>
+                            <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+                              {item.text_content.length} caracteres
+                            </span>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <button
+                              onClick={() => handleGenerateSummary(item)}
+                              disabled={loadingSummaryId === item.id}
+                              style={{
+                                fontSize: "12px",
+                                padding: "6px 14px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                borderRadius: "8px",
+                                background: "linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%)",
+                                border: "1px solid rgba(124, 58, 237, 0.5)",
+                                color: "#E0E7FF",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {loadingSummaryId === item.id ? (
+                                <>
+                                  <Loader2 size={13} className="spin" color="#A78BFA" /> Gerando resumo...
+                                </>
+                              ) : summariesByItem[item.id] ? (
+                                <>
+                                  <RefreshCw size={13} color="#A78BFA" /> Atualizar Resumo com IA
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={13} color="#A78BFA" /> ✨ Gerar Resumo com IA
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={() => handleCopyText(item.text_content, `inner-${item.id}`)}
+                              className="btn-ghost"
+                              style={{
+                                fontSize: "12px",
+                                padding: "6px 12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                borderRadius: "8px",
+                                background: copiedId === `inner-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                                border: copiedId === `inner-${item.id}` ? "1px solid rgba(16, 185, 129, 0.5)" : "1px solid var(--border-subtle)",
+                                color: copiedId === `inner-${item.id}` ? "#6EE7B7" : "var(--text-secondary)",
+                                cursor: "pointer"
+                              }}
+                            >
+                              {copiedId === `inner-${item.id}` ? (
+                                <>
+                                  <Check size={13} color="#6EE7B7" /> Texto copiado!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={13} /> Copiar texto completo
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <div style={{
-                          maxHeight: "260px",
-                          overflowY: "auto",
-                          color: "var(--text-secondary)",
-                          whiteSpace: "pre-wrap",
-                          userSelect: "text"
-                        }}>
-                          {item.text_content}
+
+                        {/* AI Summary Loading state */}
+                        {loadingSummaryId === item.id && (
+                          <div style={{
+                            padding: "20px",
+                            marginBottom: "18px",
+                            background: "rgba(124, 58, 237, 0.08)",
+                            borderRadius: "12px",
+                            border: "1px dashed rgba(124, 58, 237, 0.4)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "14px",
+                          }}>
+                            <Loader2 size={24} className="spin" color="#A78BFA" />
+                            <div>
+                              <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+                                Analisando conteúdo com Groq Llama 3.3...
+                              </p>
+                              <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                                Sintetizando pontos centrais e lições práticas em segundos.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* AI Summary Section if present */}
+                        {summariesByItem[item.id] && (
+                          <div style={{
+                            padding: "18px",
+                            marginBottom: "20px",
+                            background: "linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(10, 10, 20, 0.4) 100%)",
+                            borderRadius: "12px",
+                            border: "1px solid rgba(124, 58, 237, 0.35)",
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <Sparkles size={16} color="#A78BFA" />
+                                <span style={{ fontSize: "14px", fontWeight: 700, color: "#E0E7FF" }}>
+                                  Síntese Inteligente (Groq Llama 3.3)
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => handleCopyText(getItemSummaryText(item.id), `sum-${item.id}`)}
+                                className="btn-ghost"
+                                style={{
+                                  fontSize: "11px",
+                                  padding: "4px 10px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  color: copiedId === `sum-${item.id}` ? "#6EE7B7" : "#A78BFA"
+                                }}
+                              >
+                                {copiedId === `sum-${item.id}` ? <Check size={12} color="#6EE7B7" /> : <Copy size={12} />}
+                                {copiedId === `sum-${item.id}` ? "Resumo copiado!" : "Copiar resumo"}
+                              </button>
+                            </div>
+
+                            {/* Executive Summary */}
+                            <div style={{ marginBottom: "14px" }}>
+                              <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#A78BFA", fontWeight: 700, marginBottom: "4px" }}>
+                                Resumo Executivo
+                              </p>
+                              <p style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.6 }}>
+                                {summariesByItem[item.id].executive_summary}
+                              </p>
+                            </div>
+
+                            {/* Key Points */}
+                            {summariesByItem[item.id].key_points && summariesByItem[item.id].key_points.length > 0 && (
+                              <div style={{ marginBottom: "14px" }}>
+                                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#67E8F9", fontWeight: 700, marginBottom: "6px" }}>
+                                  Pontos Principais
+                                </p>
+                                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
+                                  {summariesByItem[item.id].key_points.map((pt: string, idx: number) => (
+                                    <li key={idx} style={{ fontSize: "13px", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                      <span style={{ color: "#67E8F9", fontSize: "14px", lineHeight: 1 }}>•</span>
+                                      <span>{pt}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Takeaway */}
+                            {summariesByItem[item.id].takeaway && (
+                              <div style={{
+                                padding: "12px 14px",
+                                background: "rgba(16, 185, 129, 0.08)",
+                                border: "1px solid rgba(16, 185, 129, 0.25)",
+                                borderRadius: "8px",
+                              }}>
+                                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#6EE7B7", fontWeight: 700, marginBottom: "3px" }}>
+                                  Principal Conclusão
+                                </p>
+                                <p style={{ fontSize: "13px", color: "var(--text-primary)", margin: 0 }}>
+                                  {summariesByItem[item.id].takeaway}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Full transcript viewer */}
+                        <div>
+                          <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700, marginBottom: "8px" }}>
+                            Texto Completo
+                          </p>
+                          <div style={{
+                            maxHeight: "260px",
+                            overflowY: "auto",
+                            color: "var(--text-secondary)",
+                            whiteSpace: "pre-wrap",
+                            userSelect: "text",
+                            padding: "12px",
+                            background: "rgba(0,0,0,0.25)",
+                            borderRadius: "8px",
+                            border: "1px solid rgba(255, 255, 255, 0.05)",
+                            fontSize: "13px"
+                          }}>
+                            {item.text_content}
+                          </div>
                         </div>
                       </div>
                     )}

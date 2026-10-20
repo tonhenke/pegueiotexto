@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.config import TEMP_MEDIA_DIR
 from app.services.downloader import download_audio_from_url
 from app.services.transcriber import transcribe_audio_file
+from app.services.summarizer import summarize_transcription
 from app.services.cleaner import secure_delete_file
 from app.services.database import (
     verify_token_and_get_user,
@@ -232,3 +233,18 @@ def transcription_health():
         "groq_configured": bool(GROQ_API_KEY and GROQ_API_KEY != "sua_chave_groq_aqui"),
         "supported_platforms": "YouTube, TikTok, Instagram, Vimeo, X/Twitter, Facebook, e mais de 1.700 sites"
     }
+
+class SummarizeRequest(BaseModel):
+    text: str
+    title: Optional[str] = "Transcrição"
+
+@router.post("/summarize")
+def summarize_endpoint(req: SummarizeRequest):
+    """
+    Produces an executive summary and key takeaways for any transcript using Groq LLM.
+    """
+    if not req.text or len(req.text.strip()) < 10:
+        raise HTTPException(status_code=400, detail="Texto muito curto para gerar resumo.")
+    res = summarize_transcription(text=req.text, title=req.title or "Transcrição")
+    return res
+
