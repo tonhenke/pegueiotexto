@@ -116,6 +116,8 @@ export default function PrecosPage() {
           plan_id: planId,
           user_id: user.id,
           email: user.email,
+          success_url: `${window.location.origin}/dashboard?payment=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/precos?payment=cancelled`,
         }),
       });
       const data = await res.json();
