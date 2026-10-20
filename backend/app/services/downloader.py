@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import shutil
 from typing import Optional
@@ -25,6 +26,26 @@ def get_cookie_file_path() -> Optional[str]:
         
     return None
 
+def normalize_video_url(url: str) -> str:
+    """
+    Normalizes video URLs to ensure maximum extraction compatibility:
+    - Vimeo: converts public web URLs (vimeo.com/<id>) to public player embeds
+      (player.vimeo.com/video/<id>) to bypass login requirements.
+    """
+    url = (url or "").strip()
+    vimeo_match = re.search(
+        r"vimeo\.com/(?:channels/(?:\w+/)?|groups/[^/]+/videos/|album/(?:\d+/)?video/|video/|)(\d+)(?:/([a-zA-Z0-9]+))?",
+        url
+    )
+    if vimeo_match and "player.vimeo.com" not in url:
+        video_id = vimeo_match.group(1)
+        h_hash = vimeo_match.group(2)
+        if h_hash:
+            return f"https://player.vimeo.com/video/{video_id}?h={h_hash}"
+        return f"https://player.vimeo.com/video/{video_id}"
+
+    return url
+
 def download_audio_from_url(url: str) -> dict:
     """
     Downloads the audio track of any video URL supported by yt-dlp.
@@ -37,6 +58,7 @@ def download_audio_from_url(url: str) -> dict:
             "uploader": str
         }
     """
+    url = normalize_video_url(url)
     file_id = str(uuid.uuid4())
     output_template = str(TEMP_MEDIA_DIR / f"{file_id}.%(ext)s")
 

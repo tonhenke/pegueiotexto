@@ -109,6 +109,12 @@ async def transcribe_from_url(
                 "Tente novamente em instantes ou faça o upload direto do arquivo pela aba 'Enviar arquivo'."
             )
             raise HTTPException(status_code=500, detail=friendly_err)
+        if "logged-in" in err_lower and "vimeo" in err_lower:
+            friendly_err = (
+                "Este vídeo do Vimeo é privado ou requer login direto na conta do autor. "
+                "Faça o upload do arquivo de vídeo diretamente pela aba 'Enviar arquivo'."
+            )
+            raise HTTPException(status_code=500, detail=friendly_err)
         raise HTTPException(status_code=500, detail=f"Erro ao processar vídeo: {err_str}")
     finally:
         # CRITICAL PRIVACY: Delete media immediately
