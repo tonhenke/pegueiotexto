@@ -4,7 +4,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
-import { Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, Eye, Sparkles, ShieldCheck, Crown, RefreshCw } from "lucide-react";
+import { Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
@@ -219,6 +219,16 @@ export default function DashboardPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyText = (text: string, id: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2500);
+    }
   };
 
   const credits = profile?.credits_minutes ?? 5;
@@ -495,18 +505,42 @@ export default function DashboardPage() {
                         <span style={{ color: "#6EE7B7" }}>-{item.minutes_deducted || 1} min</span>
                       </p>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap" }}>
+                      <button
+                        className="btn-ghost"
+                        onClick={() => handleCopyText(item.text_content, item.id)}
+                        style={{
+                          fontSize: "13px", padding: "6px 14px",
+                          display: "inline-flex", alignItems: "center", gap: "6px",
+                          color: copiedId === item.id ? "#6EE7B7" : undefined,
+                          borderColor: copiedId === item.id ? "rgba(16, 185, 129, 0.4)" : undefined,
+                          background: copiedId === item.id ? "rgba(16, 185, 129, 0.12)" : undefined
+                        }}
+                        title="Copiar texto para a área de transferência"
+                      >
+                        {copiedId === item.id ? (
+                          <>
+                            <Check size={14} color="#6EE7B7" /> Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} /> Copiar
+                          </>
+                        )}
+                      </button>
+
                       <button
                         className="btn-ghost"
                         onClick={() => setActiveItem(activeItem?.id === item.id ? null : item)}
-                        style={{ fontSize: "13px", padding: "6px 14px" }}
+                        style={{ fontSize: "13px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                       >
                         <Eye size={14} /> {activeItem?.id === item.id ? "Fechar" : "Ler texto"}
                       </button>
+
                       <button
                         className="btn-primary"
                         onClick={() => downloadText(item.text_content, item.title)}
-                        style={{ fontSize: "13px", padding: "6px 14px" }}
+                        style={{ fontSize: "13px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                       >
                         <Download size={14} /> Baixar .TXT
                       </button>
@@ -522,12 +556,57 @@ export default function DashboardPage() {
                         borderRadius: "10px",
                         border: "1px solid var(--border-subtle)",
                         fontSize: "14px",
-                        lineHeight: 1.6,
-                        maxHeight: "240px",
-                        overflowY: "auto",
-                        color: "var(--text-secondary)"
+                        lineHeight: 1.6
                       }}>
-                        {item.text_content}
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingBottom: "10px",
+                          marginBottom: "12px",
+                          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                          flexWrap: "wrap",
+                          gap: "8px"
+                        }}>
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
+                            Transcrição completa • {item.text_content.length} caracteres
+                          </span>
+                          <button
+                            onClick={() => handleCopyText(item.text_content, `inner-${item.id}`)}
+                            className="btn-ghost"
+                            style={{
+                              fontSize: "12px",
+                              padding: "5px 14px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              borderRadius: "8px",
+                              background: copiedId === `inner-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(124, 58, 237, 0.15)",
+                              border: copiedId === `inner-${item.id}` ? "1px solid rgba(16, 185, 129, 0.5)" : "1px solid rgba(124, 58, 237, 0.35)",
+                              color: copiedId === `inner-${item.id}` ? "#6EE7B7" : "#A78BFA",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {copiedId === `inner-${item.id}` ? (
+                              <>
+                                <Check size={13} color="#6EE7B7" /> Texto copiado!
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={13} /> Copiar texto completo
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <div style={{
+                          maxHeight: "260px",
+                          overflowY: "auto",
+                          color: "var(--text-secondary)",
+                          whiteSpace: "pre-wrap",
+                          userSelect: "text"
+                        }}>
+                          {item.text_content}
+                        </div>
                       </div>
                     )}
                   </div>
