@@ -95,7 +95,6 @@ const faqs = [
 
 export default function PrecosPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [billing, setBilling] = useState<"creditos" | "payg">("creditos");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleBuyPlan = async (planId: string) => {
@@ -140,41 +139,22 @@ export default function PrecosPage() {
       <div style={{ paddingTop: "100px" }}>
 
         {/* ── HERO ── */}
-        <section style={{ padding: "60px 0", textAlign: "center" }}>
+        <section style={{ padding: "60px 0 40px", textAlign: "center" }}>
           <div className="container">
             <span className="badge badge-purple" style={{ marginBottom: "20px" }}>
               <Sparkles size={10} /> Preços transparentes
             </span>
             <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 4rem)", fontWeight: 900, letterSpacing: "-0.03em", marginBottom: "16px", lineHeight: 1.1 }}>
-              Pague apenas pelo que usar
+              Pacotes de minutos sob demanda
             </h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: "18px", maxWidth: 500, margin: "0 auto 32px" }}>
-              Sem assinatura mensal, sem surpresas. Compre créditos e use no seu ritmo.
+            <p style={{ color: "var(--text-secondary)", fontSize: "18px", maxWidth: 540, margin: "0 auto" }}>
+              Sem mensalidades ou assinaturas recorrentes. Compre minutos quando precisar e use no seu ritmo.
             </p>
-
-            {/* Toggle */}
-            <div className="tab-list" style={{ maxWidth: 320, margin: "0 auto" }}>
-              <button
-                id="tab-creditos"
-                className={`tab-item ${billing === "creditos" ? "active" : ""}`}
-                onClick={() => setBilling("creditos")}
-              >
-                Pacotes
-              </button>
-              <button
-                id="tab-payg"
-                className={`tab-item ${billing === "payg" ? "active" : ""}`}
-                onClick={() => setBilling("payg")}
-              >
-                Pay-as-you-go
-              </button>
-            </div>
           </div>
         </section>
 
         {/* ── PRICING CARDS ── */}
-        {billing === "creditos" ? (
-          <section style={{ padding: "0 0 80px" }}>
+        <section style={{ padding: "0 0 80px" }}>
             <div className="container">
               {/* Free trial notice */}
               <div style={{
@@ -276,42 +256,6 @@ export default function PrecosPage() {
               </div>
             </div>
           </section>
-        ) : (
-          <section style={{ padding: "0 0 80px" }}>
-            <div className="container">
-              <div style={{ maxWidth: 600, margin: "0 auto" }}>
-                <div className="pricing-card" style={{ textAlign: "center" }}>
-                  <div style={{ width: 60, height: 60, background: "rgba(124,58,237,0.12)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                    <Zap size={28} color="#A78BFA" />
-                  </div>
-                  <h2 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "8px" }}>Pay-as-you-go</h2>
-                  <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>Pague apenas pelo que usar, sem comprar pacote</p>
-                  <div style={{ marginBottom: "32px" }}>
-                    <span className="price-amount" style={{ color: "#A78BFA" }}>R$ 0,20</span>
-                    <span style={{ color: "var(--text-muted)", fontSize: "16px" }}> / minuto</span>
-                  </div>
-                  <button id="btn-buy-payg" className="btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: "28px", fontSize: "15px" }}>
-                    Começar sem pacote <ArrowRight size={15} />
-                  </button>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", textAlign: "left" }}>
-                    {[
-                      "Sem compra mínima",
-                      "Download em .TXT, .SRT e .DOCX",
-                      "Suporte a +1.700 plataformas",
-                      "Pagamento via Stripe (cartão ou Pix)",
-                      "Faturamento ao final de cada sessão",
-                    ].map((f) => (
-                      <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <Check size={15} color="#A78BFA" />
-                        <span style={{ fontSize: "14px", color: "var(--text-secondary)" }}>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* ── FAQ ── */}
         <section style={{ padding: "0 0 100px" }}>
