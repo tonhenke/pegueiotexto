@@ -288,7 +288,10 @@ export default function DashboardPage() {
           [item.id]: data,
         }));
       } else {
-        alert(data.detail || "Não foi possível gerar o resumo com IA.");
+        const errMsg = typeof data?.detail === "string" && data.detail !== "Not Found"
+          ? data.detail
+          : "Não foi possível gerar o resumo neste momento. Tente novamente em instantes.";
+        alert(errMsg);
       }
     } catch (err) {
       console.error("Erro ao gerar resumo:", err);

@@ -269,7 +269,10 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         setSummaryData(data);
         setResultTab("summary");
       } else {
-        alert(data.detail || "Não foi possível gerar o resumo.");
+        const errMsg = typeof data?.detail === "string" && data.detail !== "Not Found"
+          ? data.detail
+          : "Não foi possível gerar o resumo neste momento. Tente novamente em instantes.";
+        alert(errMsg);
       }
     } catch (err) {
       console.error("Erro ao gerar resumo:", err);

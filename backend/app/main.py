@@ -51,6 +51,7 @@ def root():
         "endpoints": {
             "transcribe_url": "POST /api/transcribe/url",
             "transcribe_upload": "POST /api/transcribe/upload",
+            "transcribe_summarize": "POST /api/transcribe/summarize",
             "checkout_plans": "GET /api/checkout/plans",
             "checkout_session": "POST /api/checkout/create-session",
             "checkout_webhook": "POST /api/checkout/webhook",
