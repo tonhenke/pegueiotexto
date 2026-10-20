@@ -114,13 +114,15 @@ def create_checkout_session(
 
 def retrieve_session(session_id: str) -> Optional[Dict[str, Any]]:
     """
-    Retrieves a Stripe Checkout Session by ID.
+    Retrieves a Stripe Checkout Session by ID as a dictionary.
     """
     if not STRIPE_SECRET_KEY or STRIPE_SECRET_KEY == "sua_chave_stripe_aqui":
         return None
     try:
         session = stripe.checkout.Session.retrieve(session_id)
-        return session
+        if hasattr(session, "to_dict"):
+            return session.to_dict()
+        return dict(session)
     except Exception as e:
         print(f"[Stripe] Erro ao recuperar sessão {session_id}: {e}")
         return None
@@ -128,7 +130,7 @@ def retrieve_session(session_id: str) -> Optional[Dict[str, Any]]:
 def find_recent_paid_sessions_for_user(
     user_id: Optional[str] = None,
     user_email: Optional[str] = None,
-    limit: int = 20
+    limit: int = 50
 ) -> list:
     """
     Finds recent paid checkout sessions matching user ID or user email.
@@ -140,7 +142,8 @@ def find_recent_paid_sessions_for_user(
         sessions = stripe.checkout.Session.list(limit=limit)
         matching = []
         raw_list = sessions.data if hasattr(sessions, "data") else sessions
-        for s in raw_list:
+        for raw_s in raw_list:
+            s = raw_s.to_dict() if hasattr(raw_s, "to_dict") else dict(raw_s)
             if s.get("payment_status") != "paid":
                 continue
             meta = s.get("metadata", {}) or {}

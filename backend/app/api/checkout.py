@@ -122,28 +122,46 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
         "rls_fallback_needed": fulfill_result.get("rls_fallback_needed", False)
     }
 
+class SyncStatusRequest(BaseModel):
+    user_id: Optional[str] = None
+    email: Optional[str] = None
+
 @router.post("/sync-status")
-def sync_user_status(authorization: Optional[str] = Header(None)):
+def sync_user_status(
+    req: Optional[SyncStatusRequest] = None,
+    authorization: Optional[str] = Header(None)
+):
     """
     Syncs the user's credits and active plan.
     Checks Stripe for any unfulfilled paid sessions for this user (e.g. recent Pix purchases).
     Returns the active plan and balance.
     """
-    user = verify_token_and_get_user(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Usuário não autenticado.")
+    user_id = None
+    user_email = None
 
-    user_id = user["id"]
-    user_email = user.get("email")
+    if authorization:
+        user = verify_token_and_get_user(authorization)
+        if user:
+            user_id = user["id"]
+            user_email = user.get("email")
+
+    if not user_id and req and req.user_id:
+        user_id = req.user_id
+        user_email = req.email or user_email
+
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado.")
 
     fulfilled_any = False
     latest_plan = None
     latest_balance = None
     minutes_added_total = 0
+    rls_fallback = False
 
     # Check Stripe for any paid sessions for this user
     try:
         paid_sessions = find_recent_paid_sessions_for_user(user_id=user_id, user_email=user_email)
+        print(f"[Sync] Buscando sessões para user_id={user_id}, email={user_email}. Encontradas: {len(paid_sessions)}")
         for s in paid_sessions:
             meta = s.get("metadata", {}) or {}
             plan_id = meta.get("plan_id", "starter").lower()
@@ -162,27 +180,37 @@ def sync_user_status(authorization: Optional[str] = Header(None)):
                 stripe_session_id=s_id,
                 user_email=user_email
             )
+            if res.get("rls_fallback_needed"):
+                rls_fallback = True
+
             if not res.get("already_processed"):
                 fulfilled_any = True
                 latest_plan = plan_id
                 latest_balance = res.get("new_balance")
                 minutes_added_total += minutes
-                print(f"[Sync] Sessão {s_id} encontrada e creditada com sucesso para {user_email} (+{minutes} min).")
+                print(f"[Sync] Sessão {s_id} creditada com sucesso para {user_email} (+{minutes} min). Novo saldo: {latest_balance}")
+            else:
+                if not latest_plan:
+                    latest_plan = plan_id
+                if latest_balance is None:
+                    latest_balance = res.get("new_balance")
     except Exception as e:
         print(f"[Sync] Erro ao sincronizar com Stripe: {e}")
 
     # Fetch active plan and balance
     active_info = get_user_active_plan(user_id)
+    plan_to_return = latest_plan or active_info["plan"]
 
     return {
         "success": True,
         "synced": fulfilled_any,
-        "plan": latest_plan or active_info["plan"],
-        "plan_name": active_info["plan_name"],
+        "plan": plan_to_return,
+        "plan_name": active_info["plan_name"] if not latest_plan else latest_plan.capitalize(),
         "credits_minutes": latest_balance if latest_balance is not None else active_info["credits_minutes"],
         "credits_added": minutes_added_total,
-        "is_paid": active_info["is_paid"] or fulfilled_any,
-        "fulfilled_now": fulfilled_any
+        "is_paid": active_info["is_paid"] or bool(latest_plan and latest_plan != "gratuito"),
+        "fulfilled_now": fulfilled_any,
+        "rls_fallback_needed": rls_fallback
     }
 
 @router.get("/user-plan")

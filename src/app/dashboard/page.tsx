@@ -4,7 +4,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
-import { Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, Eye, Sparkles, ShieldCheck, Crown } from "lucide-react";
+import { Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, Eye, Sparkles, ShieldCheck, Crown, RefreshCw } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
@@ -105,8 +105,13 @@ export default function DashboardPage() {
             const syncRes = await fetch("/api/checkout/sync-status", {
               method: "POST",
               headers: {
+                "Content-Type": "application/json",
                 ...authHeaders,
               },
+              body: JSON.stringify({
+                user_id: user.id,
+                email: user.email,
+              }),
             });
             const syncData = await syncRes.json();
             if (syncRes.ok && syncData.success) {
@@ -130,14 +135,23 @@ export default function DashboardPage() {
                 );
               }
 
-              // Update profiles table if plan or credits evolved
-              if (profileData && (profileData.credits_minutes !== activeCredits || profileData.plan !== activePlan)) {
-                await supabase.from("profiles").upsert({
+              // Update profiles table safely with fallback if 'plan' column does not exist yet
+              try {
+                const { error: upsertErr } = await supabase.from("profiles").upsert({
                   id: user.id,
                   credits_minutes: activeCredits,
                   plan: activePlan,
                   updated_at: new Date().toISOString(),
                 });
+                if (upsertErr) {
+                  await supabase.from("profiles").upsert({
+                    id: user.id,
+                    credits_minutes: activeCredits,
+                    updated_at: new Date().toISOString(),
+                  });
+                }
+              } catch (eUpsert) {
+                console.warn("Profiles upsert fallback:", eUpsert);
               }
             }
           } catch (e) {
@@ -348,6 +362,18 @@ export default function DashboardPage() {
                     {credits} min restantes
                   </span>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setLoading(true);
+                    loadUserData();
+                  }}
+                  className="btn-ghost"
+                  title="Sincronizar pagamentos e créditos"
+                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <RefreshCw size={14} className={loading ? "spin" : ""} /> Sincronizar
+                </button>
 
                 <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
                   Recarregar minutos <ArrowRight size={14} />
