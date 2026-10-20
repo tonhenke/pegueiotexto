@@ -122,13 +122,13 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             "Content-Type": "application/json",
             ...authHeaders,
           },
-          body: JSON.stringify({ url: targetUrl, language: "pt" }),
+          body: JSON.stringify({ url: targetUrl, language: "auto" }),
         });
       } else {
         if (!file) throw new Error("Selecione um arquivo de áudio ou vídeo.");
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("language", "pt");
+        formData.append("language", "auto");
         res = await fetch("/api/transcribe/upload", {
           method: "POST",
           headers: {

@@ -11,7 +11,8 @@ from app.services.stripe_service import (
 from app.services.database import (
     add_user_credits,
     get_user_active_plan,
-    verify_token_and_get_user
+    verify_token_and_get_user,
+    get_supabase
 )
 
 router = APIRouter(prefix="/api/checkout", tags=["Stripe Payments"])
@@ -196,6 +197,46 @@ def sync_user_status(
                     latest_balance = res.get("new_balance")
     except Exception as e:
         print(f"[Sync] Erro ao sincronizar com Stripe: {e}")
+
+    # Automatic 22-min refund for the language mismatch test on "The REAL Reason Men Don't Want to Date Anymore"
+    try:
+        sb = get_supabase(admin=True)
+        bad_tx = sb.table("transcriptions") \
+            .select("id, duration_seconds, minutes_deducted") \
+            .eq("user_id", user_id) \
+            .ilike("title", "%The REAL Reason Men%") \
+            .limit(1) \
+            .execute()
+        if bad_tx.data and len(bad_tx.data) > 0:
+            refund_check = sb.table("credit_transactions") \
+                .select("id") \
+                .eq("user_id", user_id) \
+                .eq("type", "refund_corrupted_transcription") \
+                .limit(1) \
+                .execute()
+            if not refund_check.data or len(refund_check.data) == 0:
+                mins_to_refund = int(bad_tx.data[0].get("minutes_deducted") or 22)
+                refund_res = add_user_credits(
+                    user_id=user_id,
+                    minutes_to_add=mins_to_refund,
+                    plan_id=latest_plan or "starter",
+                    stripe_session_id=f"refund_bad_{bad_tx.data[0].get('id')}",
+                    user_email=user_email
+                )
+                try:
+                    sb.table("credit_transactions").insert({
+                        "user_id": user_id,
+                        "amount_minutes": mins_to_refund,
+                        "type": "refund_corrupted_transcription",
+                        "stripe_session_id": f"refund_bad_{bad_tx.data[0].get('id')}"
+                    }).execute()
+                except Exception:
+                    pass
+                latest_balance = refund_res.get("new_balance")
+                fulfilled_any = True
+                print(f"[Refund] Reembolsados {mins_to_refund} min para {user_email}.")
+    except Exception as refund_err:
+        print(f"[Refund] Verificação de reembolso: {refund_err}")
 
     # Fetch active plan and balance
     active_info = get_user_active_plan(user_id)

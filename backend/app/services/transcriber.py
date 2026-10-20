@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from groq import Groq
 from app.config import GROQ_API_KEY
 
@@ -59,9 +59,15 @@ def mock_transcription(title: str = "Vídeo") -> dict:
         "engine": "mock-whisper (adicione GROQ_API_KEY no .env para transcrição real)"
     }
 
-def transcribe_audio_file(audio_path: str | Path, language: str = "pt", model: str = "whisper-large-v3-turbo") -> dict:
+def transcribe_audio_file(
+    audio_path: str | Path,
+    language: Optional[str] = None,
+    model: str = "whisper-large-v3-turbo"
+) -> dict:
     """
     Transcribes an audio file using Groq Whisper Large v3 API.
+    If language is None or 'auto', Whisper automatically detects the spoken language
+    and transcribes purely in that language (no forced translation or mixed language).
     """
     path = Path(audio_path)
     if not path.exists():
@@ -74,11 +80,16 @@ def transcribe_audio_file(audio_path: str | Path, language: str = "pt", model: s
 
     client = Groq(api_key=GROQ_API_KEY)
 
+    # Determine target language: None allows Whisper to auto-detect the speaker's true language
+    target_lang = None
+    if language and str(language).strip().lower() not in ["auto", "detect", "none", ""]:
+        target_lang = str(language).strip().lower()
+
     with open(path, "rb") as file_handle:
         transcription_resp = client.audio.transcriptions.create(
             file=(path.name, file_handle.read()),
             model=model,
-            language=language if language != "auto" else None,
+            language=target_lang,
             response_format="verbose_json",
             temperature=0.0
         )

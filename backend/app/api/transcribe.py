@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/transcribe", tags=["Transcription"])
 
 class TranscribeUrlRequest(BaseModel):
     url: str
-    language: str = "pt"
+    language: Optional[str] = None
 
 @router.post("/url")
 async def transcribe_from_url(
@@ -117,7 +117,7 @@ async def transcribe_from_url(
 @router.post("/upload")
 async def transcribe_from_upload(
     file: UploadFile = File(...),
-    language: str = Form("pt"),
+    language: Optional[str] = Form(None),
     authorization: Optional[str] = Header(None)
 ):
     """
