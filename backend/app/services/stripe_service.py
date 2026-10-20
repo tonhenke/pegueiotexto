@@ -8,21 +8,21 @@ stripe.api_key = STRIPE_SECRET_KEY
 PLANS: Dict[str, Dict[str, Any]] = {
     "starter": {
         "name": "Pacote Starter (60 minutos)",
-        "description": "60 minutos de transcrição com IA Whisper",
+        "description": "60 minutos de transcrição com Inteligência Artificial",
         "amount": 490,  # R$ 4,90 in cents
         "currency": "brl",
         "minutes": 60,
     },
     "pro": {
         "name": "Pacote Pro (300 minutos)",
-        "description": "300 minutos de transcrição com IA Whisper",
+        "description": "300 minutos de transcrição com Inteligência Artificial",
         "amount": 1790,  # R$ 17,90 in cents
         "currency": "brl",
         "minutes": 300,
     },
     "business": {
         "name": "Pacote Business (1.000 minutos)",
-        "description": "1.000 minutos de transcrição com IA Whisper",
+        "description": "1.000 minutos de transcrição com Inteligência Artificial",
         "amount": 7990,  # R$ 79,90 in cents
         "currency": "brl",
         "minutes": 1000,

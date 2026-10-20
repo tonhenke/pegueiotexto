@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | Peguei o Texto",
   },
   description:
-    "Transcreva qualquer vídeo do YouTube, Instagram Reels, TikTok, Vimeo ou arquivo em texto em segundos com IA Whisper. 98% de precisão em português. 5 minutos grátis!",
+    "Transcreva qualquer vídeo do YouTube, Instagram Reels, TikTok, Vimeo ou arquivo em texto em segundos com Inteligência Artificial avançada. 98% de precisão em português. 5 minutos grátis!",
   keywords: [
     "transcrever video",
     "transcrever video do youtube",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "transcrever tiktok",
     "gerar legendas srt",
     "converter video em texto",
-    "whisper ia portugues",
+    "ia transcrever audio portugues",
     "ia transcrição",
     "peguei o texto"
   ],
@@ -74,7 +74,7 @@ const jsonLd = {
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "All",
       "description":
-        "Transcreva vídeos do YouTube, Instagram, TikTok e áudios em segundos usando Inteligência Artificial Whisper com 98% de precisão em português.",
+        "Transcreva vídeos do YouTube, Instagram, TikTok e áudios em segundos usando Inteligência Artificial avançada com 98% de precisão em português.",
       "offers": {
         "@type": "Offer",
         "price": "0",

@@ -187,7 +187,7 @@ export async function exportToDocx(
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: "Transcrito com alta fidelidade pelo Peguei o Texto • IA Whisper",
+          text: "Transcrito com alta fidelidade pelo Peguei o Texto • Inteligência Artificial",
           size: 16, // 8pt
           color: "9CA3AF",
         }),
@@ -258,7 +258,7 @@ export function exportToPdf(
     doc.setFontSize(8);
     doc.setTextColor(160, 160, 160);
     doc.text(
-      `Página ${pageNum} • Transcrição gerada por Peguei o Texto com IA Whisper`,
+      `Página ${pageNum} • Transcrição gerada por Peguei o Texto com Inteligência Artificial`,
       pageWidth / 2,
       pageHeight - 8,
       { align: "center" }

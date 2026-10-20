@@ -17,7 +17,7 @@ const DEMO_TRANSCRIPT = `[00:00] Bem-vindos ao nosso canal! Hoje vamos falar sob
 
 [00:12] Nos últimos anos, vimos uma explosão no volume de vídeos produzidos, de podcasts a webinars, de reuniões a aulas online. Mas todo esse conteúdo fica inacessível se não tiver texto associado.
 
-[00:28] É aí que entra a transcrição automática. Com modelos modernos como o Whisper da OpenAI, conseguimos uma precisão impressionante mesmo em áudios com sotaque regional ou ruído de fundo.
+[00:28] É aí que entra a transcrição automática. Com modelos modernos de Inteligência Artificial, conseguimos uma precisão impressionante mesmo em áudios com sotaque regional ou ruído de fundo.
 
 [00:45] E o melhor: em português brasileiro, a qualidade é excelente. Conseguimos capturar expressões idiomáticas, gírias e variações regionais com alta fidelidade.
 
@@ -183,7 +183,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         setResultDuration(data.duration || null);
         setMinutesDeducted(data.minutes_deducted || 0);
         setMediaDeleted(data.media_deleted ?? true);
-        setEngineUsed(data.engine || "Whisper IA");
+        setEngineUsed("Inteligência Artificial");
       }, 300);
     } catch (err: any) {
       clearInterval(interval);
@@ -321,7 +321,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const progressLabel =
     progress < 25 ? "Conectando ao servidor..." :
     progress < 50 ? (mode === "url" ? "Baixando stream do vídeo..." : "Enviando arquivo...") :
-    progress < 75 ? "Processando áudio com Whisper..." :
+    progress < 75 ? "Processando áudio com Inteligência Artificial..." :
     progress < 95 ? "Formatando legendas e texto..." : "Pronto!";
 
   return (
@@ -683,7 +683,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               </p>
               <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
                 {resultDuration ? `${Math.floor(resultDuration / 60)}m ${Math.round(resultDuration % 60)}s • ` : ""}
-                {transcript.split(/\s+/).filter(Boolean).length} palavras • {engineUsed || "Whisper IA"}
+                {transcript.split(/\s+/).filter(Boolean).length} palavras • {engineUsed || "Inteligência Artificial"}
                 {minutesDeducted > 0 && (
                   <span style={{ marginLeft: "8px", color: "#6EE7B7", fontWeight: 600 }}>
                     (-{minutesDeducted} min)

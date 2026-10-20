@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Transcrever Reels do Instagram em Texto com IA | Peguei o Texto",
-    description: "Extraia o texto de qualquer vídeo do Instagram Reels em segundos com Whisper IA. Teste grátis!",
+    description: "Extraia o texto de qualquer vídeo do Instagram Reels em segundos com Inteligência Artificial. Teste grátis!",
     url: "https://pegueiotexto.com.br/transcrever-instagram",
   },
 };
@@ -180,7 +180,7 @@ export default function TranscreverInstagramPage() {
               },
               {
                 q: "A IA entende músicas com fala por cima?",
-                a: "Sim! O modelo Whisper Large v3 possui filtros avançados que conseguem separar a voz humana das trilhas sonoras de fundo comuns no Instagram."
+                a: "Sim! Nossa tecnologia de Inteligência Artificial possui filtros avançados que conseguem separar a voz humana das trilhas sonoras de fundo comuns no Instagram."
               },
               {
                 q: "Minhas informações do Instagram ficam salvas?",

@@ -54,7 +54,7 @@ const srtFaqSchema = {
       "name": "As legendas já vêm sincronizadas com o tempo do vídeo?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Sim! O modelo Whisper IA detecta milissegundo a milissegundo as pausas e inícios de cada frase, gerando marcações temporais ultraprecisas."
+        "text": "Sim! Nossa tecnologia de Inteligência Artificial detecta milissegundo a milissegundo as pausas e inícios de cada frase, gerando marcações temporais ultraprecisas."
       }
     }
   ]
@@ -88,7 +88,7 @@ export default function GerarLegendasSrtPage() {
             <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 3.4rem)", fontWeight: 900, lineHeight: 1.15, letterSpacing: "-0.03em", marginBottom: "20px" }}>
               Gerar legendas .SRT automáticas <br />
               <span style={{ background: "linear-gradient(135deg, #06B6D4, #3B82F6, #8B5CF6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                sincronizadas com IA Whisper
+                sincronizadas com Inteligência Artificial
               </span>
             </h1>
 

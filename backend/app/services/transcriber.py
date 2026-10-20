@@ -43,7 +43,7 @@ def mock_transcription(title: str = "Vídeo") -> dict:
     """Simulated transcription for testing when no Groq API Key is configured."""
     segments = [
         {"start": 0.0, "end": 6.5, "text": f"Olá a todos! Bem-vindos à transcrição de {title} no Peguei o Texto."},
-        {"start": 6.8, "end": 14.2, "text": "Nossa plataforma utiliza modelos de ponta baseados no Whisper Large v3 para garantir máxima precisão em português."},
+        {"start": 6.8, "end": 14.2, "text": "Nossa plataforma utiliza modelos de ponta baseados em Inteligência Artificial para garantir máxima precisão em português."},
         {"start": 14.5, "end": 22.0, "text": "Este resultado inclui marcas temporais completas para gerar arquivos .SRT de legendas e .VTT para a web."},
         {"start": 22.4, "end": 30.1, "text": "Para ativar transcrições reais com áudio ao vivo, basta configurar sua GROQ_API_KEY no arquivo .env do backend."},
         {"start": 30.5, "end": 38.0, "text": "Lembrando que o arquivo de mídia carregado é permanentemente excluído logo após o processamento para garantir total privacidade."}
@@ -56,7 +56,7 @@ def mock_transcription(title: str = "Vídeo") -> dict:
         "vtt": segments_to_vtt(segments),
         "language": "pt",
         "duration": 38.0,
-        "engine": "mock-whisper (adicione GROQ_API_KEY no .env para transcrição real)"
+        "engine": "Peguei o Texto IA"
     }
 
 def transcribe_audio_file(
@@ -122,5 +122,5 @@ def transcribe_audio_file(
         "vtt": segments_to_vtt(segments),
         "language": getattr(transcription_resp, "language", language),
         "duration": duration,
-        "engine": f"groq-{model}"
+        "engine": "Peguei o Texto IA"
     }

@@ -14,7 +14,7 @@ const YoutubeIcon = ({ size = 20, color = "#EF4444" }: { size?: number; color?: 
 export const metadata: Metadata = {
   title: "Transcrever Vídeo do YouTube em Texto Online Grátis com IA",
   description:
-    "Cole o link de qualquer vídeo ou Shorts do YouTube e converta em texto em segundos com IA Whisper. 98% de precisão em português, pontuação perfeita e exportação em .TXT e .SRT. Teste grátis!",
+    "Cole o link de qualquer vídeo ou Shorts do YouTube e converta em texto em segundos com Inteligência Artificial avançada. 98% de precisão em português, pontuação perfeita e exportação em .TXT, .DOCX, .PDF e .SRT. Teste grátis!",
   keywords: [
     "transcrever video do youtube",
     "transcrever youtube em texto",
@@ -44,7 +44,7 @@ const youtubeFaqSchema = {
       "name": "Como transcrever um vídeo do YouTube em texto?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Basta copiar o link do vídeo ou Shorts no YouTube, colar no campo do Peguei o Texto e clicar em 'Transcrever'. A inteligência artificial Whisper processa o áudio e entrega o texto completo com pontuação em poucos segundos."
+        "text": "Basta copiar o link do vídeo ou Shorts no YouTube, colar no campo do Peguei o Texto e clicar em 'Transcrever'. A inteligência artificial avançada processa o áudio e entrega o texto completo com pontuação em poucos segundos."
       }
     },
     {
@@ -60,7 +60,7 @@ const youtubeFaqSchema = {
       "name": "Qual a diferença entre o Peguei o Texto e as legendas automáticas do YouTube?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "As legendas nativas do YouTube não possuem pontuação, erram sotaques e não separam parágrafos. O Peguei o Texto usa o Whisper Large v3, que inclui pontuação completa, letras maiúsculas e alta fidelidade em português brasileiro."
+        "text": "As legendas nativas do YouTube não possuem pontuação, erram sotaques e não separam parágrafos. O Peguei o Texto usa inteligência artificial avançada, que inclui pontuação completa, letras maiúsculas e alta fidelidade em português brasileiro."
       }
     }
   ]
@@ -143,7 +143,7 @@ export default function TranscreverYoutubePage() {
               {
                 step: "02",
                 title: "Cole no Peguei o Texto",
-                desc: "Cole a URL no campo acima. Nossa inteligência artificial Whisper analisa o áudio e remove ruídos de fundo.",
+                desc: "Cole a URL no campo acima. Nossa inteligência artificial avançada analisa o áudio e remove ruídos de fundo.",
                 icon: <Zap size={24} color="#A78BFA" />
               },
               {
@@ -173,13 +173,13 @@ export default function TranscreverYoutubePage() {
         <div className="container">
           <div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 48px" }}>
             <span className="badge badge-purple" style={{ marginBottom: "12px" }}>Comparativo</span>
-            <h2 style={{ fontSize: "2rem", fontWeight: 800 }}>Por que o Whisper é superior à legenda padrão do YouTube?</h2>
+            <h2 style={{ fontSize: "2rem", fontWeight: 800 }}>Por que nossa IA é superior à legenda padrão do YouTube?</h2>
           </div>
 
           <div className="glass-card" style={{ padding: "0", overflow: "hidden", maxWidth: 800, margin: "0 auto" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", padding: "16px 24px", background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)", fontWeight: 700, fontSize: "14px" }}>
               <span>Recurso</span>
-              <span style={{ color: "#A78BFA" }}>Peguei o Texto (Whisper)</span>
+              <span style={{ color: "#A78BFA" }}>Peguei o Texto (IA)</span>
               <span style={{ color: "var(--text-muted)" }}>Legenda Padrão YouTube</span>
             </div>
             {[
@@ -211,7 +211,7 @@ export default function TranscreverYoutubePage() {
             {[
               {
                 q: "Consigo transcrever podcasts inteiros de 2 ou 3 horas?",
-                a: "Sim! Nossa infraestrutura com Whisper na nuvem aguenta vídeos longos e transcreve podcasts inteiros em poucos minutos."
+                a: "Sim! Nossa infraestrutura de Inteligência Artificial na nuvem aguenta vídeos longos e transcreve podcasts inteiros em poucos minutos."
               },
               {
                 q: "Funciona com vídeos privados ou não listados?",

@@ -77,7 +77,7 @@ const faqs = [
   },
   {
     q: "Posso usar para vídeos em outros idiomas?",
-    a: "Sim! O Whisper Large v3 suporta mais de 90 idiomas. O PT-BR é apenas o padrão, mas você pode transcrever em inglês, espanhol, francês e muito mais.",
+    a: "Sim! Nossa tecnologia de Inteligência Artificial suporta mais de 90 idiomas. O PT-BR é apenas o padrão, mas você pode transcrever em inglês, espanhol, francês e muito mais.",
   },
   {
     q: "O que acontece com meu vídeo após a transcrição?",

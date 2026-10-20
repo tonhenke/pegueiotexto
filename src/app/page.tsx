@@ -21,14 +21,14 @@ const steps = [
   {
     number: "02",
     title: "IA transcreve em segundos",
-    desc: "Nosso motor de IA com Whisper Large v3 processa o áudio com altíssima precisão, mesmo com sotaque regional, múltiplos falantes e ruído de fundo.",
+    desc: "Nosso motor de Inteligência Artificial processa o áudio com altíssima precisão, mesmo com sotaque regional, múltiplos falantes e ruído de fundo.",
     icon: <Zap size={22} />,
     color: "#06B6D4",
   },
   {
     number: "03",
     title: "Baixe e pronto",
-    desc: "Faça download em .TXT, .SRT (legendas) ou .DOCX. Após o download, sua mídia é automaticamente deletada dos nossos servidores.",
+    desc: "Faça download em .TXT, .DOCX, .PDF ou .SRT (legendas). Após o download, sua mídia é automaticamente deletada dos nossos servidores.",
     icon: <Lock size={22} />,
     color: "#10B981",
   },

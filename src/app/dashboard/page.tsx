@@ -522,7 +522,7 @@ export default function DashboardPage() {
               {
                 icon: <Zap size={20} color="#FCD34D" />,
                 label: "Motor de IA",
-                value: "Whisper Large v3",
+                value: "IA Avançada",
                 subtext: "Precisão máxima",
                 bg: "rgba(245,158,11,0.08)",
                 border: "rgba(245,158,11,0.2)"
@@ -782,7 +782,7 @@ export default function DashboardPage() {
                             <Loader2 size={24} className="spin" color="#A78BFA" />
                             <div>
                               <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
-                                Analisando conteúdo com Groq Llama 3.3...
+                                Analisando conteúdo com Inteligência Artificial...
                               </p>
                               <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                                 Sintetizando pontos centrais e lições práticas em segundos.
@@ -804,7 +804,7 @@ export default function DashboardPage() {
                               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <Sparkles size={16} color="#A78BFA" />
                                 <span style={{ fontSize: "14px", fontWeight: 700, color: "#E0E7FF" }}>
-                                  Síntese Inteligente (Groq Llama 3.3)
+                                  Síntese Inteligente com IA
                                 </span>
                               </div>
                               <button
