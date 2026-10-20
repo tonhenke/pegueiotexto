@@ -45,7 +45,7 @@ const features = [
   {
     icon: <Zap size={20} />,
     title: "Transcrição em segundos",
-    desc: "Processado com Inteligência Artificial avançada — muito mais rápido que ferramentas convencionais.",
+    desc: "Processado com Inteligência Artificial avançada, muito mais rápido que ferramentas convencionais.",
     color: "#06B6D4",
   },
   {
@@ -132,7 +132,7 @@ export default function HomePage() {
             </h1>
 
             <p className="hero-subtitle" style={{ margin: "0 auto 40px" }}>
-              Transcreva qualquer vídeo da internet em segundos — YouTube, Instagram, TikTok, Vimeo e mais.
+              Transcreva qualquer vídeo da internet em segundos: YouTube, Instagram, TikTok, Vimeo e mais.
               Ou faça upload do seu arquivo. Privacidade garantida: sua mídia é deletada após o download.
             </p>
 

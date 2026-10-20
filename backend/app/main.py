@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     cleanup_stale_temp_files(max_age_seconds=0)
 
 app = FastAPI(
-    title="Peguei o Texto — API de Transcrição",
+    title="Peguei o Texto: API de Transcrição",
     description="Backend para transcrição de vídeos da internet, extração de áudio, Whisper IA e cobrança via Stripe.",
     version="1.0.0",
     lifespan=lifespan

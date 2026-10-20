@@ -85,7 +85,7 @@ const faqs = [
   },
   {
     q: "Há algum limite de tamanho de arquivo?",
-    a: "Sim. Para upload direto, o limite é 2 GB. Para links de URL, não há limite de tamanho — apenas de duração do seu saldo de créditos.",
+    a: "Sim. Para upload direto, o limite é 2 GB. Para links de URL, não há limite de tamanho, apenas de duração do seu saldo de créditos.",
   },
   {
     q: "Como funciona o Stripe? É seguro?",
@@ -168,7 +168,7 @@ export default function PrecosPage() {
               }}>
                 <Star size={14} color="#10B981" fill="#10B981" />
                 <span style={{ fontSize: "14px", color: "#6EE7B7" }}>
-                  <strong>5 minutos grátis</strong> para novos cadastros — sem cartão de crédito
+                  <strong>5 minutos grátis</strong> para novos cadastros (sem cartão de crédito)
                 </span>
               </div>
 

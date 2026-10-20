@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Sobre Nós | Peguei o Texto — Inteligência Artificial para Transcrição",
+  title: "Sobre Nós | Peguei o Texto: Inteligência Artificial para Transcrição",
   description:
     "Conheça a história e o propósito do Peguei o Texto: a plataforma brasileira de transcrição de áudio e vídeo com IA que economiza horas de trabalho com alta precisão e privacidade total.",
   keywords: [
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     canonical: "https://pegueiotexto.com.br/sobre-nos",
   },
   openGraph: {
-    title: "Sobre Nós | Peguei o Texto — Transcrição de Vídeos com IA",
+    title: "Sobre Nós | Peguei o Texto: Transcrição de Vídeos com IA",
     description:
       "Transformamos horas de áudio e vídeo em texto em poucos segundos. Saiba como o Peguei o Texto funciona e conheça nossos pilares de privacidade e precisão.",
     url: "https://pegueiotexto.com.br/sobre-nos",

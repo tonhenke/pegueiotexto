@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://pegueiotexto.com.br"),
   title: {
-    default: "Peguei o Texto — Transcrição de Vídeos do YouTube, Instagram e TikTok com IA",
+    default: "Peguei o Texto: Transcrição de Vídeos do YouTube, Instagram e TikTok com IA",
     template: "%s | Peguei o Texto",
   },
   description:
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     canonical: "https://pegueiotexto.com.br",
   },
   openGraph: {
-    title: "Peguei o Texto — Transcrição de Vídeos em Segundos com IA",
+    title: "Peguei o Texto: Transcrição de Vídeos em Segundos com IA",
     description: "Cole o link de qualquer vídeo da internet e receba a transcrição e legendas (.SRT) prontas em segundos. 5 minutos grátis!",
     url: "https://pegueiotexto.com.br",
     siteName: "Peguei o Texto",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Peguei o Texto — Transcrição de Vídeos em Segundos",
+    title: "Peguei o Texto: Transcrição de Vídeos em Segundos",
     description: "Cole o link. Pegue o texto. Transcreva YouTube, TikTok, Instagram e áudios com IA.",
   },
   icons: {

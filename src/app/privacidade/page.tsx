@@ -184,7 +184,7 @@ export default function PrivacidadePage() {
                 Esta Política de Privacidade descreve de forma clara e transparente como a plataforma <strong>Peguei o Texto</strong> (disponível no endereço eletrônico <Link href="/" style={{ color: "#06B6D4", textDecoration: "none" }}>https://pegueiotexto.com.br</Link>) coleta, processa, utiliza e protege os dados dos seus usuários.
               </p>
               <p>
-                Ao utilizar nossos serviços, você declara estar ciente dos termos aqui descritos, elaborados em estrita observância à Lei Geral de Proteção de Dados Pessoais do Brasil (<strong>LGPD — Lei nº 13.709/2018</strong>) e às normas internacionais de segurança da informação.
+                Ao utilizar nossos serviços, você declara estar ciente dos termos aqui descritos, elaborados em estrita observância à Lei Geral de Proteção de Dados Pessoais do Brasil (<strong>LGPD, Lei nº 13.709/2018</strong>) e às normas internacionais de segurança da informação.
               </p>
             </section>
 

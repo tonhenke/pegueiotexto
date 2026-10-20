@@ -13,7 +13,7 @@ type Status = "idle" | "loading" | "done" | "error" | "insufficient_credits";
 
 const DEMO_TRANSCRIPT = `[00:00] Bem-vindos ao nosso canal! Hoje vamos falar sobre como a inteligência artificial está transformando a forma como trabalhamos com conteúdo audiovisual.
 
-[00:12] Nos últimos anos, vimos uma explosão no volume de vídeos produzidos — de podcasts a webinars, de reuniões a aulas online. Mas todo esse conteúdo fica inacessível se não tiver texto associado.
+[00:12] Nos últimos anos, vimos uma explosão no volume de vídeos produzidos, de podcasts a webinars, de reuniões a aulas online. Mas todo esse conteúdo fica inacessível se não tiver texto associado.
 
 [00:28] É aí que entra a transcrição automática. Com modelos modernos como o Whisper da OpenAI, conseguimos uma precisão impressionante mesmo em áudios com sotaque regional ou ruído de fundo.
 
@@ -395,7 +395,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                       Arraste o arquivo ou clique para selecionar
                     </p>
                     <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-                      MP4, MP3, WAV, M4A, OGG, WEBM, MKV, AVI — até 2 GB
+                      MP4, MP3, WAV, M4A, OGG, WEBM, MKV, AVI (até 2 GB)
                     </p>
                   </div>
                 )}
