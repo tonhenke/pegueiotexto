@@ -115,7 +115,7 @@ const annualSubscriptions = [
     displayPeriod: "/ mês",
     billingDetail: "R$ 44,90 faturados ao ano",
     installment: "ou 12x de R$ 4,49 no cartão",
-    savings: "Economize 24% (3 meses grátis)",
+    savings: "Economize R$ 13,90 (3 meses grátis)",
     minutes: "720 min / ano (60 min/mês)",
     desc: "Transcreva todo mês com a máxima economia anual",
     color: "#06B6D4",
