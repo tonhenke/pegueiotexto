@@ -13,6 +13,13 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "currency": "brl",
         "minutes": 60,
     },
+    "starter_annual": {
+        "name": "Plano Anual Starter (720 minutos)",
+        "description": "Assinatura anual: 60 minutos por mês (720 minutos no total com 3 meses grátis)",
+        "amount": 4490,  # R$ 44,90 in cents
+        "currency": "brl",
+        "minutes": 720,
+    },
     "pro": {
         "name": "Pacote Pro (300 minutos)",
         "description": "300 minutos de transcrição com Inteligência Artificial",
@@ -20,12 +27,26 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "currency": "brl",
         "minutes": 300,
     },
+    "pro_annual": {
+        "name": "Plano Anual Pro (3.600 minutos)",
+        "description": "Assinatura anual: 300 minutos por mês (3.600 minutos no total com 3 meses grátis)",
+        "amount": 15900,  # R$ 159,00 in cents
+        "currency": "brl",
+        "minutes": 3600,
+    },
     "business": {
         "name": "Pacote Business (1.000 minutos)",
         "description": "1.000 minutos de transcrição com Inteligência Artificial",
         "amount": 7990,  # R$ 79,90 in cents
         "currency": "brl",
         "minutes": 1000,
+    },
+    "business_annual": {
+        "name": "Plano Anual Business (12.000 minutos)",
+        "description": "Assinatura anual: 1.000 minutos por mês (12.000 minutos no total com 3 meses grátis)",
+        "amount": 67900,  # R$ 679,00 in cents
+        "currency": "brl",
+        "minutes": 12000,
     },
 }
 

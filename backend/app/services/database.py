@@ -88,8 +88,11 @@ def get_user_active_plan(user_id: str) -> Dict[str, Any]:
 
     plan_names = {
         "starter": "Starter",
+        "starter_annual": "Starter Anual",
         "pro": "Pro",
+        "pro_annual": "Pro Anual",
         "business": "Business",
+        "business_annual": "Business Anual",
         "gratuito": "Gratuito"
     }
 
@@ -97,7 +100,7 @@ def get_user_active_plan(user_id: str) -> Dict[str, Any]:
         "plan": plan_id,
         "plan_name": plan_names.get(plan_id, plan_id.capitalize()),
         "credits_minutes": credits,
-        "is_paid": plan_id in ["starter", "pro", "business"]
+        "is_paid": plan_id in ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual"]
     }
 
 def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, Any]:

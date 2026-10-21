@@ -388,6 +388,13 @@ export default function DashboardPage() {
       bg: "rgba(6, 182, 212, 0.08)",
       border: "rgba(6, 182, 212, 0.3)",
     },
+    starter_annual: {
+      label: "Starter Anual",
+      badge: "Assinatura Anual (720 min)",
+      color: "#67E8F9",
+      bg: "rgba(6, 182, 212, 0.12)",
+      border: "rgba(6, 182, 212, 0.4)",
+    },
     pro: {
       label: "Pro",
       badge: "300 min contratados",
@@ -395,12 +402,26 @@ export default function DashboardPage() {
       bg: "rgba(124, 58, 237, 0.08)",
       border: "rgba(124, 58, 237, 0.3)",
     },
+    pro_annual: {
+      label: "Pro Anual",
+      badge: "Assinatura Anual (3.600 min)",
+      color: "#A78BFA",
+      bg: "rgba(124, 58, 237, 0.12)",
+      border: "rgba(124, 58, 237, 0.45)",
+    },
     business: {
       label: "Business",
       badge: "1.000 min contratados",
       color: "#F9A8D4",
       bg: "rgba(236, 72, 153, 0.08)",
       border: "rgba(236, 72, 153, 0.3)",
+    },
+    business_annual: {
+      label: "Business Anual",
+      badge: "Assinatura Anual (12.000 min)",
+      color: "#F9A8D4",
+      bg: "rgba(236, 72, 153, 0.12)",
+      border: "rgba(236, 72, 153, 0.45)",
     },
     gratuito: {
       label: "Gratuito",
@@ -453,47 +474,22 @@ export default function DashboardPage() {
                   </span>
 
                   {/* Active Plan Tag next to Dashboard Title */}
-                  {currentPlan === "starter" ? (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: "6px",
-                      background: "rgba(6, 182, 212, 0.15)",
-                      border: "1px solid rgba(6, 182, 212, 0.4)",
-                      borderRadius: "100px", padding: "4px 12px",
-                      fontSize: "12px", color: "#67E8F9", fontWeight: 700
-                    }}>
-                      <Sparkles size={12} color="#67E8F9" /> Plano Starter
-                    </div>
-                  ) : currentPlan === "pro" ? (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: "6px",
-                      background: "rgba(124, 58, 237, 0.15)",
-                      border: "1px solid rgba(124, 58, 237, 0.4)",
-                      borderRadius: "100px", padding: "4px 12px",
-                      fontSize: "12px", color: "#A78BFA", fontWeight: 700
-                    }}>
-                      <Zap size={12} color="#A78BFA" /> Plano Pro
-                    </div>
-                  ) : currentPlan === "business" ? (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: "6px",
-                      background: "rgba(236, 72, 153, 0.15)",
-                      border: "1px solid rgba(236, 72, 153, 0.4)",
-                      borderRadius: "100px", padding: "4px 12px",
-                      fontSize: "12px", color: "#F9A8D4", fontWeight: 700
-                    }}>
-                      <Crown size={12} color="#F9A8D4" /> Plano Business
-                    </div>
-                  ) : (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: "6px",
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1px solid var(--border-subtle)",
-                      borderRadius: "100px", padding: "4px 12px",
-                      fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600
-                    }}>
-                      Plano Gratuito
-                    </div>
-                  )}
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    background: activePlanCfg.bg,
+                    border: `1px solid ${activePlanCfg.border}`,
+                    borderRadius: "100px", padding: "4px 12px",
+                    fontSize: "12px", color: activePlanCfg.color, fontWeight: 700
+                  }}>
+                    {currentPlan.includes("business") ? (
+                      <Crown size={12} color={activePlanCfg.color} />
+                    ) : currentPlan.includes("pro") ? (
+                      <Zap size={12} color={activePlanCfg.color} />
+                    ) : currentPlan.includes("starter") ? (
+                      <Sparkles size={12} color={activePlanCfg.color} />
+                    ) : null}
+                    <span>Plano {activePlanCfg.label}</span>
+                  </div>
                 </div>
 
                 <h1 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>
