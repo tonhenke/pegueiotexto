@@ -250,6 +250,8 @@ export default function PrecosPage() {
         return;
       }
 
+      const refCode = typeof window !== "undefined" ? localStorage.getItem("pegueiotexto_ref") : null;
+
       const res = await fetch("/api/checkout/create-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -257,6 +259,7 @@ export default function PrecosPage() {
           plan_id: planId,
           user_id: user.id,
           email: user.email,
+          affiliate_code: refCode,
           success_url: `${window.location.origin}/dashboard?payment=success&plan=${planId}&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${window.location.origin}/precos?payment=cancelled`,
         }),

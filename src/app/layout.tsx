@@ -140,6 +140,12 @@ export default function RootLayout({
                 var r = p.get('ref');
                 if (r) {
                   localStorage.setItem('pegueiotexto_ref', r);
+                  document.cookie = 'pegueiotexto_ref=' + encodeURIComponent(r) + ';path=/;max-age=' + (60 * 24 * 60 * 60);
+                  fetch('/api/affiliates?action=track_click', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ affiliate_code: r, referer: document.referrer || '' })
+                  }).catch(function() {});
                 }
               } catch(e) {}
             `,

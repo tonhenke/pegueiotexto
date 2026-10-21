@@ -6,6 +6,7 @@ const footerLinks = {
   "Produto": [
     { label: "Como funciona", href: "#como-funciona" },
     { label: "Preços", href: "/precos" },
+    { label: "Programa de Afiliados", href: "/afiliados" },
   ],
   "Plataformas": [
     { label: "YouTube Transcrição", href: "/transcrever-youtube" },

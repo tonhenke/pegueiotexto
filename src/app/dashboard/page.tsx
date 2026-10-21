@@ -11,7 +11,7 @@ import {
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
   FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
-  Search, Share2, ExternalLink, X, Filter 
+  Search, Share2, ExternalLink, X, Filter, Award 
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
@@ -523,6 +523,15 @@ export default function DashboardPage() {
                 >
                   <RefreshCw size={14} className={loading ? "spin" : ""} /> Sincronizar
                 </button>
+
+                <Link
+                  href="/afiliados/painel"
+                  className="btn-ghost"
+                  title="Acessar Painel de Afiliado"
+                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none" }}
+                >
+                  <Award size={14} color="#A78BFA" /> Afiliados
+                </Link>
 
                 <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
                   Recarregar minutos <ArrowRight size={14} />

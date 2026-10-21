@@ -55,7 +55,8 @@ def create_checkout_session(
     user_id: Optional[str] = None,
     user_email: Optional[str] = None,
     success_url: Optional[str] = None,
-    cancel_url: Optional[str] = None
+    cancel_url: Optional[str] = None,
+    affiliate_code: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Creates a Stripe Checkout Session for purchasing credit packages.
@@ -121,6 +122,7 @@ def create_checkout_session(
             "plan_id": plan_id,
             "minutes": str(plan["minutes"]),
             "user_email": user_email or "",
+            "affiliate_code": affiliate_code or "",
         },
         success_url=resolved_success,
         cancel_url=resolved_cancel,

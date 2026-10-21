@@ -23,6 +23,7 @@ class CreateCheckoutRequest(BaseModel):
     email: Optional[str] = None
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
+    affiliate_code: Optional[str] = None
 
 class VerifySessionRequest(BaseModel):
     session_id: str
@@ -41,7 +42,8 @@ def create_session(req: CreateCheckoutRequest):
             user_id=req.user_id,
             user_email=req.email,
             success_url=req.success_url,
-            cancel_url=req.cancel_url
+            cancel_url=req.cancel_url,
+            affiliate_code=req.affiliate_code
         )
         return {
             "success": True,
@@ -111,6 +113,26 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
         stripe_session_id=session.get("id"),
         user_email=user_email
     )
+
+    # 6. Record affiliate conversion if present
+    affiliate_code = metadata.get("affiliate_code")
+    if affiliate_code and not fulfill_result.get("already_processed"):
+        try:
+            import requests
+            requests.post(
+                "http://localhost:3000/api/affiliates?action=record_conversion",
+                json={
+                    "affiliate_code": affiliate_code,
+                    "plan_id": plan_id,
+                    "plan_name": plan_info.get("name", plan_id),
+                    "order_amount": plan_info.get("amount", 0) / 100.0,
+                    "stripe_session_id": session.get("id"),
+                    "buyer_email": user_email
+                },
+                timeout=3
+            )
+        except Exception as aff_err:
+            print(f"[Affiliate Conversion] Erro ao notificar API de afiliados: {aff_err}")
 
     return {
         "success": True,
