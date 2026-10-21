@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
 import AudioSyncPlayer from "@/components/AudioSyncPlayer";
 import InteractiveTranscript from "@/components/InteractiveTranscript";
+import ReferralWidget from "@/components/ReferralWidget";
 import { 
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
@@ -187,6 +188,39 @@ export default function DashboardPage() {
 
         if (histData) {
           setHistory(histData);
+        }
+
+        // 4. Check & Claim pending referral bonus if present
+        if (typeof window !== "undefined") {
+          const pendingRef = localStorage.getItem("pegueiotexto_ref");
+          if (pendingRef) {
+            try {
+              const refRes = await fetch("/api/referral", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ref_code: pendingRef,
+                  new_user_id: user.id,
+                  new_user_email: user.email,
+                }),
+              });
+              const refData = await refRes.json();
+              if (refRes.ok && refData.success) {
+                setProfile((prev: any) => ({
+                  ...prev,
+                  credits_minutes: refData.new_balance,
+                }));
+                setPaymentSuccess(
+                  `🎉 Parabéns! Você recebeu +${refData.minutes_awarded} minutos bônus de boas-vindas pelo convite de ${refData.referrer_name}! Seu saldo agora é de ${refData.new_balance} minutos.`
+                );
+                localStorage.removeItem("pegueiotexto_ref");
+              } else if (refData.already_claimed) {
+                localStorage.removeItem("pegueiotexto_ref");
+              }
+            } catch (refErr) {
+              console.error("Erro ao resgatar indicação:", refErr);
+            }
+          }
         }
       }
     } catch (err) {
@@ -1088,6 +1122,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <ReferralWidget user={user} profile={profile} />
       <Footer />
     </main>
   );

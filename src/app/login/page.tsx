@@ -15,8 +15,26 @@ function LoginForm() {
   const isSignupParam = searchParams.get("signup") === "true";
   const reasonParam = searchParams.get("reason");
   const redirectParam = searchParams.get("redirect");
+  const refParam = searchParams.get("ref");
 
-  const [isLogin, setIsLogin] = useState(!isSignupParam && reasonParam !== "transcribe");
+  const [hasReferral, setHasReferral] = useState(false);
+  const [isLogin, setIsLogin] = useState(!isSignupParam && reasonParam !== "transcribe" && !refParam);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (refParam) {
+        localStorage.setItem("pegueiotexto_ref", refParam);
+        setHasReferral(true);
+        setIsLogin(false);
+      } else {
+        const storedRef = localStorage.getItem("pegueiotexto_ref");
+        if (storedRef) {
+          setHasReferral(true);
+        }
+      }
+    }
+  }, [refParam]);
+
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -139,8 +157,28 @@ function LoginForm() {
         </p>
       </div>
 
+      {/* Referral Welcome Bonus Banner */}
+      {hasReferral && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 182, 212, 0.16) 100%)",
+          border: "1px solid rgba(16, 185, 129, 0.45)",
+          borderRadius: "14px",
+          padding: "16px 18px",
+          marginBottom: "20px",
+          textAlign: "left",
+          boxShadow: "0 4px 20px rgba(16, 185, 129, 0.18)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#6EE7B7", fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}>
+            <span>🎁</span> Convite de Amigo Ativado!
+          </div>
+          <p style={{ margin: 0, fontSize: "13px", color: "#E2E8F0", lineHeight: 1.5 }}>
+            Você foi convidado! Crie sua conta grátis agora e ganhe <strong>15 minutos</strong> (5 minutos de cadastro + <strong>10 minutos bônus de presente</strong>).
+          </p>
+        </div>
+      )}
+
       {/* Motivating banner if redirected from transcribe */}
-      {(reasonParam === "transcribe" || isSignupParam) && (
+      {(reasonParam === "transcribe" || isSignupParam) && !hasReferral && (
         <div style={{
           background: "linear-gradient(135deg, rgba(124,58,237,0.18), rgba(6,182,212,0.15))",
           border: "1px solid rgba(124,58,237,0.35)",

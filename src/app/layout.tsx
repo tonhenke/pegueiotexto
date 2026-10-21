@@ -132,6 +132,19 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var p = new URLSearchParams(window.location.search);
+                var r = p.get('ref');
+                if (r) {
+                  localStorage.setItem('pegueiotexto_ref', r);
+                }
+              } catch(e) {}
+            `,
+          }}
+        />
       </head>
       <body suppressHydrationWarning>
         {children}
