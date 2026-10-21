@@ -4,10 +4,13 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
+import AudioSyncPlayer from "@/components/AudioSyncPlayer";
+import InteractiveTranscript from "@/components/InteractiveTranscript";
 import { 
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
-  FileDown, Loader2, BookOpen, ListChecks, Lightbulb 
+  FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
+  Search, Share2, ExternalLink, X, Filter 
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
@@ -21,6 +24,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeItem, setActiveItem] = useState<any>(null);
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("todas");
+  const [sharedToastId, setSharedToastId] = useState<string | null>(null);
 
   async function loadUserData() {
     try {
@@ -309,6 +315,31 @@ export default function DashboardPage() {
     }
   };
 
+  const handleShareItem = (item: any) => {
+    const shareUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/t/${item.id}`
+      : `https://pegueiotexto.com.br/t/${item.id}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+      setSharedToastId(item.id);
+      setTimeout(() => setSharedToastId(null), 2500);
+    }
+  };
+
+  const filteredHistory = history.filter((item) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesQuery =
+      !q ||
+      (item.title && item.title.toLowerCase().includes(q)) ||
+      (item.text_content && item.text_content.toLowerCase().includes(q));
+
+    const matchesPlatform =
+      platformFilter === "todas" ||
+      (item.platform && item.platform.toLowerCase().includes(platformFilter.toLowerCase()));
+
+    return matchesQuery && matchesPlatform;
+  });
+
   const credits = profile?.credits_minutes ?? 5;
   const userName = profile?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Visitante";
   const totalTranscriptions = history.length;
@@ -555,6 +586,95 @@ export default function DashboardPage() {
               </span>
             </div>
 
+            {/* Global Search & Filters Bar */}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              marginBottom: "24px",
+              background: "rgba(255, 255, 255, 0.02)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "14px",
+              padding: "16px 20px"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: 260 }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    background: "rgba(0, 0, 0, 0.3)",
+                    border: "1px solid rgba(124, 58, 237, 0.3)",
+                    borderRadius: "10px",
+                    padding: "8px 14px",
+                    width: "100%",
+                    maxWidth: 480,
+                  }}>
+                    <Search size={16} color="#A78BFA" />
+                    <input
+                      type="text"
+                      placeholder="Buscar palavra ou frase em todas as transcrições..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        outline: "none",
+                        color: "var(--text-primary)",
+                        fontSize: "13px",
+                        width: "100%",
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "14px" }}
+                        title="Limpar busca"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                    {filteredHistory.length} {filteredHistory.length === 1 ? "resultado" : "resultados"}
+                    {searchQuery && ` para "${searchQuery}"`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Platform filter pills */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: "4px" }}>
+                  Plataforma:
+                </span>
+                {["todas", "YouTube", "Upload", "Instagram", "TikTok", "Vimeo"].map((plat) => {
+                  const isActive = platformFilter.toLowerCase() === plat.toLowerCase();
+                  return (
+                    <button
+                      key={plat}
+                      onClick={() => setPlatformFilter(plat)}
+                      style={{
+                        fontSize: "12px",
+                        padding: "4px 12px",
+                        borderRadius: "100px",
+                        background: isActive ? "rgba(124, 58, 237, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                        border: isActive ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid var(--border-subtle)",
+                        color: isActive ? "#C4B5FD" : "var(--text-secondary)",
+                        cursor: "pointer",
+                        fontWeight: isActive ? 600 : 400,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {plat === "todas" ? "Todas" : plat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {history.length === 0 ? (
               <div className="glass-card" style={{ padding: "40px", textAlign: "center" }}>
                 <div style={{ width: 48, height: 48, background: "rgba(124,58,237,0.12)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
@@ -565,9 +685,29 @@ export default function DashboardPage() {
                   Cole o link de um vídeo ou envie um arquivo acima para transcrever com seu saldo disponível!
                 </p>
               </div>
+            ) : filteredHistory.length === 0 ? (
+              <div className="glass-card" style={{ padding: "36px", textAlign: "center" }}>
+                <div style={{ width: 44, height: 44, background: "rgba(255, 255, 255, 0.05)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                  <Search size={20} color="var(--text-muted)" />
+                </div>
+                <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "6px" }}>Nenhum resultado encontrado</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "13px", maxWidth: 380, margin: "0 auto 16px" }}>
+                  Não encontramos transcrições correspondentes a &quot;{searchQuery}&quot; com os filtros selecionados.
+                </p>
+                <button
+                  className="btn-ghost"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setPlatformFilter("todas");
+                  }}
+                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                >
+                  Limpar filtros de busca
+                </button>
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {history.map((item) => (
+                {filteredHistory.map((item) => (
                   <div key={item.id} className="glass-card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
                     <div style={{ width: 40, height: 40, background: "rgba(124,58,237,0.12)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <FileText size={18} color="#A78BFA" />
@@ -603,6 +743,29 @@ export default function DashboardPage() {
                         ) : (
                           <>
                             <Copy size={14} /> Copiar
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        className="btn-ghost"
+                        onClick={() => handleShareItem(item)}
+                        style={{
+                          fontSize: "13px", padding: "6px 12px",
+                          display: "inline-flex", alignItems: "center", gap: "6px",
+                          color: sharedToastId === item.id ? "#67E8F9" : undefined,
+                          borderColor: sharedToastId === item.id ? "rgba(6, 182, 212, 0.4)" : undefined,
+                          background: sharedToastId === item.id ? "rgba(6, 182, 212, 0.12)" : undefined
+                        }}
+                        title="Copiar link público desta transcrição para WhatsApp ou Notion"
+                      >
+                        {sharedToastId === item.id ? (
+                          <>
+                            <Check size={14} color="#67E8F9" /> Link copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Share2 size={14} /> Compartilhar
                           </>
                         )}
                       </button>
@@ -706,6 +869,28 @@ export default function DashboardPage() {
                           </div>
 
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            <a
+                              href={`/t/${item.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                fontSize: "12px",
+                                padding: "6px 12px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                borderRadius: "8px",
+                                background: "rgba(6, 182, 212, 0.12)",
+                                border: "1px solid rgba(6, 182, 212, 0.35)",
+                                color: "#67E8F9",
+                                textDecoration: "none",
+                                fontWeight: 600,
+                              }}
+                              title="Abrir página pública de leitura para WhatsApp ou Notion"
+                            >
+                              <ExternalLink size={13} /> Abrir página pública ↗
+                            </a>
+
                             <button
                               onClick={() => handleGenerateSummary(item)}
                               disabled={loadingSummaryId === item.id}
@@ -766,6 +951,9 @@ export default function DashboardPage() {
                             </button>
                           </div>
                         </div>
+
+                        {/* Synchronized Audio Player for quick verification */}
+                        <AudioSyncPlayer title={item.title} />
 
                         {/* AI Summary Loading state */}
                         {loadingSummaryId === item.id && (
@@ -870,24 +1058,25 @@ export default function DashboardPage() {
                           </div>
                         )}
 
-                        {/* Full transcript viewer */}
+                        {/* Full transcript viewer with clickable timestamps & search highlighting */}
                         <div>
-                          <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700, marginBottom: "8px" }}>
-                            Texto Completo
-                          </p>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
+                            <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700, margin: 0 }}>
+                              Texto Completo
+                            </p>
+                            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                              Clique em qualquer timestamp [00:00] para tocar o áudio sincronizado
+                            </span>
+                          </div>
                           <div style={{
-                            maxHeight: "260px",
+                            maxHeight: "340px",
                             overflowY: "auto",
-                            color: "var(--text-secondary)",
-                            whiteSpace: "pre-wrap",
-                            userSelect: "text",
-                            padding: "12px",
-                            background: "rgba(0,0,0,0.25)",
-                            borderRadius: "8px",
-                            border: "1px solid rgba(255, 255, 255, 0.05)",
-                            fontSize: "13px"
+                            padding: "16px",
+                            background: "rgba(0,0,0,0.3)",
+                            borderRadius: "10px",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
                           }}>
-                            {item.text_content}
+                            <InteractiveTranscript text={item.text_content} searchQuery={searchQuery} />
                           </div>
                         </div>
                       </div>

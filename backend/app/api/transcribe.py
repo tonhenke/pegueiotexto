@@ -248,3 +248,25 @@ def summarize_endpoint(req: SummarizeRequest):
     res = summarize_transcription(text=req.text, title=req.title or "Transcrição")
     return res
 
+@router.get("/public/{item_id}")
+def get_public_transcription(item_id: str):
+    """
+    Returns public reading data for a single transcription (no sensitive user info).
+    """
+    from app.services.database import get_supabase
+    sb = get_supabase(admin=True)
+    try:
+        res = sb.table("transcriptions")\
+            .select("id, title, platform, duration_seconds, text_content, srt_content, vtt_content, created_at")\
+            .eq("id", item_id)\
+            .single()\
+            .execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Transcrição não encontrada.")
+        return res.data
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=404, detail="Transcrição não encontrada ou indisponível.")
+
+

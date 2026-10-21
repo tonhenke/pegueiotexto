@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
   Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight,
-  Sparkles, Check, FileDown
+  Sparkles, Check, FileDown, Share2, ExternalLink
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToSrt, exportToVtt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
+import AudioSyncPlayer from "@/components/AudioSyncPlayer";
+import InteractiveTranscript from "@/components/InteractiveTranscript";
 
 type Mode = "url" | "upload";
 type Status = "idle" | "loading" | "done" | "error" | "insufficient_credits";
@@ -48,6 +50,8 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const [progress, setProgress] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [resultTitle, setResultTitle] = useState("");
+  const [resultId, setResultId] = useState<string | null>(null);
+  const [sharedToast, setSharedToast] = useState(false);
   const [resultSrt, setResultSrt] = useState("");
   const [resultVtt, setResultVtt] = useState("");
   const [resultDuration, setResultDuration] = useState<number | null>(null);
@@ -178,6 +182,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         setStatus("done");
         setTranscript(data.text || DEMO_TRANSCRIPT);
         setResultTitle(data.title || (mode === "url" ? url : file?.name || "Transcrição"));
+        setResultId(data.id || null);
         setResultSrt(data.srt || "");
         setResultVtt(data.vtt || "");
         setResultDuration(data.duration || null);
@@ -304,12 +309,35 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShare = () => {
+    if (resultId) {
+      const shareUrl = typeof window !== "undefined"
+        ? `${window.location.origin}/t/${resultId}`
+        : `https://pegueiotexto.com.br/t/${resultId}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl);
+        setSharedToast(true);
+        setTimeout(() => setSharedToast(false), 2500);
+      }
+      if (navigator.share) {
+        navigator.share({
+          title: resultTitle || "Transcrição no Peguei o Texto",
+          url: shareUrl,
+        }).catch(() => {});
+      }
+    } else {
+      handleCopy();
+    }
+  };
+
   const handleReset = () => {
     setStatus("idle");
     setTranscript("");
     setProgress(0);
     setUrl("");
     setFile(null);
+    setResultId(null);
+    setSharedToast(false);
     setErrorMsg("");
     setInsufficientMsg("");
     setSummaryData(null);
@@ -691,10 +719,42 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 )}
               </p>
             </div>
-            <button className="btn-ghost" onClick={handleReset} style={{ flexShrink: 0 }}>
-              <RotateCcw size={15} /> Nova transcrição
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              {resultId && (
+                <button
+                  className="btn-ghost"
+                  onClick={handleShare}
+                  style={{
+                    fontSize: "13px",
+                    padding: "6px 14px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: sharedToast ? "#67E8F9" : undefined,
+                    borderColor: sharedToast ? "rgba(6, 182, 212, 0.4)" : undefined,
+                    background: sharedToast ? "rgba(6, 182, 212, 0.12)" : undefined,
+                  }}
+                  title="Copiar link público desta transcrição para WhatsApp ou Notion"
+                >
+                  {sharedToast ? (
+                    <>
+                      <Check size={14} color="#67E8F9" /> Link copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Share2 size={14} /> Compartilhar
+                    </>
+                  )}
+                </button>
+              )}
+              <button className="btn-ghost" onClick={handleReset} style={{ flexShrink: 0 }}>
+                <RotateCcw size={15} /> Nova transcrição
+              </button>
+            </div>
           </div>
+
+          {/* Synchronized Audio Player Component */}
+          <AudioSyncPlayer title={resultTitle} initialAudioFile={file} />
 
           {/* RESULT TABS NAVIGATION */}
           <div style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "8px" }}>
@@ -815,8 +875,8 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 </div>
               </div>
 
-              <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 380, overflowY: "auto" }}>
-                {transcript}
+              <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 420, overflowY: "auto", padding: "20px" }}>
+                <InteractiveTranscript text={transcript} />
               </div>
             </div>
           )}
