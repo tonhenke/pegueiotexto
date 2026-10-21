@@ -1010,7 +1010,7 @@ export default function AfiliadosPage() {
                           />
                         </div>
                         <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-                          Seu link será: <strong style={{ color: "var(--brand-primary)" }}>pegueiotexto.com/?ref={desiredCode || "seucodigo"}</strong>
+                          Seu link será: <strong style={{ color: "var(--brand-primary)" }}>pegueiotexto.com.br/?ref={desiredCode || "seucodigo"}</strong>
                         </p>
                       </div>
 

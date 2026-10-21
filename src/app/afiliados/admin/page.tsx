@@ -135,7 +135,7 @@ export default function AdminAfiliadosPage() {
       cleanPhone = `55${cleanPhone}`;
     }
 
-    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com";
+    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com.br";
     const msg = encodeURIComponent(
       `Olá, ${aff.full_name}! Boas notícias: sua candidatura ao Programa de Afiliados do Peguei o Texto foi aprovada com sucesso! 🎉\n\nSeu código exclusivo é: ${aff.affiliate_code}\n\nAcesse o seu painel de afiliado para pegar seu link de divulgação e materiais de apoio:\n${domain}/afiliados/painel\n\nBoas vendas e seja muito bem-vindo!`
     );

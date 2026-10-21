@@ -86,7 +86,7 @@ export default function PainelAfiliadosPage() {
 
   const handleCopyLink = () => {
     if (!affiliate?.affiliate_code) return;
-    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com";
+    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com.br";
     const link = `${domain}/?ref=${affiliate.affiliate_code}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
@@ -95,7 +95,7 @@ export default function PainelAfiliadosPage() {
 
   const handleShareWhatsApp = () => {
     if (!affiliate?.affiliate_code) return;
-    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com";
+    const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com.br";
     const link = `${domain}/?ref=${affiliate.affiliate_code}`;
     const msg = encodeURIComponent(
       `Conheça o Peguei o Texto! A ferramenta mais rápida para transcrever vídeos do YouTube, Instagram e TikTok com Inteligência Artificial: ${link}`
@@ -196,7 +196,7 @@ export default function PainelAfiliadosPage() {
     );
   }
 
-  const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com";
+  const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com.br";
   const affiliateUrl = `${domain}/?ref=${affiliate.affiliate_code}`;
   const isPendingReview = affiliate.status === "pending_review";
   const minPayout = metrics?.min_payout_amount || 100.0;
