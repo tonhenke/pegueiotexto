@@ -141,6 +141,45 @@ export async function GET(request: Request) {
       return NextResponse.json({ available: !exists, code });
     }
 
+    if (action === "admin_list") {
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const clicks = readJSON<AffiliateClick>(CLICKS_FILE);
+      const conversions = readJSON<AffiliateConversion>(CONVERSIONS_FILE);
+      const payouts = readJSON<AffiliatePayout>(PAYOUTS_FILE);
+
+      const enrichedAffiliates = affiliates.map((aff) => {
+        const affClicks = clicks.filter((c) => c.affiliate_code === aff.affiliate_code).length;
+        const affConversions = conversions.filter((c) => c.affiliate_code === aff.affiliate_code);
+        const affPayouts = payouts.filter((p) => p.affiliate_code === aff.affiliate_code);
+
+        return {
+          ...aff,
+          clicks_count: affClicks,
+          conversions_count: affConversions.length,
+          total_revenue: affConversions.reduce((acc, c) => acc + c.order_amount, 0),
+          total_commission_generated: affConversions.reduce((acc, c) => acc + c.commission_amount, 0),
+          payouts_count: affPayouts.length,
+        };
+      });
+
+      const pendingCount = affiliates.filter((a) => a.status === "pending_review").length;
+      const activeCount = affiliates.filter((a) => a.status === "active").length;
+      const suspendedCount = affiliates.filter((a) => a.status === "suspended").length;
+
+      return NextResponse.json({
+        affiliates: enrichedAffiliates.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+        summary: {
+          total: affiliates.length,
+          pending: pendingCount,
+          active: activeCount,
+          suspended: suspendedCount,
+          total_clicks: clicks.length,
+          total_conversions: conversions.length,
+          total_payouts_paid: payouts.filter((p) => p.status === "paid").reduce((acc, p) => acc + p.amount, 0),
+        },
+      });
+    }
+
     if (action === "me") {
       if (!userId && !affiliateCode) {
         return NextResponse.json({ detail: "user_id ou affiliate_code é obrigatório." }, { status: 400 });
@@ -404,6 +443,30 @@ export async function POST(request: Request) {
         success: true,
         affiliate: affiliates[affIndex],
         message: `Afiliado ${affiliate_code} aprovado com sucesso!`,
+      });
+    }
+
+    if (action === "admin_update_status") {
+      const { affiliate_code, status } = body;
+      if (!affiliate_code || !status) {
+        return NextResponse.json({ detail: "affiliate_code e status são obrigatórios." }, { status: 400 });
+      }
+
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const affIndex = affiliates.findIndex((a) => a.affiliate_code === affiliate_code.toLowerCase().trim());
+
+      if (affIndex === -1) {
+        return NextResponse.json({ detail: "Afiliado não encontrado." }, { status: 404 });
+      }
+
+      affiliates[affIndex].status = status;
+      affiliates[affIndex].updated_at = new Date().toISOString();
+      writeJSON(AFFILIATES_FILE, affiliates);
+
+      return NextResponse.json({
+        success: true,
+        affiliate: affiliates[affIndex],
+        message: `Status do afiliado ${affiliate_code} alterado para ${status}.`,
       });
     }
 

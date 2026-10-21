@@ -236,7 +236,10 @@ export default function PainelAfiliadosPage() {
                 </h1>
               </div>
 
-              <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <Link href="/afiliados/admin" className="btn-ghost" style={{ padding: "9px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none" }}>
+                  <ShieldCheck size={14} color="#A78BFA" /> Moderação Admin
+                </Link>
                 <Link href="/dashboard" className="btn-secondary" style={{ padding: "9px 18px", fontSize: "13px", textDecoration: "none" }}>
                   Ir ao Painel Principal
                 </Link>
