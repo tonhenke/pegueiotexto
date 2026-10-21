@@ -1,6 +1,52 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
+
+const ADMIN_EMAIL = process.env.AFFILIATE_ADMIN_EMAIL || "tonhenke@gmail.com";
+const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "987123aA!";
+const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "peguei_o_texto_admin_sec_2026_safe";
+
+function generateAdminToken(email: string): string {
+  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+  const payload = `${email.toLowerCase().trim()}:${expiresAt}`;
+  const signature = crypto.createHmac("sha256", ADMIN_SECRET).update(payload).digest("hex");
+  return Buffer.from(`${payload}:${signature}`).toString("base64");
+}
+
+function verifyAdminToken(token: string | null | undefined): boolean {
+  if (!token) return false;
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf8");
+    const [email, expiresAtStr, signature] = decoded.split(":");
+    if (!email || !expiresAtStr || !signature) return false;
+    if (email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) return false;
+    const expiresAt = parseInt(expiresAtStr, 10);
+    if (Date.now() > expiresAt) return false;
+
+    const expectedSignature = crypto.createHmac("sha256", ADMIN_SECRET).update(`${email}:${expiresAtStr}`).digest("hex");
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+  } catch {
+    return false;
+  }
+}
+
+function isAuthenticatedAdmin(request: Request): boolean {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const match = cookieHeader.match(/affiliate_admin_token=([^;]+)/);
+  const cookieToken = match ? decodeURIComponent(match[1]) : null;
+
+  const authHeader = request.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
+  const xAdminToken = request.headers.get("x-admin-token");
+
+  return (
+    verifyAdminToken(cookieToken) ||
+    verifyAdminToken(bearerToken) ||
+    verifyAdminToken(xAdminToken)
+  );
+}
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const AFFILIATES_FILE = path.join(DATA_DIR, "affiliates.json");
@@ -141,7 +187,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ available: !exists, code });
     }
 
+    if (action === "admin_check_auth") {
+      const isAuth = isAuthenticatedAdmin(request);
+      return NextResponse.json({
+        authenticated: isAuth,
+        email: isAuth ? ADMIN_EMAIL : null,
+      });
+    }
+
     if (action === "admin_list") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
+      }
+
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
       const clicks = readJSON<AffiliateClick>(CLICKS_FILE);
       const conversions = readJSON<AffiliateConversion>(CONVERSIONS_FILE);
@@ -256,7 +314,7 @@ export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get("action");
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
 
     // 1. REGISTRO DE AFILIADO (OPÇÃO B: MODERAÇÃO MANUAL - pending_review)
     if (action === "register") {
@@ -421,8 +479,54 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. MODERAÇÃO / APROVAÇÃO (Para testes do admin ou aprovação direta)
+    // 4. ADMIN AUTHENTICATION & MODERAÇÃO
+    if (action === "admin_login") {
+      const { email, password } = body;
+      if (!email || !password) {
+        return NextResponse.json({ detail: "E-mail e senha são obrigatórios." }, { status: 400 });
+      }
+
+      if (
+        email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim() ||
+        password !== ADMIN_PASSWORD
+      ) {
+        return NextResponse.json({ detail: "Credenciais de administrador incorretas." }, { status: 401 });
+      }
+
+      const token = generateAdminToken(email);
+      const response = NextResponse.json({
+        success: true,
+        token,
+        email: ADMIN_EMAIL,
+        message: "Login de administrador realizado com sucesso.",
+      });
+
+      response.cookies.set("affiliate_admin_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60,
+      });
+
+      return response;
+    }
+
+    if (action === "admin_logout") {
+      const response = NextResponse.json({ success: true, message: "Sessão encerrada com sucesso." });
+      response.cookies.set("affiliate_admin_token", "", {
+        httpOnly: true,
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
+    }
+
     if (action === "admin_approve") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
+      }
+
       const { affiliate_code } = body;
       if (!affiliate_code) {
         return NextResponse.json({ detail: "affiliate_code é obrigatório." }, { status: 400 });
@@ -447,6 +551,10 @@ export async function POST(request: Request) {
     }
 
     if (action === "admin_update_status") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
+      }
+
       const { affiliate_code, status } = body;
       if (!affiliate_code || !status) {
         return NextResponse.json({ detail: "affiliate_code e status são obrigatórios." }, { status: 400 });

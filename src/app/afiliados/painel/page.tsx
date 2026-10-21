@@ -301,24 +301,11 @@ export default function PainelAfiliadosPage() {
                     </div>
                   </div>
 
-                  {/* Admin instant approval button */}
+                  {/* Information notice */}
                   <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
-                    <button
-                      type="button"
-                      onClick={handleAdminApproveSelf}
-                      disabled={approving}
-                      className="btn-secondary"
-                      style={{
-                        padding: "8px 16px",
-                        fontSize: "12px",
-                        background: "rgba(16, 185, 129, 0.15)",
-                        borderColor: "rgba(16, 185, 129, 0.4)",
-                        color: "#6EE7B7",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {approving ? "Aprovando..." : "✦ Aprovar agora para testes (Ação de Administrador)"}
-                    </button>
+                    <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                      <CheckCircle2 size={13} color="#FCD34D" /> Nossa equipe analisa as candidaturas manualmente. Assim que seu cadastro for aprovado, você receberá a confirmação no WhatsApp com as instruções de início.
+                    </p>
                   </div>
                 </div>
               </div>
