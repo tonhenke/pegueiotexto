@@ -179,27 +179,47 @@ body {
   background: rgba(124, 58, 237, 0.08);
 }
 
-/* Input */
-.input-base {
+/* Input & Select */
+.input-base,
+.input {
   background: rgba(13, 12, 35, 0.9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
+  color: #FFFFFF;
   font-size: 15px;
   padding: 12px 16px;
   width: 100%;
   transition: all 0.2s ease;
   outline: none;
   font-family: 'Inter', sans-serif;
+  color-scheme: dark;
 }
 
-.input-base::placeholder {
+.input-base::placeholder,
+.input::placeholder {
   color: var(--text-muted);
 }
 
-.input-base:focus {
+.input-base:focus,
+.input:focus {
   border-color: var(--brand-primary);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+select.input,
+select.input-base,
+select {
+  background-color: #121028 !important;
+  color: #FFFFFF !important;
+  border: 1px solid var(--border-subtle);
+  color-scheme: dark;
+}
+
+select.input option,
+select.input-base option,
+select option {
+  background-color: #121028 !important;
+  color: #FFFFFF !important;
 }
 
 /* Badge */

@@ -692,64 +692,96 @@ export default function AfiliadosPage() {
                   {step === 1 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Nome Completo / Razão Social *
                         </label>
                         <input
                           type="text"
-                          className="input"
+                          className="input-base"
                           placeholder="Ex: Pedro Henrique Silva"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           required
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "rgba(13, 12, 35, 0.9)",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         />
                       </div>
 
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                         <div>
-                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                             E-mail da sua conta *
                           </label>
                           <input
                             type="email"
-                            className="input"
+                            className="input-base"
                             placeholder="seu@email.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              borderRadius: "8px",
+                              background: "rgba(13, 12, 35, 0.9)",
+                              color: "#FFFFFF",
+                              border: "1px solid var(--border-subtle)",
+                              colorScheme: "dark",
+                            }}
                           />
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                             WhatsApp com DDD *
                           </label>
                           <input
                             type="tel"
-                            className="input"
+                            className="input-base"
                             placeholder="(11) 99999-9999"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             required
-                            style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              borderRadius: "8px",
+                              background: "rgba(13, 12, 35, 0.9)",
+                              color: "#FFFFFF",
+                              border: "1px solid var(--border-subtle)",
+                              colorScheme: "dark",
+                            }}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           CPF ou CNPJ (para emissão e repasse) *
                         </label>
                         <input
                           type="text"
-                          className="input"
+                          className="input-base"
                           placeholder="000.000.000-00 ou 00.000.000/0000-00"
                           value={cpfCnpj}
                           onChange={(e) => setCpfCnpj(e.target.value)}
                           required
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "rgba(13, 12, 35, 0.9)",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         />
                       </div>
 
@@ -775,48 +807,72 @@ export default function AfiliadosPage() {
                   {step === 2 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Tipo de Chave Pix *
                         </label>
                         <select
-                          className="input"
+                          className="input-base"
                           value={pixKeyType}
                           onChange={(e) => setPixKeyType(e.target.value)}
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px", background: "var(--bg-card)" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "#121028",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         >
-                          <option value="cpf_cnpj">CPF ou CNPJ</option>
-                          <option value="email">E-mail</option>
-                          <option value="telefone">Telefone Celular</option>
-                          <option value="aleatoria">Chave Aleatória (EVP)</option>
+                          <option value="cpf_cnpj" style={{ background: "#121028", color: "#FFFFFF" }}>CPF ou CNPJ</option>
+                          <option value="email" style={{ background: "#121028", color: "#FFFFFF" }}>E-mail</option>
+                          <option value="telefone" style={{ background: "#121028", color: "#FFFFFF" }}>Telefone Celular</option>
+                          <option value="aleatoria" style={{ background: "#121028", color: "#FFFFFF" }}>Chave Aleatória (EVP)</option>
                         </select>
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Chave Pix Exata *
                         </label>
                         <input
                           type="text"
-                          className="input"
+                          className="input-base"
                           placeholder="Informe sua chave Pix"
                           value={pixKey}
                           onChange={(e) => setPixKey(e.target.value)}
                           required
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "rgba(13, 12, 35, 0.9)",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         />
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Nome do Titular da Conta Bancária *
                         </label>
                         <input
                           type="text"
-                          className="input"
+                          className="input-base"
                           placeholder="Nome que aparece no comprovante bancário"
                           value={pixName}
                           onChange={(e) => setPixName(e.target.value)}
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "rgba(13, 12, 35, 0.9)",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         />
                       </div>
 
@@ -853,72 +909,104 @@ export default function AfiliadosPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                         <div>
-                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                             Canal Principal de Divulgação *
                           </label>
                           <select
-                            className="input"
+                            className="input-base"
                             value={channelType}
                             onChange={(e) => setChannelType(e.target.value)}
-                            style={{ width: "100%", padding: "12px 14px", borderRadius: "8px", background: "var(--bg-card)" }}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              borderRadius: "8px",
+                              background: "#121028",
+                              color: "#FFFFFF",
+                              border: "1px solid var(--border-subtle)",
+                              colorScheme: "dark",
+                            }}
                           >
-                            <option value="youtube">Canal no YouTube</option>
-                            <option value="instagram">Instagram (Reels / Stories)</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="blog">Blog / Artigos SEO</option>
-                            <option value="curso">Cursos / Comunidade</option>
-                            <option value="newsletter">Newsletter</option>
-                            <option value="trafego_pago">Tráfego Pago</option>
-                            <option value="outros">Outros</option>
+                            <option value="youtube" style={{ background: "#121028", color: "#FFFFFF" }}>Canal no YouTube</option>
+                            <option value="instagram" style={{ background: "#121028", color: "#FFFFFF" }}>Instagram (Reels / Stories)</option>
+                            <option value="tiktok" style={{ background: "#121028", color: "#FFFFFF" }}>TikTok</option>
+                            <option value="blog" style={{ background: "#121028", color: "#FFFFFF" }}>Blog / Artigos SEO</option>
+                            <option value="curso" style={{ background: "#121028", color: "#FFFFFF" }}>Cursos / Comunidade</option>
+                            <option value="newsletter" style={{ background: "#121028", color: "#FFFFFF" }}>Newsletter</option>
+                            <option value="trafego_pago" style={{ background: "#121028", color: "#FFFFFF" }}>Tráfego Pago</option>
+                            <option value="outros" style={{ background: "#121028", color: "#FFFFFF" }}>Outros</option>
                           </select>
                         </div>
 
                         <div>
-                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                          <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                             Faixa de Audiência Mensal
                           </label>
                           <select
-                            className="input"
+                            className="input-base"
                             value={audienceRange}
                             onChange={(e) => setAudienceRange(e.target.value)}
-                            style={{ width: "100%", padding: "12px 14px", borderRadius: "8px", background: "var(--bg-card)" }}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              borderRadius: "8px",
+                              background: "#121028",
+                              color: "#FFFFFF",
+                              border: "1px solid var(--border-subtle)",
+                              colorScheme: "dark",
+                            }}
                           >
-                            <option value="iniciante">Até 5.000 seguidores / visitas</option>
-                            <option value="5k_25k">5.000 a 25.000 seguidores</option>
-                            <option value="25k_100k">25.000 a 100.000 seguidores</option>
-                            <option value="100k_mais">Mais de 100.000 seguidores</option>
+                            <option value="iniciante" style={{ background: "#121028", color: "#FFFFFF" }}>Até 5.000 seguidores / visitas</option>
+                            <option value="5k_25k" style={{ background: "#121028", color: "#FFFFFF" }}>5.000 a 25.000 seguidores</option>
+                            <option value="25k_100k" style={{ background: "#121028", color: "#FFFFFF" }}>25.000 a 100.000 seguidores</option>
+                            <option value="100k_mais" style={{ background: "#121028", color: "#FFFFFF" }}>Mais de 100.000 seguidores</option>
                           </select>
                         </div>
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Link do seu Canal ou Perfil Principal *
                         </label>
                         <input
                           type="url"
-                          className="input"
+                          className="input-base"
                           placeholder="https://youtube.com/@seucanal ou https://instagram.com/seu_perfil"
                           value={channelUrl}
                           onChange={(e) => setChannelUrl(e.target.value)}
                           required
-                          style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                          style={{
+                            width: "100%",
+                            padding: "12px 14px",
+                            borderRadius: "8px",
+                            background: "rgba(13, 12, 35, 0.9)",
+                            color: "#FFFFFF",
+                            border: "1px solid var(--border-subtle)",
+                            colorScheme: "dark",
+                          }}
                         />
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
                           Código de Afiliado Desejado (Slug do seu link) *
                         </label>
                         <div style={{ position: "relative" }}>
                           <input
                             type="text"
-                            className="input"
+                            className="input-base"
                             placeholder="ex: seunome ou canaltech"
                             value={desiredCode}
                             onChange={(e) => setDesiredCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
                             required
-                            style={{ width: "100%", padding: "12px 14px", borderRadius: "8px" }}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              borderRadius: "8px",
+                              background: "rgba(13, 12, 35, 0.9)",
+                              color: "#FFFFFF",
+                              border: "1px solid var(--border-subtle)",
+                              colorScheme: "dark",
+                            }}
                           />
                         </div>
                         <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
