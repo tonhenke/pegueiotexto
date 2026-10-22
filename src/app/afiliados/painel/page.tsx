@@ -21,6 +21,7 @@ import {
   CreditCard,
   RefreshCw,
   Award,
+  LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -67,26 +68,47 @@ export default function PainelAfiliadosPage() {
   useEffect(() => {
     async function init() {
       try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        // 1. Check dedicated affiliate authentication cookie
+        const authRes = await fetch("/api/affiliates?action=affiliate_check_auth");
+        const authJson = await authRes.json();
 
-        const params = new URLSearchParams(window.location.search);
-        const codeFromParam = params.get("code");
-        const codeFromStorage = typeof window !== "undefined" ? localStorage.getItem("my_affiliate_code") : null;
-        const code = codeFromParam || codeFromStorage;
-
-        if (user) {
-          setUser(user);
-          await loadAffiliateData(user.id);
-        } else if (code) {
-          await loadAffiliateData(code, true);
-        } else {
-          window.location.href = "/login?redirect=/afiliados/painel";
+        if (authJson.authenticated && authJson.affiliate) {
+          if (authJson.affiliate.status !== "active") {
+            setAffiliate(authJson.affiliate);
+            setLoading(false);
+            return;
+          }
+          setAffiliate(authJson.affiliate);
+          await loadAffiliateData(authJson.affiliate.affiliate_code, true);
           return;
         }
+
+        // 2. Check Supabase user as fallback
+        const supabase = createClient();
+        const { data: { user: sbUser } } = await supabase.auth.getUser();
+
+        if (sbUser) {
+          setUser(sbUser);
+          const res = await fetch(`/api/affiliates?action=me&user_id=${sbUser.id}`);
+          const data = await res.json();
+          if (data.is_affiliate) {
+            setAffiliate(data.affiliate);
+            if (data.affiliate?.status === "active") {
+              setMetrics(data.metrics);
+              setConversions(data.conversions || []);
+              setPayouts(data.payouts || []);
+            }
+            setLoading(false);
+            return;
+          }
+        }
+
+        // 3. Not authenticated -> redirect to login
+        window.location.href = "/afiliados/login";
+        return;
       } catch (err) {
         console.error("Erro na inicialização do painel:", err);
-        setLoading(false);
+        window.location.href = "/afiliados/login";
       }
     }
     init();
@@ -112,7 +134,7 @@ export default function PainelAfiliadosPage() {
   };
 
   const handleRequestPayout = async () => {
-    if (!user || !affiliate) return;
+    if (!affiliate?.affiliate_code) return;
     setRequestingPayout(true);
     setPayoutMsg(null);
 
@@ -121,7 +143,7 @@ export default function PainelAfiliadosPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: affiliate.user_id || user?.id || affiliate.affiliate_code,
           affiliate_code: affiliate.affiliate_code,
         }),
       });
@@ -132,12 +154,22 @@ export default function PainelAfiliadosPage() {
       }
 
       setPayoutMsg({ type: "success", text: data.message });
-      await loadAffiliateData(user.id);
+      await loadAffiliateData(affiliate.affiliate_code, true);
     } catch (err: any) {
       setPayoutMsg({ type: "error", text: err.message });
     } finally {
       setRequestingPayout(false);
     }
+  };
+
+  const handleAffiliateLogout = async () => {
+    try {
+      await fetch("/api/affiliates?action=affiliate_logout", { method: "POST" });
+    } catch {}
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("my_affiliate_code");
+    }
+    window.location.href = "/afiliados/login";
   };
 
   const handleAdminApproveSelf = async () => {
@@ -153,7 +185,7 @@ export default function PainelAfiliadosPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        await loadAffiliateData(user.id);
+        await loadAffiliateData(affiliate.affiliate_code, true);
       } else {
         alert(data.detail || "Erro ao aprovar.");
       }
@@ -204,6 +236,102 @@ export default function PainelAfiliadosPage() {
     );
   }
 
+  // Case: Application pending moderation - do NOT show full dashboard
+  if (affiliate.status !== "active") {
+    return (
+      <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
+        <Navbar />
+        <div style={{ paddingTop: "130px", paddingBottom: "100px" }}>
+          <div className="container" style={{ maxWidth: 640, textAlign: "center" }}>
+            <div
+              className="glass-card"
+              style={{
+                padding: "48px 36px",
+                border: "1px solid rgba(245, 158, 11, 0.35)",
+                background: "radial-gradient(circle at top, rgba(245, 158, 11, 0.12), transparent 70%), var(--bg-card)",
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "16px",
+                  background: "rgba(245, 158, 11, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 20px",
+                }}
+              >
+                <Clock size={32} color="#FCD34D" />
+              </div>
+
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "4px 14px",
+                  borderRadius: "100px",
+                  background: "rgba(245, 158, 11, 0.15)",
+                  color: "#FCD34D",
+                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                  display: "inline-block",
+                  marginBottom: "16px",
+                }}
+              >
+                Candidatura em Análise de Moderação
+              </span>
+
+              <h1 style={{ fontSize: "26px", fontWeight: 800, marginBottom: "14px" }}>
+                Acesso liberado após aprovação
+              </h1>
+
+              <p style={{ color: "var(--text-secondary)", fontSize: "15px", lineHeight: 1.6, marginBottom: "28px" }}>
+                Olá, <strong>{affiliate.full_name}</strong>! Sua candidatura está sob análise da nossa equipe (prazo de 24 a 48 horas úteis). O acesso ao painel de afiliado só é disponibilizado para parceiros aprovados.
+              </p>
+
+              <div
+                style={{
+                  background: "rgba(0, 0, 0, 0.25)",
+                  borderRadius: "12px",
+                  padding: "16px 20px",
+                  textAlign: "left",
+                  marginBottom: "28px",
+                  border: "1px solid var(--border-subtle)",
+                  fontSize: "14px",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>E-mail cadastrado:</span>
+                  <span style={{ fontWeight: 600 }}>{affiliate.email}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Próximo passo:</span>
+                  <span style={{ color: "#FCD34D", fontWeight: 600 }}>Notificação com link via WhatsApp</span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                <Link href="/afiliados" className="btn-secondary" style={{ padding: "12px 24px", fontSize: "14px", textDecoration: "none" }}>
+                  Voltar para Página de Afiliados
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleAffiliateLogout}
+                  className="btn-ghost"
+                  style={{ padding: "12px 20px", fontSize: "14px", color: "var(--text-muted)" }}
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
   const domain = typeof window !== "undefined" ? window.location.origin : "https://pegueiotexto.com.br";
   const affiliateUrl = `${domain}/?ref=${affiliate.affiliate_code}`;
   const isPendingReview = affiliate.status === "pending_review";
@@ -244,7 +372,7 @@ export default function PainelAfiliadosPage() {
                 </h1>
               </div>
 
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
                 <Link href="/afiliados/admin" className="btn-ghost" style={{ padding: "9px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none" }}>
                   <ShieldCheck size={14} color="#A78BFA" /> Moderação Admin
                 </Link>
@@ -252,12 +380,29 @@ export default function PainelAfiliadosPage() {
                   Ir ao Painel Principal
                 </Link>
                 <button
-                  onClick={() => loadAffiliateData(user.id)}
+                  onClick={() => loadAffiliateData(affiliate.affiliate_code, true)}
                   className="btn-ghost"
                   style={{ padding: "9px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   title="Atualizar métricas"
                 >
                   <RefreshCw size={14} /> Atualizar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAffiliateLogout}
+                  className="btn-ghost"
+                  style={{
+                    padding: "9px 14px",
+                    fontSize: "13px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "#EF4444",
+                    borderColor: "rgba(239, 68, 68, 0.2)",
+                  }}
+                  title="Sair do painel de afiliado"
+                >
+                  <LogOut size={14} /> Sair
                 </button>
               </div>
             </div>

@@ -20,6 +20,7 @@ import {
   Copy,
   ExternalLink,
   Zap,
+  LogIn,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -145,16 +146,10 @@ export default function AfiliadosPage() {
         throw new Error(data.detail || "Erro ao processar sua inscrição. Tente novamente.");
       }
 
-      const confirmedCode = data.affiliate?.affiliate_code || safeCode;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("my_affiliate_code", confirmedCode);
-      }
-
-      setFormSuccess(data.message || "Candidatura enviada com sucesso! Redirecionando para o seu painel...");
-      setIsAffiliate(true);
+      setFormSuccess(data.message || "Candidatura enviada com sucesso! Redirecionando...");
       setTimeout(() => {
-        window.location.href = `/afiliados/painel?code=${confirmedCode}`;
-      }, 1500);
+        window.location.href = "/afiliados/obrigado";
+      }, 1200);
     } catch (err: any) {
       setFormError(err.message || "Erro inesperado.");
     } finally {
@@ -191,6 +186,10 @@ export default function AfiliadosPage() {
       q: "Posso comprar com meu próprio link para ganhar desconto?",
       a: "Não. A autocompra é proibida pelas regras de boas práticas e resulta na suspensão do cadastro de afiliado.",
     },
+    {
+      q: "Já fui aprovado como afiliado. Como faço login no meu painel?",
+      a: "Assim que sua candidatura for aprovada, você receberá uma mensagem no WhatsApp com o link exclusivo para criar sua senha de acesso. Seu login será seu e-mail cadastrado. Depois de definir sua senha, basta clicar no botão 'Já sou afiliado' no topo desta página para entrar no painel.",
+    },
   ];
 
   return (
@@ -201,19 +200,49 @@ export default function AfiliadosPage() {
         {/* HERO SECTION */}
         <section style={{ padding: "40px 0 60px", textAlign: "center" }}>
           <div className="container" style={{ maxWidth: 960 }}>
-            <span
-              className="badge badge-purple"
+            <div
               style={{
-                marginBottom: "20px",
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "6px",
-                padding: "8px 18px",
-                fontSize: "13px",
+                gap: "12px",
+                marginBottom: "24px",
+                flexWrap: "wrap",
+                justifyContent: "center",
               }}
             >
-              <Award size={14} color="#A78BFA" /> Programa Oficial de Afiliados
-            </span>
+              <span
+                className="badge badge-purple"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 18px",
+                  fontSize: "13px",
+                }}
+              >
+                <Award size={14} color="#A78BFA" /> Programa Oficial de Afiliados
+              </span>
+
+              <Link
+                href="/afiliados/login"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "13px",
+                  color: "#C084FC",
+                  padding: "7px 16px",
+                  borderRadius: "999px",
+                  background: "rgba(168, 85, 247, 0.12)",
+                  border: "1px solid rgba(168, 85, 247, 0.3)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <LogIn size={13} /> Já é parceiro aprovado? Faça login →
+              </Link>
+            </div>
 
             <h1
               style={{
@@ -248,23 +277,29 @@ export default function AfiliadosPage() {
                 Quero me tornar afiliado <ArrowRight size={18} />
               </a>
 
-              {isAffiliate ? (
-                <Link
-                  href="/afiliados/painel"
-                  className="btn-secondary"
-                  style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 700, textDecoration: "none" }}
-                >
-                  Acessar meu painel <ExternalLink size={16} />
-                </Link>
-              ) : (
-                <a
-                  href="#calculadora"
-                  className="btn-secondary"
-                  style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 600, textDecoration: "none" }}
-                >
-                  Calcular meus ganhos
-                </a>
-              )}
+              <Link
+                href="/afiliados/login"
+                className="btn-secondary"
+                style={{
+                  padding: "14px 28px",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <LogIn size={16} /> Já sou afiliado (Entrar)
+              </Link>
+
+              <a
+                href="#calculadora"
+                className="btn-ghost"
+                style={{ padding: "14px 22px", fontSize: "14px", fontWeight: 600, textDecoration: "none" }}
+              >
+                Calcular ganhos
+              </a>
             </div>
 
             {/* Quick Badges */}

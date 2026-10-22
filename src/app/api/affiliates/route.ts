@@ -48,6 +48,66 @@ function isAuthenticatedAdmin(request: Request): boolean {
   );
 }
 
+const AFFILIATE_SESSION_SECRET = process.env.AFFILIATE_SESSION_SECRET || "peguei_affiliate_sec_2026_auth";
+
+function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+  const s = salt || crypto.randomBytes(16).toString("hex");
+  const h = crypto.scryptSync(password, s, 64).toString("hex");
+  return { hash: h, salt: s };
+}
+
+function verifyPassword(password: string, hash: string, salt: string): boolean {
+  try {
+    const h = crypto.scryptSync(password, salt, 64).toString("hex");
+    return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(hash));
+  } catch {
+    return false;
+  }
+}
+
+function generateAffiliateSessionToken(affiliateId: string, email: string): string {
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+  const payload = `${affiliateId}:${email.toLowerCase().trim()}:${expiresAt}`;
+  const signature = crypto.createHmac("sha256", AFFILIATE_SESSION_SECRET).update(payload).digest("hex");
+  return Buffer.from(`${payload}:${signature}`).toString("base64");
+}
+
+function verifyAffiliateSessionToken(token: string | null | undefined): { affiliateId: string; email: string } | null {
+  if (!token) return null;
+  try {
+    const decoded = Buffer.from(token, "base64").toString("utf8");
+    const [affiliateId, email, expiresAtStr, signature] = decoded.split(":");
+    if (!affiliateId || !email || !expiresAtStr || !signature) return null;
+    const expiresAt = parseInt(expiresAtStr, 10);
+    if (Date.now() > expiresAt) return null;
+
+    const expectedSignature = crypto.createHmac("sha256", AFFILIATE_SESSION_SECRET).update(`${affiliateId}:${email}:${expiresAtStr}`).digest("hex");
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      return null;
+    }
+    return { affiliateId, email };
+  } catch {
+    return null;
+  }
+}
+
+function getAuthenticatedAffiliate(request: Request): { affiliateId: string; email: string } | null {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const match = cookieHeader.match(/affiliate_session_token=([^;]+)/);
+  const cookieToken = match ? decodeURIComponent(match[1]) : null;
+
+  const authHeader = request.headers.get("authorization") || "";
+  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
+  const xToken = request.headers.get("x-affiliate-token");
+
+  return (
+    verifyAffiliateSessionToken(cookieToken) ||
+    verifyAffiliateSessionToken(bearerToken) ||
+    verifyAffiliateSessionToken(xToken)
+  );
+}
+
 const BACKEND_URL = process.env.BACKEND_URL || "https://pegueiotexto-production.up.railway.app";
 
 // Safe path resolution for local development and Vercel serverless environments
@@ -91,6 +151,8 @@ export interface AffiliateRecord {
   balance_pending: number;
   total_paid: number;
   status: "pending_review" | "active" | "suspended";
+  password_hash?: string;
+  password_salt?: string;
   created_at: string;
   updated_at: string;
 }
@@ -362,16 +424,83 @@ export async function GET(request: Request) {
       });
     }
 
-    if (action === "me") {
-      if (!userId && !affiliateCode) {
-        return NextResponse.json({ detail: "user_id ou affiliate_code é obrigatório." }, { status: 400 });
+    if (action === "get_activation_info") {
+      const code = searchParams.get("code")?.toLowerCase().trim() || "";
+      if (!code) {
+        return NextResponse.json({ valid: false, detail: "Código de ativação não informado." }, { status: 400 });
       }
 
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
-      let affiliate = affiliates.find((a) => (userId && a.user_id === userId) || (affiliateCode && a.affiliate_code === affiliateCode));
+      const aff = affiliates.find((a) => a.affiliate_code.toLowerCase().trim() === code);
+
+      if (!aff) {
+        return NextResponse.json({ valid: false, detail: "Candidatura não localizada com este código." }, { status: 404 });
+      }
+
+      return NextResponse.json({
+        valid: true,
+        affiliate_code: aff.affiliate_code,
+        full_name: aff.full_name,
+        email: aff.email,
+        status: aff.status,
+        has_password: Boolean(aff.password_hash),
+      });
+    }
+
+    if (action === "affiliate_check_auth") {
+      const auth = getAuthenticatedAffiliate(request);
+      if (!auth) {
+        return NextResponse.json({ authenticated: false });
+      }
+
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const aff = affiliates.find((a) => a.id === auth.affiliateId || a.email.toLowerCase().trim() === auth.email.toLowerCase().trim());
+
+      if (!aff || aff.status !== "active") {
+        return NextResponse.json({ authenticated: false, status: aff?.status || null });
+      }
+
+      const { password_hash, password_salt, ...safeAffiliate } = aff;
+      return NextResponse.json({
+        authenticated: true,
+        affiliate: safeAffiliate,
+      });
+    }
+
+    if (action === "me") {
+      const auth = getAuthenticatedAffiliate(request);
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      let affiliate: AffiliateRecord | undefined = undefined;
+
+      if (auth) {
+        affiliate = affiliates.find((a) => a.id === auth.affiliateId || a.email.toLowerCase().trim() === auth.email.toLowerCase().trim());
+      } else if (userId || affiliateCode) {
+        affiliate = affiliates.find((a) => (userId && a.user_id === userId) || (affiliateCode && a.affiliate_code.toLowerCase().trim() === affiliateCode.toLowerCase().trim()));
+      }
 
       if (!affiliate) {
         return NextResponse.json({ is_affiliate: false });
+      }
+
+      // If pending or suspended, block full dashboard metrics
+      if (affiliate.status !== "active") {
+        return NextResponse.json({
+          is_affiliate: true,
+          allowed: false,
+          status: affiliate.status,
+          affiliate: {
+            id: affiliate.id,
+            user_id: affiliate.user_id,
+            affiliate_code: affiliate.affiliate_code,
+            full_name: affiliate.full_name,
+            email: affiliate.email,
+            status: affiliate.status,
+            created_at: affiliate.created_at,
+          },
+          detail: affiliate.status === "pending_review"
+            ? "Sua candidatura está em processo de moderação manual. Você receberá o link de ativação assim que for aceito."
+            : "Esta conta de afiliado está suspensa.",
+        });
       }
 
       // Check matured commissions (14-day hold)
@@ -391,6 +520,7 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         is_affiliate: true,
+        allowed: true,
         affiliate: {
           id: affiliate.id,
           user_id: affiliate.user_id,
@@ -500,13 +630,26 @@ export async function POST(request: Request) {
 
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
 
-      // Check if user is already an affiliate
-      const existingUser = affiliates.find((a) => a.user_id === user_id);
+      // Check if user or email is already an affiliate
+      const cleanEmail = email.trim().toLowerCase();
+      const existingUser = affiliates.find(
+        (a) => a.user_id === user_id || a.email.toLowerCase().trim() === cleanEmail
+      );
       if (existingUser) {
         return NextResponse.json({
           success: true,
-          affiliate: existingUser,
-          message: "Você já possui cadastro de afiliado.",
+          already_registered: true,
+          status: existingUser.status,
+          affiliate: {
+            full_name: existingUser.full_name,
+            email: existingUser.email,
+            affiliate_code: existingUser.affiliate_code,
+            status: existingUser.status,
+          },
+          message:
+            existingUser.status === "active"
+              ? "Você já possui cadastro de afiliado aprovado! Acesse o login para entrar no painel."
+              : "Você já possui uma candidatura em análise pela nossa moderação.",
         });
       }
 
@@ -583,7 +726,9 @@ export async function POST(request: Request) {
       }
 
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
-      const affIndex = affiliates.findIndex((a) => a.user_id === user_id && a.affiliate_code === affiliate_code);
+      const affIndex = affiliates.findIndex(
+        (a) => a.affiliate_code.toLowerCase().trim() === affiliate_code.toLowerCase().trim() && (!user_id || a.user_id === user_id || a.affiliate_code === user_id)
+      );
 
       if (affIndex === -1) {
         return NextResponse.json({ detail: "Afiliado não encontrado." }, { status: 404 });
@@ -631,7 +776,132 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. ADMIN AUTHENTICATION & MODERAÇÃO
+    // 4. AFILIADO: CRIAÇÃO / DEFINIÇÃO DE SENHA (PÓS-APROVAÇÃO)
+    if (action === "affiliate_set_password") {
+      const { affiliate_code, password } = body;
+      if (!affiliate_code || !password) {
+        return NextResponse.json({ detail: "Código de afiliado e senha são obrigatórios." }, { status: 400 });
+      }
+
+      if (typeof password !== "string" || password.length < 6) {
+        return NextResponse.json({ detail: "A senha deve conter no mínimo 6 caracteres." }, { status: 400 });
+      }
+
+      const cleanCode = String(affiliate_code).toLowerCase().trim();
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const affIndex = affiliates.findIndex((a) => a.affiliate_code === cleanCode);
+
+      if (affIndex === -1) {
+        return NextResponse.json({ detail: "Cadastro de afiliado não encontrado." }, { status: 404 });
+      }
+
+      const aff = affiliates[affIndex];
+      if (aff.status !== "active") {
+        return NextResponse.json({ detail: "Apenas parceiros aprovados podem definir a senha de acesso." }, { status: 403 });
+      }
+
+      const { hash, salt } = hashPassword(password);
+      aff.password_hash = hash;
+      aff.password_salt = salt;
+      aff.updated_at = new Date().toISOString();
+      writeJSON(AFFILIATES_FILE, affiliates);
+
+      const token = generateAffiliateSessionToken(aff.id, aff.email);
+      const { password_hash: _, password_salt: __, ...safeAff } = aff;
+
+      const response = NextResponse.json({
+        success: true,
+        token,
+        affiliate: safeAff,
+        message: "Senha criada com sucesso! Redirecionando para o seu painel...",
+      });
+
+      response.cookies.set("affiliate_session_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      return response;
+    }
+
+    // 5. AFILIADO: LOGIN NO PAINEL COM E-MAIL E SENHA
+    if (action === "affiliate_login") {
+      const { email, password } = body;
+      if (!email || !password) {
+        return NextResponse.json({ detail: "Informe o e-mail e a senha cadastrados." }, { status: 400 });
+      }
+
+      const cleanEmail = String(email).toLowerCase().trim();
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const aff = affiliates.find((a) => a.email.toLowerCase().trim() === cleanEmail);
+
+      if (!aff) {
+        return NextResponse.json({ detail: "Nenhum cadastro de afiliado encontrado com este e-mail." }, { status: 404 });
+      }
+
+      if (aff.status === "pending_review") {
+        return NextResponse.json({
+          detail: "Sua candidatura ainda está em análise pela nossa equipe de moderação. Você receberá o link de ativação no WhatsApp assim que for aprovado.",
+          status: "pending_review",
+        }, { status: 403 });
+      }
+
+      if (aff.status === "suspended") {
+        return NextResponse.json({
+          detail: "Sua conta de afiliado está temporariamente suspensa. Entre em contato com o suporte.",
+          status: "suspended",
+        }, { status: 403 });
+      }
+
+      if (!aff.password_hash || !aff.password_salt) {
+        return NextResponse.json({
+          detail: "Sua conta já foi aprovada, mas você ainda não cadastrou sua senha de acesso.",
+          needs_activation: true,
+          affiliate_code: aff.affiliate_code,
+        }, { status: 403 });
+      }
+
+      const isMatch = verifyPassword(password, aff.password_hash, aff.password_salt);
+      if (!isMatch) {
+        return NextResponse.json({ detail: "Senha incorreta. Verifique suas credenciais." }, { status: 401 });
+      }
+
+      const token = generateAffiliateSessionToken(aff.id, aff.email);
+      const { password_hash: _, password_salt: __, ...safeAff } = aff;
+
+      const response = NextResponse.json({
+        success: true,
+        token,
+        affiliate: safeAff,
+        message: "Login de afiliado realizado com sucesso!",
+      });
+
+      response.cookies.set("affiliate_session_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      return response;
+    }
+
+    // 6. AFILIADO: LOGOUT
+    if (action === "affiliate_logout") {
+      const response = NextResponse.json({ success: true, message: "Sessão de afiliado encerrada com sucesso." });
+      response.cookies.set("affiliate_session_token", "", {
+        httpOnly: true,
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
+    }
+
+    // 7. ADMIN AUTHENTICATION & MODERAÇÃO
     if (action === "admin_login") {
       const { email, password } = body;
       if (!email || !password) {
