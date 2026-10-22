@@ -11,10 +11,11 @@ import {
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
   FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
-  Search, Share2, ExternalLink, X, Filter, Award 
+  Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift 
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
+import AccountSettingsModal from "@/components/AccountSettingsModal";
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -28,6 +29,8 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("todas");
   const [sharedToastId, setSharedToastId] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<"perfil" | "afiliados" | "indicacoes" | "plano">("perfil");
 
   async function loadUserData() {
     try {
@@ -524,14 +527,70 @@ export default function DashboardPage() {
                   <RefreshCw size={14} className={loading ? "spin" : ""} /> Sincronizar
                 </button>
 
-                <Link
-                  href="/afiliados/painel"
+                <button
+                  onClick={() => {
+                    setSettingsInitialTab("perfil");
+                    setIsSettingsOpen(true);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "7px 14px 7px 8px",
+                    borderRadius: "100px",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(124, 58, 237, 0.35)",
+                    color: "var(--text-primary)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  title="Editar perfil, senha e dados da conta"
+                >
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#FFFFFF",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                  <span>Minha Conta</span>
+                  <Settings size={14} color="var(--text-muted)" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSettingsInitialTab("afiliados");
+                    setIsSettingsOpen(true);
+                  }}
                   className="btn-ghost"
-                  title="Acessar Painel de Afiliado"
-                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none" }}
+                  title="Acessar link e status de Afiliado"
+                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
                   <Award size={14} color="#A78BFA" /> Afiliados
-                </Link>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSettingsInitialTab("indicacoes");
+                    setIsSettingsOpen(true);
+                  }}
+                  className="btn-ghost"
+                  title="Indicar amigos e ganhar minutos"
+                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Gift size={14} color="#67E8F9" /> Indique e Ganhe
+                </button>
 
                 <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
                   Recarregar minutos <ArrowRight size={14} />
@@ -1128,6 +1187,19 @@ export default function DashboardPage() {
         </div>
       </div>
       <ReferralWidget user={user} profile={profile} />
+      
+      {/* Account Settings & Profile Edit Modal */}
+      <AccountSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        user={user}
+        profile={profile}
+        onProfileUpdated={(updatedProfile) => {
+          setProfile(updatedProfile);
+        }}
+        initialTab={settingsInitialTab}
+      />
+
       <Footer />
     </main>
   );

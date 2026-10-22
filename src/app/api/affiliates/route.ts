@@ -327,6 +327,7 @@ export async function GET(request: Request) {
     const action = searchParams.get("action") || "me";
     const userId = searchParams.get("user_id");
     const affiliateCode = searchParams.get("affiliate_code");
+    const emailParam = searchParams.get("email")?.toLowerCase().trim();
 
     if (action === "check_code") {
       const code = searchParams.get("code")?.toLowerCase().trim() || "";
@@ -474,8 +475,13 @@ export async function GET(request: Request) {
 
       if (auth) {
         affiliate = affiliates.find((a) => a.id === auth.affiliateId || a.email.toLowerCase().trim() === auth.email.toLowerCase().trim());
-      } else if (userId || affiliateCode) {
-        affiliate = affiliates.find((a) => (userId && a.user_id === userId) || (affiliateCode && a.affiliate_code.toLowerCase().trim() === affiliateCode.toLowerCase().trim()));
+      } else if (userId || affiliateCode || emailParam) {
+        affiliate = affiliates.find(
+          (a) =>
+            (emailParam && a.email.toLowerCase().trim() === emailParam) ||
+            (userId && a.user_id === userId) ||
+            (affiliateCode && a.affiliate_code.toLowerCase().trim() === affiliateCode.toLowerCase().trim())
+        );
       }
 
       if (!affiliate) {
