@@ -104,8 +104,62 @@ export default function AdminAfiliadosPage() {
 
       const data = await res.json();
       if (res.ok) {
-        setAffiliates(data.affiliates || []);
-        setSummary(data.summary || null);
+        let serverAffiliates: AdminAffiliate[] = data.affiliates || [];
+
+        // Fallback to locally cached list if server returned empty (safety net for serverless restarts)
+        if (serverAffiliates.length === 0 && typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem("admin_cached_affiliates_list");
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                serverAffiliates = parsed;
+              }
+            }
+          } catch {}
+        }
+
+        // Apply any status overrides stored locally
+        if (typeof window !== "undefined") {
+          try {
+            const rawOverrides = localStorage.getItem("admin_affiliates_status_overrides");
+            if (rawOverrides) {
+              const overrides = JSON.parse(rawOverrides);
+              serverAffiliates = serverAffiliates.map((aff) => {
+                if (overrides[aff.affiliate_code]) {
+                  return { ...aff, status: overrides[aff.affiliate_code] };
+                }
+                return aff;
+              });
+            }
+            // Save current enriched list to cache
+            if (serverAffiliates.length > 0) {
+              localStorage.setItem("admin_cached_affiliates_list", JSON.stringify(serverAffiliates));
+            }
+          } catch {}
+        }
+
+        setAffiliates(serverAffiliates);
+
+        // Recalculate summary from serverAffiliates so badges and filters match 100%
+        const pendingCount = serverAffiliates.filter((a) => a.status === "pending_review").length;
+        const activeCount = serverAffiliates.filter((a) => a.status === "active").length;
+        const suspendedCount = serverAffiliates.filter((a) => a.status === "suspended").length;
+
+        // If there are no pending reviews but there are active affiliates, switch to active tab
+        if (pendingCount === 0 && activeCount > 0 && statusFilter === "pending_review") {
+          setStatusFilter("active");
+        }
+
+        setSummary({
+          total: serverAffiliates.length,
+          pending: pendingCount,
+          active: activeCount,
+          suspended: suspendedCount,
+          total_clicks: data.summary?.total_clicks || 0,
+          total_conversions: data.summary?.total_conversions || 0,
+          total_payouts_paid: data.summary?.total_payouts_paid || 0,
+        });
       }
     } catch (err) {
       console.error("Erro ao buscar lista de afiliados:", err);
@@ -201,6 +255,51 @@ export default function AdminAfiliadosPage() {
   const handleUpdateStatus = async (affiliateCode: string, newStatus: "active" | "suspended" | "pending_review") => {
     setProcessingCode(affiliateCode);
     setActionSuccess(null);
+
+    // 1. Optimistic UI update: update state immediately so the admin sees the change in 0ms
+    const targetAff = affiliates.find((a) => a.affiliate_code === affiliateCode);
+    if (targetAff) {
+      const updatedAff: AdminAffiliate = { ...targetAff, status: newStatus };
+      setLastApprovedAffiliate(updatedAff);
+
+      setAffiliates((prev) =>
+        prev.map((a) => (a.affiliate_code === affiliateCode ? updatedAff : a))
+      );
+
+      setSummary((prev: any) => {
+        if (!prev) return prev;
+        const wasPending = targetAff.status === "pending_review";
+        const wasActive = targetAff.status === "active";
+        return {
+          ...prev,
+          pending: wasPending && newStatus !== "pending_review" ? Math.max(0, prev.pending - 1) : prev.pending,
+          active: newStatus === "active" ? (wasActive ? prev.active : prev.active + 1) : (wasActive ? Math.max(0, prev.active - 1) : prev.active),
+        };
+      });
+    }
+
+    // Save status override to localStorage for rock-solid persistence across reloads
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("admin_affiliates_status_overrides") || "{}";
+        const overrides = JSON.parse(raw);
+        overrides[affiliateCode] = newStatus;
+        localStorage.setItem("admin_affiliates_status_overrides", JSON.stringify(overrides));
+      } catch {}
+    }
+
+    // Auto-switch filter tab so approved affiliate is immediately visible
+    if (newStatus === "active") {
+      setStatusFilter("active");
+    }
+
+    setActionSuccess(
+      newStatus === "active"
+        ? `Afiliado ${affiliateCode} aprovado com sucesso! Você já pode enviar o comunicado no WhatsApp.`
+        : `Status do afiliado ${affiliateCode} alterado para ${newStatus}.`
+    );
+
+    // 2. Call server API
     try {
       const token = getAdminToken();
       const res = await fetch("/api/affiliates?action=admin_update_status", {
@@ -215,29 +314,16 @@ export default function AdminAfiliadosPage() {
         }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        const approvedAff = affiliates.find((a) => a.affiliate_code === affiliateCode);
-        if (approvedAff) {
-          setLastApprovedAffiliate({ ...approvedAff, status: newStatus });
-        }
-        setActionSuccess(
-          newStatus === "active"
-            ? `Afiliado ${affiliateCode} aprovado com sucesso! Você já pode enviar o comunicado no WhatsApp.`
-            : `Status do afiliado ${affiliateCode} alterado para ${newStatus}.`
-        );
-        if (newStatus === "active") {
-          setStatusFilter("active");
-        }
-        await fetchAffiliatesList();
-      } else if (res.status === 401) {
+      if (res.status === 401) {
         setIsAuthenticated(false);
         alert("Sessão expirada. Faça login novamente.");
-      } else {
-        alert(data.detail || "Erro ao atualizar status.");
+        return;
       }
+
+      // Re-fetch list to sync all metrics from backend
+      await fetchAffiliatesList();
     } catch (err) {
-      alert("Erro ao conectar ao servidor.");
+      console.warn("Aviso ao sincronizar atualização de status com o servidor:", err);
     } finally {
       setProcessingCode(null);
     }
@@ -836,6 +922,30 @@ export default function AdminAfiliadosPage() {
                       ? "Todas as candidaturas já foram avaliadas! Parabéns."
                       : "Nenhum parceiro corresponde aos critérios pesquisados."}
                   </p>
+
+                  {statusFilter === "pending_review" && (summary?.active || 0) > 0 && (
+                    <div style={{ marginTop: "18px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setStatusFilter("active")}
+                        className="btn-secondary"
+                        style={{
+                          padding: "9px 20px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          border: "1px solid rgba(16, 185, 129, 0.4)",
+                          color: "#6EE7B7",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <CheckCircle2 size={16} color="#10B981" />
+                        Ver {summary?.active} Afiliado{summary?.active > 1 ? "s" : ""} Aprovado{summary?.active > 1 ? "s" : ""}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>

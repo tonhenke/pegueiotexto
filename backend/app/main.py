@@ -57,5 +57,8 @@ def root():
             "checkout_plans": "GET /api/checkout/plans",
             "checkout_session": "POST /api/checkout/create-session",
             "checkout_webhook": "POST /api/checkout/webhook",
+            "affiliates_list": "GET /api/affiliates/list",
+            "affiliates_register": "POST /api/affiliates/register",
+            "affiliates_status": "POST /api/affiliates/status",
         }
     }

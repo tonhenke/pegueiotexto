@@ -58,6 +58,14 @@ function getStorageDir(): string {
   return path.join(process.cwd(), "data");
 }
 
+function getBundledFilePath(filename: string): string {
+  return path.join(process.cwd(), "data", filename);
+}
+
+function getTmpFilePath(filename: string): string {
+  return path.join("/tmp", "pegueiotexto_data", filename);
+}
+
 const DATA_DIR = getStorageDir();
 const AFFILIATES_FILE = path.join(DATA_DIR, "affiliates.json");
 const CLICKS_FILE = path.join(DATA_DIR, "affiliate_clicks.json");
@@ -122,56 +130,101 @@ export interface AffiliatePayout {
 }
 
 function readJSON<T>(filePath: string): T[] {
+  const filename = path.basename(filePath);
+  const tmpPath = getTmpFilePath(filename);
+  const bundledPath = getBundledFilePath(filename);
+
+  let tmpList: any[] = [];
+  let bundledList: any[] = [];
+
+  // 1. Try reading from /tmp (runtime mutations)
   try {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
+    if (fs.existsSync(tmpPath)) {
+      const raw = fs.readFileSync(tmpPath, "utf-8");
+      tmpList = JSON.parse(raw) || [];
+    }
+  } catch (err) {
+    console.warn(`[Affiliates] Erro ao ler /tmp para ${filename}:`, err);
+  }
+
+  // 2. Try reading from project data/ directory (git-bundled records)
+  try {
+    if (fs.existsSync(bundledPath)) {
+      const raw = fs.readFileSync(bundledPath, "utf-8");
+      bundledList = JSON.parse(raw) || [];
+    }
+  } catch (err) {
+    console.warn(`[Affiliates] Erro ao ler bundled ${filename}:`, err);
+  }
+
+  // Intelligently merge affiliates
+  if (filename === "affiliates.json") {
+    const map = new Map<string, any>();
+    // First, add all bundled affiliates
+    for (const item of bundledList) {
+      if (item && item.affiliate_code) {
+        map.set(String(item.affiliate_code).toLowerCase().trim(), item);
+      }
+    }
+    // Second, overlay with /tmp records (which include status changes and new registrations)
+    for (const item of tmpList) {
+      if (item && item.affiliate_code) {
+        map.set(String(item.affiliate_code).toLowerCase().trim(), item);
+      }
+    }
+    const merged = Array.from(map.values()) as T[];
+
+    // Ensure /tmp has the full merged dataset
+    if (tmpList.length < merged.length) {
       try {
-        fs.mkdirSync(dir, { recursive: true });
+        const tmpDir = path.dirname(tmpPath);
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+        fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), "utf-8");
       } catch {}
     }
-    if (!fs.existsSync(filePath)) {
-      // Check fallback /tmp if filePath is not already in /tmp
-      const fallbackPath = path.join("/tmp", "pegueiotexto_data", path.basename(filePath));
-      if (fs.existsSync(fallbackPath)) {
-        const raw = fs.readFileSync(fallbackPath, "utf-8");
-        return JSON.parse(raw) || [];
-      }
-      return [];
-    }
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw) || [];
-  } catch (err) {
-    try {
-      const fallbackPath = path.join("/tmp", "pegueiotexto_data", path.basename(filePath));
-      if (fs.existsSync(fallbackPath)) {
-        const raw = fs.readFileSync(fallbackPath, "utf-8");
-        return JSON.parse(raw) || [];
-      }
-    } catch {}
-    console.warn(`[Affiliates] Aviso ao ler ${filePath}:`, err);
-    return [];
+    return merged;
   }
+
+  // For clicks, conversions, payouts: combine unique items by ID
+  if (tmpList.length > 0 && bundledList.length > 0) {
+    const map = new Map<string, any>();
+    for (const item of bundledList) {
+      if (item && item.id) map.set(item.id, item);
+    }
+    for (const item of tmpList) {
+      if (item && item.id) map.set(item.id, item);
+    }
+    return Array.from(map.values()) as T[];
+  }
+
+  return (tmpList.length > 0 ? tmpList : bundledList) as T[];
 }
 
 function writeJSON<T>(filePath: string, data: T[]): void {
+  const filename = path.basename(filePath);
+  const tmpPath = getTmpFilePath(filename);
+  const bundledPath = getBundledFilePath(filename);
+
+  // 1. Always write to /tmp (writable in serverless)
   try {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    const tmpDir = path.dirname(tmpPath);
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
     }
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf-8");
   } catch (err) {
-    // If running in read-only environment, fallback to /tmp
-    try {
-      const fallbackDir = path.join("/tmp", "pegueiotexto_data");
-      if (!fs.existsSync(fallbackDir)) {
-        fs.mkdirSync(fallbackDir, { recursive: true });
-      }
-      const fallbackPath = path.join(fallbackDir, path.basename(filePath));
-      fs.writeFileSync(fallbackPath, JSON.stringify(data, null, 2), "utf-8");
-    } catch (fallbackErr) {
-      console.warn(`[Affiliates] Aviso ao gravar ${filePath}:`, fallbackErr);
+    console.warn(`[Affiliates] Aviso ao gravar /tmp ${filename}:`, err);
+  }
+
+  // 2. Also try writing to project data/ folder (works in local dev; safe no-op on read-only serverless)
+  try {
+    const bundledDir = path.dirname(bundledPath);
+    if (!fs.existsSync(bundledDir)) {
+      fs.mkdirSync(bundledDir, { recursive: true });
     }
+    fs.writeFileSync(bundledPath, JSON.stringify(data, null, 2), "utf-8");
+  } catch {
+    // Expected to silently catch on read-only serverless filesystems
   }
 }
 
@@ -621,69 +674,20 @@ export async function POST(request: Request) {
       return response;
     }
 
-    if (action === "admin_approve") {
+    if (action === "admin_approve" || action === "admin_update_status") {
       if (!isAuthenticatedAdmin(request)) {
         return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
       }
 
-      const { affiliate_code } = body;
-      if (!affiliate_code) {
-        return NextResponse.json({ detail: "affiliate_code é obrigatório." }, { status: 400 });
-      }
-
-      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
-      const affIndex = affiliates.findIndex((a) => a.affiliate_code === affiliate_code.toLowerCase().trim());
-
-      if (affIndex === -1) {
-        return NextResponse.json({ detail: "Afiliado não encontrado." }, { status: 404 });
-      }
-
-      affiliates[affIndex].status = "active";
-      affiliates[affIndex].updated_at = new Date().toISOString();
-      writeJSON(AFFILIATES_FILE, affiliates);
-
-      return NextResponse.json({
-        success: true,
-        affiliate: affiliates[affIndex],
-        message: `Afiliado ${affiliate_code} aprovado com sucesso!`,
-      });
-    }
-
-    if (action === "admin_update_status") {
-      if (!isAuthenticatedAdmin(request)) {
-        return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
-      }
-
-      const { affiliate_code, status } = body;
+      const affiliate_code = body.affiliate_code;
+      const status = body.status || (action === "admin_approve" ? "active" : "");
       if (!affiliate_code || !status) {
         return NextResponse.json({ detail: "affiliate_code e status são obrigatórios." }, { status: 400 });
       }
 
-      // Try Railway backend
-      try {
-        const backendRes = await fetch(`${BACKEND_URL}/api/affiliates/status`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ affiliate_code, status }),
-        });
-        if (backendRes.ok) {
-          const data = await backendRes.json();
-          try {
-            const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
-            const affIndex = affiliates.findIndex((a) => a.affiliate_code === affiliate_code.toLowerCase().trim());
-            if (affIndex !== -1) {
-              affiliates[affIndex].status = status;
-              writeJSON(AFFILIATES_FILE, affiliates);
-            }
-          } catch {}
-          return NextResponse.json(data);
-        }
-      } catch (err) {
-        console.warn("[Affiliates Proxy] Erro ao atualizar status na Railway, usando local:", err);
-      }
-
+      const cleanCode = String(affiliate_code).toLowerCase().trim();
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
-      const affIndex = affiliates.findIndex((a) => a.affiliate_code === affiliate_code.toLowerCase().trim());
+      const affIndex = affiliates.findIndex((a) => a.affiliate_code === cleanCode);
 
       if (affIndex === -1) {
         return NextResponse.json({ detail: "Afiliado não encontrado." }, { status: 404 });
@@ -693,10 +697,19 @@ export async function POST(request: Request) {
       affiliates[affIndex].updated_at = new Date().toISOString();
       writeJSON(AFFILIATES_FILE, affiliates);
 
+      // Best-effort async sync with Railway backend
+      try {
+        fetch(`${BACKEND_URL}/api/affiliates/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ affiliate_code: cleanCode, status }),
+        }).catch(() => {});
+      } catch {}
+
       return NextResponse.json({
         success: true,
         affiliate: affiliates[affIndex],
-        message: `Status do afiliado ${affiliate_code} alterado para ${status}.`,
+        message: status === "active" ? `Afiliado ${cleanCode} aprovado com sucesso!` : `Status do afiliado ${cleanCode} alterado para ${status}.`,
       });
     }
 
