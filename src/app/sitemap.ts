@@ -12,13 +12,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
+      url: `${baseUrl}/transcrever-whatsapp`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/transcrever-youtube`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
+      url: `${baseUrl}/transcrever-tiktok`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/transcrever-instagram`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/converter-mp3-em-texto`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -33,6 +51,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/precos`,
       lastModified: now,
       changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/afiliados`,
+      lastModified: now,
+      changeFrequency: "monthly",
       priority: 0.8,
     },
     {

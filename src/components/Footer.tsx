@@ -9,10 +9,12 @@ const footerLinks = {
     { label: "Programa de Afiliados", href: "/afiliados" },
   ],
   "Plataformas": [
+    { label: "Áudios do WhatsApp", href: "/transcrever-whatsapp" },
     { label: "YouTube Transcrição", href: "/transcrever-youtube" },
+    { label: "TikTok Transcrição", href: "/transcrever-tiktok" },
     { label: "Instagram Reels", href: "/transcrever-instagram" },
+    { label: "Converter MP3 em Texto", href: "/converter-mp3-em-texto" },
     { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
-    { label: "Todos os Formatos", href: "/#como-funciona" },
   ],
   "Empresa": [
     { label: "Sobre nós", href: "/sobre-nos" },
