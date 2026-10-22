@@ -11,11 +11,11 @@ import {
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
   FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
-  Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift 
+  Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu 
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
-import AccountSettingsModal from "@/components/AccountSettingsModal";
+import AccountSidebarDrawer from "@/components/AccountSidebarDrawer";
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -29,8 +29,8 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("todas");
   const [sharedToastId, setSharedToastId] = useState<string | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<"perfil" | "afiliados" | "indicacoes" | "plano">("perfil");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarInitialSection, setSidebarInitialSection] = useState<"perfil" | "senha" | "afiliados" | "indicacoes" | "plano" | null>(null);
 
   async function loadUserData() {
     try {
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                 </h1>
               </div>
 
-              {/* Credits & Action Buttons */}
+              {/* Credits & Clean Action Bar */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: "8px",
@@ -515,96 +515,58 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setLoading(true);
-                    loadUserData();
-                  }}
-                  className="btn-ghost"
-                  title="Sincronizar pagamentos e créditos"
-                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  <RefreshCw size={14} className={loading ? "spin" : ""} /> Sincronizar
-                </button>
+                <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
+                  Recarregar minutos <ArrowRight size={14} />
+                </Link>
 
                 <button
                   onClick={() => {
-                    setSettingsInitialTab("perfil");
-                    setIsSettingsOpen(true);
+                    setSidebarInitialSection(null);
+                    setIsSidebarOpen(true);
                   }}
+                  id="btn-open-sidebar"
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "8px",
-                    padding: "7px 14px 7px 8px",
+                    gap: "9px",
+                    padding: "6px 14px 6px 8px",
                     borderRadius: "100px",
                     background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(124, 58, 237, 0.35)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
                     color: "var(--text-primary)",
                     fontSize: "13px",
                     fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                   }}
-                  title="Editar perfil, senha e dados da conta"
+                  title="Abrir menu de opções e configurações"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                    e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                  }}
                 >
                   <div
                     style={{
-                      width: 24,
-                      height: 24,
+                      width: 26,
+                      height: 26,
                       borderRadius: "50%",
                       background: "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#FFFFFF",
-                      fontSize: "11px",
+                      fontSize: "12px",
                       fontWeight: 800,
                     }}
                   >
                     {userName.charAt(0).toUpperCase()}
                   </div>
-                  <span>Minha Conta</span>
-                  <Settings size={14} color="var(--text-muted)" />
+                  <Menu size={18} color="#FFFFFF" />
                 </button>
-
-                <button
-                  onClick={() => {
-                    setSettingsInitialTab("afiliados");
-                    setIsSettingsOpen(true);
-                  }}
-                  className="btn-ghost"
-                  title="Acessar link e status de Afiliado"
-                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Award size={14} color="#A78BFA" /> Afiliados
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSettingsInitialTab("indicacoes");
-                    setIsSettingsOpen(true);
-                  }}
-                  className="btn-ghost"
-                  title="Indicar amigos e ganhar minutos"
-                  style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  <Gift size={14} color="#67E8F9" /> Indique e Ganhe
-                </button>
-
-                <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
-                  Recarregar minutos <ArrowRight size={14} />
-                </Link>
-
-                {user ? (
-                  <button onClick={handleLogout} className="btn-ghost" title="Encerrar sessão" style={{ padding: "8px 14px", fontSize: "13px" }}>
-                    <LogOut size={15} /> Sair
-                  </button>
-                ) : (
-                  <Link href="/login" className="btn-secondary" style={{ padding: "8px 14px", fontSize: "13px", textDecoration: "none" }}>
-                    Criar conta grátis
-                  </Link>
-                )}
               </div>
             </div>
 
@@ -1188,16 +1150,19 @@ export default function DashboardPage() {
       </div>
       <ReferralWidget user={user} profile={profile} />
       
-      {/* Account Settings & Profile Edit Modal */}
-      <AccountSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+      {/* Account Settings Sidebar Drawer (Barra Lateral) */}
+      <AccountSidebarDrawer
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         user={user}
         profile={profile}
+        credits={credits}
         onProfileUpdated={(updatedProfile) => {
           setProfile(updatedProfile);
         }}
-        initialTab={settingsInitialTab}
+        onRefreshData={loadUserData}
+        onLogout={handleLogout}
+        initialSection={sidebarInitialSection}
       />
 
       <Footer />
