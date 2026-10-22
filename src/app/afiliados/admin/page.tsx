@@ -75,6 +75,7 @@ export default function AdminAfiliadosPage() {
   // Processing state
   const [processingCode, setProcessingCode] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [lastApprovedAffiliate, setLastApprovedAffiliate] = useState<AdminAffiliate | null>(null);
 
   const getAdminToken = () => {
     if (typeof window !== "undefined") {
@@ -216,11 +217,18 @@ export default function AdminAfiliadosPage() {
 
       const data = await res.json();
       if (res.ok) {
+        const approvedAff = affiliates.find((a) => a.affiliate_code === affiliateCode);
+        if (approvedAff) {
+          setLastApprovedAffiliate({ ...approvedAff, status: newStatus });
+        }
         setActionSuccess(
           newStatus === "active"
             ? `Afiliado ${affiliateCode} aprovado com sucesso! Você já pode enviar o comunicado no WhatsApp.`
             : `Status do afiliado ${affiliateCode} alterado para ${newStatus}.`
         );
+        if (newStatus === "active") {
+          setStatusFilter("active");
+        }
         await fetchAffiliatesList();
       } else if (res.status === 401) {
         setIsAuthenticated(false);
@@ -575,11 +583,15 @@ export default function AdminAfiliadosPage() {
                 {/* Pendentes */}
                 <div
                   className="glass-card"
+                  onClick={() => setStatusFilter("pending_review")}
                   style={{
                     padding: "20px",
-                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    cursor: "pointer",
+                    border: statusFilter === "pending_review" ? "1px solid rgba(245, 158, 11, 0.7)" : "1px solid rgba(245, 158, 11, 0.3)",
                     background: "radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 70%), var(--bg-card)",
+                    transition: "all 0.2s ease",
                   }}
+                  title="Filtrar por pendentes"
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "#FCD34D", fontWeight: 700, textTransform: "uppercase" }}>
@@ -596,7 +608,18 @@ export default function AdminAfiliadosPage() {
                 </div>
 
                 {/* Ativos */}
-                <div className="glass-card" style={{ padding: "20px" }}>
+                <div
+                  className="glass-card"
+                  onClick={() => setStatusFilter("active")}
+                  style={{
+                    padding: "20px",
+                    cursor: "pointer",
+                    border: statusFilter === "active" ? "1px solid rgba(16, 185, 129, 0.7)" : "1px solid rgba(16, 185, 129, 0.3)",
+                    background: statusFilter === "active" ? "radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 70%), var(--bg-card)" : "var(--bg-card)",
+                    transition: "all 0.2s ease",
+                  }}
+                  title="Filtrar por afiliados aprovados"
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "#6EE7B7", fontWeight: 700, textTransform: "uppercase" }}>
                       Afiliados Aprovados
@@ -612,7 +635,12 @@ export default function AdminAfiliadosPage() {
                 </div>
 
                 {/* Total Cliques */}
-                <div className="glass-card" style={{ padding: "20px" }}>
+                <div
+                  className="glass-card"
+                  onClick={() => setStatusFilter("all")}
+                  style={{ padding: "20px", cursor: "pointer" }}
+                  title="Ver todos os afiliados"
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
                       Cliques Rastreados
@@ -628,7 +656,12 @@ export default function AdminAfiliadosPage() {
                 </div>
 
                 {/* Total Vendas */}
-                <div className="glass-card" style={{ padding: "20px" }}>
+                <div
+                  className="glass-card"
+                  onClick={() => setStatusFilter("all")}
+                  style={{ padding: "20px", cursor: "pointer" }}
+                  title="Ver todos os afiliados"
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
                       Vendas Geradas
@@ -648,7 +681,7 @@ export default function AdminAfiliadosPage() {
               {actionSuccess && (
                 <div
                   style={{
-                    padding: "14px 18px",
+                    padding: "16px 20px",
                     marginBottom: "24px",
                     borderRadius: "12px",
                     background: "rgba(16, 185, 129, 0.12)",
@@ -658,20 +691,46 @@ export default function AdminAfiliadosPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    flexWrap: "wrap",
                     gap: "12px",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <CheckCircle2 size={18} color="#10B981" />
-                    <span>{actionSuccess}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <CheckCircle2 size={20} color="#10B981" />
+                    <span style={{ fontWeight: 600 }}>{actionSuccess}</span>
                   </div>
-                  <button
-                    className="btn-ghost"
-                    onClick={() => setActionSuccess(null)}
-                    style={{ padding: "4px 8px", fontSize: "12px", color: "#6EE7B7" }}
-                  >
-                    ✕
-                  </button>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {lastApprovedAffiliate && (
+                      <button
+                        type="button"
+                        onClick={() => handleSendWhatsAppNotification(lastApprovedAffiliate)}
+                        style={{
+                          padding: "8px 16px",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          border: "none",
+                          background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                          color: "#FFFFFF",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          boxShadow: "0 4px 12px rgba(16, 185, 129, 0.35)",
+                        }}
+                      >
+                        <Phone size={14} /> Abrir WhatsApp Agora
+                      </button>
+                    )}
+                    <button
+                      className="btn-ghost"
+                      onClick={() => setActionSuccess(null)}
+                      style={{ padding: "4px 8px", fontSize: "12px", color: "#6EE7B7" }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               )}
 
