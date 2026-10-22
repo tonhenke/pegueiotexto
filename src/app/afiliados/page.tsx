@@ -105,14 +105,7 @@ export default function AfiliadosPage() {
       return;
     }
 
-    const effectiveUserId =
-      currentUser?.id ||
-      (typeof window !== "undefined" && localStorage.getItem("pegueiotexto_applicant_uid")) ||
-      `aff_usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem("pegueiotexto_applicant_uid", effectiveUserId);
-    }
+    const effectiveUserId = `aff_usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // Auto-generate safe code if empty
     let safeCode = desiredCode.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -128,7 +121,7 @@ export default function AfiliadosPage() {
         body: JSON.stringify({
           user_id: effectiveUserId,
           full_name: fullName.trim(),
-          email: (email || currentUser?.email || "").trim(),
+          email: (email || "").trim(),
           phone: phone.trim(),
           cpf_cnpj: cpfCnpj.trim(),
           pix_key_type: pixKeyType,
@@ -142,8 +135,18 @@ export default function AfiliadosPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || "Erro ao processar sua inscrição. Tente novamente.");
+      if (!res.ok || data.already_registered) {
+        throw new Error(data.detail || data.message || "Este e-mail ou código já possui candidatura cadastrada.");
+      }
+
+      if (typeof window !== "undefined" && data.affiliate) {
+        try {
+          const raw = localStorage.getItem("admin_pending_sync_queue") || "[]";
+          const queue = JSON.parse(raw);
+          const filtered = queue.filter((a: any) => a.affiliate_code !== data.affiliate.affiliate_code);
+          filtered.unshift(data.affiliate);
+          localStorage.setItem("admin_pending_sync_queue", JSON.stringify(filtered));
+        } catch {}
       }
 
       setFormSuccess(data.message || "Candidatura enviada com sucesso! Redirecionando...");

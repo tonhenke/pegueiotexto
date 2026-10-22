@@ -106,14 +106,46 @@ export default function AdminAfiliadosPage() {
       if (res.ok) {
         let serverAffiliates: AdminAffiliate[] = data.affiliates || [];
 
-        // Fallback to locally cached list if server returned empty (safety net for serverless restarts)
-        if (serverAffiliates.length === 0 && typeof window !== "undefined") {
+        // Check browser sync queue for any recently submitted applications
+        if (typeof window !== "undefined") {
+          try {
+            const rawQueue = localStorage.getItem("admin_pending_sync_queue");
+            if (rawQueue) {
+              const queue: AdminAffiliate[] = JSON.parse(rawQueue);
+              for (const queued of queue) {
+                const exists = serverAffiliates.some(
+                  (a) => a.affiliate_code.toLowerCase().trim() === queued.affiliate_code.toLowerCase().trim()
+                );
+                if (!exists) {
+                  serverAffiliates.unshift(queued);
+                  // Sync to server runtime storage
+                  fetch("/api/affiliates?action=admin_sync_registration", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ affiliate: queued }),
+                  }).catch(() => {});
+                }
+              }
+            }
+          } catch {}
+        }
+
+        // Fallback or merge locally cached list (safety net for serverless restarts)
+        if (typeof window !== "undefined") {
           try {
             const cached = localStorage.getItem("admin_cached_affiliates_list");
             if (cached) {
               const parsed = JSON.parse(cached);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                serverAffiliates = parsed;
+                if (serverAffiliates.length === 0) {
+                  serverAffiliates = parsed;
+                } else {
+                  for (const c of parsed) {
+                    if (!serverAffiliates.some((a) => a.affiliate_code === c.affiliate_code)) {
+                      serverAffiliates.push(c);
+                    }
+                  }
+                }
               }
             }
           } catch {}
@@ -146,8 +178,10 @@ export default function AdminAfiliadosPage() {
         const activeCount = serverAffiliates.filter((a) => a.status === "active").length;
         const suspendedCount = serverAffiliates.filter((a) => a.status === "suspended").length;
 
-        // If there are no pending reviews but there are active affiliates, switch to active tab
-        if (pendingCount === 0 && activeCount > 0 && statusFilter === "pending_review") {
+        // Auto-switch filter tab: prioritize pending_review if there are pending candidates
+        if (pendingCount > 0) {
+          setStatusFilter("pending_review");
+        } else if (activeCount > 0 && statusFilter === "pending_review") {
           setStatusFilter("active");
         }
 

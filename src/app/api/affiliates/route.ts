@@ -630,27 +630,21 @@ export async function POST(request: Request) {
 
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
 
-      // Check if user or email is already an affiliate
+      // Check if email is already registered (strictly by email, never by anonymous applicant user_id)
       const cleanEmail = email.trim().toLowerCase();
       const existingUser = affiliates.find(
-        (a) => a.user_id === user_id || a.email.toLowerCase().trim() === cleanEmail
+        (a) => a.email.toLowerCase().trim() === cleanEmail
       );
       if (existingUser) {
         return NextResponse.json({
-          success: true,
+          success: false,
           already_registered: true,
           status: existingUser.status,
-          affiliate: {
-            full_name: existingUser.full_name,
-            email: existingUser.email,
-            affiliate_code: existingUser.affiliate_code,
-            status: existingUser.status,
-          },
-          message:
+          detail:
             existingUser.status === "active"
-              ? "Você já possui cadastro de afiliado aprovado! Acesse o login para entrar no painel."
-              : "Você já possui uma candidatura em análise pela nossa moderação.",
-        });
+              ? `O e-mail '${cleanEmail}' já possui cadastro de afiliado aprovado. Acesse a área de login para entrar.`
+              : `O e-mail '${cleanEmail}' já possui uma candidatura em análise pela moderação.`,
+        }, { status: 409 });
       }
 
       // Check if code is taken
@@ -691,6 +685,22 @@ export async function POST(request: Request) {
         affiliate: newAffiliate,
         message: "Candidatura enviada com sucesso! Seus dados foram recebidos e estão em análise.",
       });
+    }
+
+    if (action === "admin_sync_registration") {
+      const { affiliate } = body;
+      if (!affiliate || !affiliate.affiliate_code) {
+        return NextResponse.json({ detail: "Dados inválidos." }, { status: 400 });
+      }
+      const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+      const idx = affiliates.findIndex(
+        (a) => a.affiliate_code.toLowerCase().trim() === String(affiliate.affiliate_code).toLowerCase().trim()
+      );
+      if (idx === -1) {
+        affiliates.unshift(affiliate);
+        writeJSON(AFFILIATES_FILE, affiliates);
+      }
+      return NextResponse.json({ success: true, total: affiliates.length });
     }
 
     // 2. RASTREIO DE CLIQUE
