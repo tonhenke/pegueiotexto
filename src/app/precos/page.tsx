@@ -453,11 +453,26 @@ export default function PrecosPage() {
 
                     {/* Price - Monthly Highlighted */}
                     <div style={{ marginBottom: "22px" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span className="price-amount" style={{ color: plan.color, fontSize: "2.5rem", fontWeight: 900, letterSpacing: "-0.04em" }}>
-                          {plan.displayPrice}
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                        <span
+                          className="price-amount"
+                          style={{
+                            color: plan.color,
+                            fontSize: "2.35rem",
+                            fontWeight: 900,
+                            letterSpacing: "-0.03em",
+                            whiteSpace: "nowrap",
+                            display: "inline-flex",
+                            alignItems: "baseline",
+                            lineHeight: 1,
+                          }}
+                        >
+                          <span style={{ fontSize: "1.25rem", fontWeight: 700, marginRight: "4px", opacity: 0.9 }}>
+                            R$
+                          </span>
+                          <span>{plan.displayPrice.replace("R$", "").trim()}</span>
                         </span>
-                        <span style={{ color: "var(--text-muted)", fontSize: "14px", fontWeight: 600 }}>
+                        <span style={{ color: "var(--text-muted)", fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap" }}>
                           {plan.displayPeriod}
                         </span>
                       </div>

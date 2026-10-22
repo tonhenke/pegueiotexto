@@ -531,6 +531,9 @@ select option {
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.04em;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
 }
 
 /* ============================================
