@@ -42,10 +42,11 @@ export default function PainelAfiliadosPage() {
   // Admin test approval
   const [approving, setApproving] = useState(false);
 
-  const loadAffiliateData = async (userId: string) => {
+  const loadAffiliateData = async (identifier: string, isCode: boolean = false) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/affiliates?action=me&user_id=${userId}`);
+      const queryParam = isCode ? `affiliate_code=${encodeURIComponent(identifier)}` : `user_id=${encodeURIComponent(identifier)}`;
+      const res = await fetch(`/api/affiliates?action=me&${queryParam}`);
       const data = await res.json();
 
       if (data.is_affiliate) {
@@ -69,13 +70,20 @@ export default function PainelAfiliadosPage() {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
+        const params = new URLSearchParams(window.location.search);
+        const codeFromParam = params.get("code");
+        const codeFromStorage = typeof window !== "undefined" ? localStorage.getItem("my_affiliate_code") : null;
+        const code = codeFromParam || codeFromStorage;
+
+        if (user) {
+          setUser(user);
+          await loadAffiliateData(user.id);
+        } else if (code) {
+          await loadAffiliateData(code, true);
+        } else {
           window.location.href = "/login?redirect=/afiliados/painel";
           return;
         }
-
-        setUser(user);
-        await loadAffiliateData(user.id);
       } catch (err) {
         console.error("Erro na inicialização do painel:", err);
         setLoading(false);

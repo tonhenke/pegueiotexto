@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.transcribe import router as transcribe_router
 from app.api.checkout import router as checkout_router
+from app.api.affiliates import router as affiliates_router
 from app.services.cleaner import cleanup_stale_temp_files
 
 @asynccontextmanager
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Peguei o Texto: API de Transcrição",
-    description="Backend para transcrição de vídeos da internet, extração de áudio, Whisper IA e cobrança via Stripe.",
+    description="Backend para transcrição de vídeos da internet, extração de áudio, Inteligência Artificial e cobrança via Stripe.",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -41,6 +42,7 @@ app.add_middleware(
 # Register API routers
 app.include_router(transcribe_router)
 app.include_router(checkout_router)
+app.include_router(affiliates_router)
 
 @app.get("/")
 def root():

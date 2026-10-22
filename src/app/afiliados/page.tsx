@@ -99,10 +99,24 @@ export default function AfiliadosPage() {
       return;
     }
 
-    if (!currentUser) {
-      // Direct user to login first
-      window.location.href = `/login?redirect=/afiliados#inscricao`;
+    if (!fullName.trim() || !phone.trim() || !cpfCnpj.trim() || !pixKey.trim()) {
+      setFormError("Por favor, preencha todos os campos obrigatórios da candidatura.");
       return;
+    }
+
+    const effectiveUserId =
+      currentUser?.id ||
+      (typeof window !== "undefined" && localStorage.getItem("pegueiotexto_applicant_uid")) ||
+      `aff_usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pegueiotexto_applicant_uid", effectiveUserId);
+    }
+
+    // Auto-generate safe code if empty
+    let safeCode = desiredCode.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    if (safeCode.length < 3) {
+      safeCode = fullName.toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 8) + Math.floor(100 + Math.random() * 900);
     }
 
     setSubmitting(true);
@@ -111,18 +125,18 @@ export default function AfiliadosPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: currentUser.id,
-          full_name: fullName,
-          email: email || currentUser.email,
-          phone,
-          cpf_cnpj: cpfCnpj,
+          user_id: effectiveUserId,
+          full_name: fullName.trim(),
+          email: (email || currentUser?.email || "").trim(),
+          phone: phone.trim(),
+          cpf_cnpj: cpfCnpj.trim(),
           pix_key_type: pixKeyType,
-          pix_key: pixKey,
-          pix_name: pixName || fullName,
+          pix_key: pixKey.trim(),
+          pix_name: (pixName || fullName).trim(),
           channel_type: channelType,
-          channel_url: channelUrl,
+          channel_url: channelUrl.trim(),
           audience_range: audienceRange,
-          affiliate_code: desiredCode,
+          affiliate_code: safeCode,
         }),
       });
 
@@ -131,11 +145,16 @@ export default function AfiliadosPage() {
         throw new Error(data.detail || "Erro ao processar sua inscrição. Tente novamente.");
       }
 
-      setFormSuccess(data.message || "Inscrição enviada com sucesso! Redirecionando para o seu painel...");
+      const confirmedCode = data.affiliate?.affiliate_code || safeCode;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("my_affiliate_code", confirmedCode);
+      }
+
+      setFormSuccess(data.message || "Candidatura enviada com sucesso! Redirecionando para o seu painel...");
       setIsAffiliate(true);
       setTimeout(() => {
-        window.location.href = "/afiliados/painel";
-      }, 2000);
+        window.location.href = `/afiliados/painel?code=${confirmedCode}`;
+      }, 1500);
     } catch (err: any) {
       setFormError(err.message || "Erro inesperado.");
     } finally {

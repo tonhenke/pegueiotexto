@@ -48,6 +48,7 @@ function isAuthenticatedAdmin(request: Request): boolean {
   );
 }
 
+const BACKEND_URL = process.env.BACKEND_URL || "https://pegueiotexto-production.up.railway.app";
 const DATA_DIR = path.join(process.cwd(), "data");
 const AFFILIATES_FILE = path.join(DATA_DIR, "affiliates.json");
 const CLICKS_FILE = path.join(DATA_DIR, "affiliate_clicks.json");
@@ -200,6 +201,41 @@ export async function GET(request: Request) {
         return NextResponse.json({ detail: "Acesso restrito ao administrador." }, { status: 401 });
       }
 
+      // Try Railway Cloud Backend
+      try {
+        const backendRes = await fetch(`${BACKEND_URL}/api/affiliates/list`, {
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          // Merge with any local files
+          const localAffiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+          if (localAffiliates.length > 0) {
+            const backendCodes = new Set((data.affiliates || []).map((a: any) => a.affiliate_code));
+            for (const la of localAffiliates) {
+              if (!backendCodes.has(la.affiliate_code)) {
+                data.affiliates.unshift({
+                  ...la,
+                  clicks_count: 0,
+                  conversions_count: 0,
+                  total_revenue: 0,
+                  total_commission_generated: 0,
+                  payouts_count: 0,
+                });
+                data.summary.total += 1;
+                if (la.status === "pending_review") data.summary.pending += 1;
+                else if (la.status === "active") data.summary.active += 1;
+              }
+            }
+          }
+          return NextResponse.json(data);
+        }
+      } catch (err) {
+        console.warn("[Affiliates Proxy] Erro ao buscar da Railway, usando local:", err);
+      }
+
+      // Local fallback
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
       const clicks = readJSON<AffiliateClick>(CLICKS_FILE);
       const conversions = readJSON<AffiliateConversion>(CONVERSIONS_FILE);
@@ -335,6 +371,34 @@ export async function POST(request: Request) {
 
       if (!user_id || !full_name || !email || !phone || !cpf_cnpj || !pix_key || !affiliate_code) {
         return NextResponse.json({ detail: "Todos os campos obrigatórios devem ser preenchidos." }, { status: 400 });
+      }
+
+      // Try Railway backend first
+      try {
+        const backendRes = await fetch(`${BACKEND_URL}/api/affiliates/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          // Write to local json file as well
+          try {
+            const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+            const exists = affiliates.some((a) => a.affiliate_code === data.affiliate.affiliate_code);
+            if (!exists) {
+              affiliates.unshift(data.affiliate);
+              writeJSON(AFFILIATES_FILE, affiliates);
+            }
+          } catch {}
+          return NextResponse.json(data);
+        } else if (backendRes.status === 409 || backendRes.status === 400) {
+          const errData = await backendRes.json();
+          return NextResponse.json(errData, { status: backendRes.status });
+        }
+      } catch (err) {
+        console.warn("[Affiliates Proxy] Erro ao registrar na Railway, usando local:", err);
       }
 
       const cleanCode = String(affiliate_code)
@@ -558,6 +622,29 @@ export async function POST(request: Request) {
       const { affiliate_code, status } = body;
       if (!affiliate_code || !status) {
         return NextResponse.json({ detail: "affiliate_code e status são obrigatórios." }, { status: 400 });
+      }
+
+      // Try Railway backend
+      try {
+        const backendRes = await fetch(`${BACKEND_URL}/api/affiliates/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ affiliate_code, status }),
+        });
+        if (backendRes.ok) {
+          const data = await backendRes.json();
+          try {
+            const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
+            const affIndex = affiliates.findIndex((a) => a.affiliate_code === affiliate_code.toLowerCase().trim());
+            if (affIndex !== -1) {
+              affiliates[affIndex].status = status;
+              writeJSON(AFFILIATES_FILE, affiliates);
+            }
+          } catch {}
+          return NextResponse.json(data);
+        }
+      } catch (err) {
+        console.warn("[Affiliates Proxy] Erro ao atualizar status na Railway, usando local:", err);
       }
 
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
