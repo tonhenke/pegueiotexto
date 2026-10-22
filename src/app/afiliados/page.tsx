@@ -1007,16 +1007,15 @@ export default function AfiliadosPage() {
 
                       <div>
                         <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", color: "var(--text-primary)" }}>
-                          Código de Afiliado Desejado (Slug do seu link) *
+                          Código de Afiliado Desejado (Slug do seu link - opcional)
                         </label>
                         <div style={{ position: "relative" }}>
                           <input
                             type="text"
                             className="input-base"
-                            placeholder="ex: seunome ou canaltech"
+                            placeholder="ex: seunome ou canaltech (deixe em branco para automático)"
                             value={desiredCode}
                             onChange={(e) => setDesiredCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
-                            required
                             style={{
                               width: "100%",
                               padding: "12px 14px",

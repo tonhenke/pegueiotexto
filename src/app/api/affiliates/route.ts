@@ -49,7 +49,16 @@ function isAuthenticatedAdmin(request: Request): boolean {
 }
 
 const BACKEND_URL = process.env.BACKEND_URL || "https://pegueiotexto-production.up.railway.app";
-const DATA_DIR = path.join(process.cwd(), "data");
+
+// Safe path resolution for local development and Vercel serverless environments
+function getStorageDir(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join("/tmp", "pegueiotexto_data");
+  }
+  return path.join(process.cwd(), "data");
+}
+
+const DATA_DIR = getStorageDir();
 const AFFILIATES_FILE = path.join(DATA_DIR, "affiliates.json");
 const CLICKS_FILE = path.join(DATA_DIR, "affiliate_clicks.json");
 const CONVERSIONS_FILE = path.join(DATA_DIR, "affiliate_conversions.json");
@@ -114,29 +123,55 @@ export interface AffiliatePayout {
 
 function readJSON<T>(filePath: string): T[] {
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch {}
     }
     if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify([]), "utf-8");
+      // Check fallback /tmp if filePath is not already in /tmp
+      const fallbackPath = path.join("/tmp", "pegueiotexto_data", path.basename(filePath));
+      if (fs.existsSync(fallbackPath)) {
+        const raw = fs.readFileSync(fallbackPath, "utf-8");
+        return JSON.parse(raw) || [];
+      }
       return [];
     }
     const raw = fs.readFileSync(filePath, "utf-8");
     return JSON.parse(raw) || [];
   } catch (err) {
-    console.error(`[Affiliates] Erro ao ler ${filePath}:`, err);
+    try {
+      const fallbackPath = path.join("/tmp", "pegueiotexto_data", path.basename(filePath));
+      if (fs.existsSync(fallbackPath)) {
+        const raw = fs.readFileSync(fallbackPath, "utf-8");
+        return JSON.parse(raw) || [];
+      }
+    } catch {}
+    console.warn(`[Affiliates] Aviso ao ler ${filePath}:`, err);
     return [];
   }
 }
 
 function writeJSON<T>(filePath: string, data: T[]): void {
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
   } catch (err) {
-    console.error(`[Affiliates] Erro ao gravar ${filePath}:`, err);
+    // If running in read-only environment, fallback to /tmp
+    try {
+      const fallbackDir = path.join("/tmp", "pegueiotexto_data");
+      if (!fs.existsSync(fallbackDir)) {
+        fs.mkdirSync(fallbackDir, { recursive: true });
+      }
+      const fallbackPath = path.join(fallbackDir, path.basename(filePath));
+      fs.writeFileSync(fallbackPath, JSON.stringify(data, null, 2), "utf-8");
+    } catch (fallbackErr) {
+      console.warn(`[Affiliates] Aviso ao gravar ${filePath}:`, fallbackErr);
+    }
   }
 }
 
