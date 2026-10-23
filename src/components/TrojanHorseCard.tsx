@@ -33,6 +33,11 @@ export default function TrojanHorseCard({
     }
   };
 
+  const platformLabel =
+    platform && platform.toLowerCase() !== "vídeo"
+      ? `vídeo do ${platform}`
+      : "vídeo";
+
   return (
     <div
       style={{
@@ -63,7 +68,7 @@ export default function TrojanHorseCard({
 
       <div style={{ position: "relative", zIndex: 1 }}>
         {/* Badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
           <span
             style={{
               display: "inline-flex",
@@ -80,10 +85,10 @@ export default function TrojanHorseCard({
               boxShadow: "0 2px 8px rgba(236, 72, 153, 0.3)",
             }}
           >
-            <span>⚡</span> Cavalo de Troia da Produtividade
+            <span>🚀</span> Vá Além do Download
           </span>
-          <span style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.6)" }}>
-            Não fique apenas com o arquivo guardado
+          <span style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.75)" }}>
+            Não fique apenas com o arquivo guardado: extraia o máximo deste conteúdo
           </span>
         </div>
 
@@ -97,7 +102,7 @@ export default function TrojanHorseCard({
             marginBottom: "8px",
           }}
         >
-          Quer o texto completo, legendas para CapCut e um resumo com IA deste {platform}?
+          Quer o texto completo, legendas para CapCut e um resumo com IA deste {platformLabel}?
         </h3>
 
         <p
