@@ -3,10 +3,10 @@ import Link from "next/link";
 import Image from "next/image";
 
 const footerLinks = {
-  "Produto": [
-    { label: "Como funciona", href: "/#como-funciona" },
-    { label: "Preços & Planos", href: "/precos" },
-    { label: "Programa de Afiliados", href: "/afiliados" },
+  "Soluções": [
+    { label: "Degravação Jurídica", href: "/transcricao-juridica" },
+    { label: "Pesquisa & TCC", href: "/transcricao-academica" },
+    { label: "Atas de Reuniões", href: "/transcricao-de-reunioes" },
     { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
   ],
   "Plataformas": [
@@ -22,8 +22,9 @@ const footerLinks = {
     { label: "Converter WAV em Texto", href: "/converter-wav-em-texto" },
   ],
   "Empresa": [
+    { label: "Preços & Planos", href: "/precos" },
+    { label: "Programa de Afiliados", href: "/afiliados" },
     { label: "Sobre nós", href: "/sobre-nos" },
-    { label: "Privacidade", href: "/privacidade" },
     { label: "Termos de uso", href: "/termos-de-uso", target: "_blank" },
   ],
 };
