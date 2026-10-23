@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import AdsenseBanner from "@/components/AdsenseBanner";
 import VideoDownloader from "@/components/VideoDownloader";
 import Link from "next/link";
+import Script from "next/script";
 import {
   Download,
   Video,
@@ -105,6 +106,13 @@ const jsonLd = {
 export default function BaixarVideoPage() {
   return (
     <>
+      {/* Script do Google AdSense carregado EXCLUSIVAMENTE nesta página */}
+      <Script
+        id="adsbygoogle-init"
+        strategy="afterInteractive"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1974829355929040"
+        crossOrigin="anonymous"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

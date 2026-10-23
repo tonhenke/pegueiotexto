@@ -128,11 +128,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1974829355929040"
-          crossOrigin="anonymous"
-        />
+        {/* Meta tag oficial de verificação do Google AdSense (sem carregar scripts de anúncios globalmente) */}
+        <meta name="google-adsense-account" content="ca-pub-1974829355929040" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
