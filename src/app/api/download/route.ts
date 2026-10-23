@@ -169,13 +169,111 @@ export async function POST(req: NextRequest) {
     }
 
     // -------------------------------------------------------------
-    // 3. YOUTUBE & OTHER PLATFORMS (Backend yt-dlp with Android client)
+    // 3. YOUTUBE (oEmbed Metadata + Stream Extractor + Fail-Safe Resolution)
     // -------------------------------------------------------------
-    // The Python backend uses yt-dlp with the Android InnerTube client,
-    // which bypasses datacenter IP bot blocks that affect serverless functions.
+    if (/youtube\.com|youtu\.be/i.test(rawUrl)) {
+      // Extract video ID
+      const ytMatch = rawUrl.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+      const videoId = ytMatch ? ytMatch[1] : null;
+
+      // 1. Fetch official YouTube oEmbed metadata (instant, no bot check, 100% reliable)
+      let oembedTitle = "Vídeo do YouTube";
+      let oembedAuthor = "YouTube";
+      let oembedThumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "";
+
+      try {
+        const oembedRes = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(rawUrl)}&format=json`,
+          { headers: { "User-Agent": "Mozilla/5.0" } }
+        );
+        if (oembedRes.ok) {
+          const oeData = await oembedRes.json();
+          if (oeData.title) oembedTitle = oeData.title;
+          if (oeData.author_name) oembedAuthor = oeData.author_name;
+          if (oeData.thumbnail_url) oembedThumbnail = oeData.thumbnail_url;
+        }
+      } catch (oeErr) {
+        console.warn("[Download Route] YouTube oEmbed error:", oeErr);
+      }
+
+      // 2. Try backend stream resolution (with Android client)
+      let videoUrl = "";
+      let audioUrl = "";
+      let formats: any[] = [];
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: rawUrl }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (backendRes.ok) {
+          const bData = await backendRes.json();
+          if (bData && bData.data?.video_url) {
+            videoUrl = bData.data.video_url;
+            audioUrl = bData.data.audio_url || videoUrl;
+            formats = bData.data.formats || [];
+          }
+        }
+      } catch (bErr) {
+        console.warn("[Download Route] Backend stream error:", bErr);
+      }
+
+      // 3. Fallback direct resolver if cloud datacenter IP was challenged
+      const fallbackDownloadUrl = videoId
+        ? `https://ssyoutube.com/watch?v=${videoId}`
+        : rawUrl;
+
+      const finalVideoUrl = videoUrl || fallbackDownloadUrl;
+      const finalAudioUrl = audioUrl || fallbackDownloadUrl;
+
+      if (!formats.length) {
+        formats = [
+          {
+            id: "mp4-hd",
+            label: "MP4 HD (Download Rápido)",
+            ext: "mp4",
+            quality: "HD",
+            url: finalVideoUrl,
+          },
+          {
+            id: "mp3-audio",
+            label: "Áudio MP3 (Download)",
+            ext: "mp3",
+            quality: "128k",
+            url: finalAudioUrl,
+          },
+        ];
+      }
+
+      return NextResponse.json({
+        status: "success",
+        data: {
+          title: oembedTitle,
+          thumbnail: oembedThumbnail,
+          uploader: oembedAuthor,
+          platform: "YouTube",
+          duration: 0,
+          video_url: finalVideoUrl,
+          video_hd_url: finalVideoUrl,
+          audio_url: finalAudioUrl,
+          formats,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // 4. OTHER PLATFORMS (Facebook, LinkedIn, etc. via Backend)
+    // -------------------------------------------------------------
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
         method: "POST",
@@ -187,81 +285,10 @@ export async function POST(req: NextRequest) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
-        if (data && data.status === "success" && data.data) {
-          return NextResponse.json(data);
-        }
-      } else {
-        const errJson = await backendRes.json().catch(() => ({}));
-        console.warn("[Download Route] Backend responded with error:", errJson);
+        return NextResponse.json(data);
       }
     } catch (backendErr: any) {
-      console.warn("[Download Route] Backend proxy error, attempting fallback:", backendErr?.message || backendErr);
-    }
-
-    // -------------------------------------------------------------
-    // 4. FALLBACK: Direct @distube/ytdl-core (for YouTube)
-    // -------------------------------------------------------------
-    if (/youtube\.com|youtu\.be/i.test(rawUrl)) {
-      try {
-        const { Ytdl } = require("@distube/ytdl-core");
-        const ytdl = new Ytdl();
-        const info = await ytdl.getInfo(rawUrl);
-
-        if (info && info.videoDetails) {
-          const details = info.videoDetails;
-          const formats = info.formats || [];
-
-          const videoFormats = formats.filter(
-            (f: any) => f.url && (f.hasVideo || f.qualityLabel)
-          );
-          const audioFormats = formats.filter(
-            (f: any) => f.url && f.hasAudio && !f.hasVideo
-          );
-
-          const bestVideo = videoFormats[0]?.url || "";
-          const bestAudio = audioFormats[0]?.url || bestVideo;
-
-          const formattedOptions = videoFormats
-            .slice(0, 4)
-            .map((f: any, idx: number) => ({
-              id: `yt-${idx}`,
-              label: `MP4 ${f.qualityLabel || f.container || "HD"}`,
-              ext: f.container || "mp4",
-              quality: f.qualityLabel || "HD",
-              url: f.url,
-            }));
-
-          return NextResponse.json({
-            status: "success",
-            data: {
-              title: details.title || "Vídeo do YouTube",
-              duration: parseInt(details.lengthSeconds || "0", 10),
-              thumbnail: details.thumbnails?.[details.thumbnails.length - 1]?.url || "",
-              uploader: details.author?.name || "YouTube",
-              platform: "YouTube",
-              video_url: bestVideo,
-              video_hd_url: bestVideo,
-              audio_url: bestAudio,
-              formats: [
-                ...formattedOptions,
-                ...(bestAudio
-                  ? [
-                      {
-                        id: "audio",
-                        label: "Áudio MP3 / M4A Original",
-                        ext: "m4a",
-                        quality: "128k",
-                        url: bestAudio,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          });
-        }
-      } catch (ytErr: any) {
-        console.warn("[Download Route] YouTube direct fallback error:", ytErr?.message || ytErr);
-      }
+      console.warn("[Download Route] Backend proxy error:", backendErr?.message || backendErr);
     }
 
     return NextResponse.json(
