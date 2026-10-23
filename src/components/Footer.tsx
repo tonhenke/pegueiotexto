@@ -8,6 +8,7 @@ const footerLinks = {
     { label: "Pesquisa & TCC", href: "/transcricao-academica" },
     { label: "Atas de Reuniões", href: "/transcricao-de-reunioes" },
     { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
+    { label: "Baixar Vídeos da Web", href: "/baixar-video" },
   ],
   "Plataformas": [
     { label: "Áudios do WhatsApp", href: "/transcrever-whatsapp" },

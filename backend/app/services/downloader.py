@@ -139,3 +139,113 @@ def download_audio_from_url(url: str) -> dict:
         "platform": extractor,
         "uploader": uploader,
     }
+
+
+def extract_video_stream_info(url: str) -> dict:
+    """
+    Extracts direct CDN stream links and metadata with download=False.
+    Consumes ZERO disk space and ZERO media bandwidth on our server.
+    """
+    url = normalize_video_url(url)
+    base_opts = {
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": False,
+    }
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        base_opts["cookiefile"] = cookie_file
+
+    opts_android = {
+        **base_opts,
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "ios", "web"],
+                "player_skip": ["webpage", "configs", "js"]
+            }
+        }
+    }
+
+    info = None
+    try:
+        with yt_dlp.YoutubeDL(opts_android) as ydl:
+            info = ydl.extract_info(url, download=False)
+    except Exception as e1:
+        print(f"[StreamExtractor] Mobile client extraction failed: {e1}. Trying generic fallback...")
+        try:
+            with yt_dlp.YoutubeDL(base_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+        except Exception as e2:
+            raise RuntimeError(f"Não foi possível obter links diretos do vídeo: {e2}")
+
+    if not info:
+        raise RuntimeError("Não foi possível extrair informações do vídeo.")
+
+    title = info.get("title", "Vídeo da Web")
+    duration = int(info.get("duration") or 0)
+    uploader = info.get("uploader") or info.get("channel") or "Autor Desconhecido"
+    extractor = info.get("extractor_key") or "Web"
+    thumbnail = info.get("thumbnail")
+
+    formats = info.get("formats", [])
+
+    # Filter progressive mp4 (contains both video and audio)
+    progressive_mp4s = [
+        f for f in formats 
+        if f.get("url") and f.get("ext") == "mp4" and f.get("vcodec") != "none" and f.get("acodec") != "none"
+    ]
+
+    # Or best video format if progressive isn't available
+    all_videos = [
+        f for f in formats 
+        if f.get("url") and f.get("vcodec") != "none"
+    ]
+
+    # Best audio format
+    all_audios = [
+        f for f in formats 
+        if f.get("url") and f.get("vcodec") == "none" and (f.get("acodec") != "none" or f.get("ext") in ("mp3", "m4a", "webm"))
+    ]
+
+    best_video_url = None
+    if progressive_mp4s:
+        progressive_mp4s.sort(key=lambda x: (x.get("height") or 0, x.get("tbr") or 0), reverse=True)
+        best_video_url = progressive_mp4s[0].get("url")
+    elif all_videos:
+        all_videos.sort(key=lambda x: (x.get("height") or 0, x.get("tbr") or 0), reverse=True)
+        best_video_url = all_videos[0].get("url")
+
+    best_audio_url = None
+    if all_audios:
+        all_audios.sort(key=lambda x: (x.get("abr") or 0), reverse=True)
+        best_audio_url = all_audios[0].get("url")
+    elif best_video_url:
+        best_audio_url = best_video_url
+
+    # Format options for the frontend selector
+    formatted_options = []
+    seen_heights = set()
+    for f in (progressive_mp4s or all_videos):
+        h = f.get("height")
+        if h and h not in seen_heights and f.get("url"):
+            seen_heights.add(h)
+            formatted_options.append({
+                "format_id": str(f.get("format_id")),
+                "label": f"MP4 {h}p",
+                "quality": f"{h}p",
+                "ext": f.get("ext", "mp4"),
+                "url": f.get("url")
+            })
+
+    return {
+        "title": title,
+        "duration": duration,
+        "uploader": uploader,
+        "platform": extractor,
+        "thumbnail": thumbnail,
+        "video_url": best_video_url,
+        "audio_url": best_audio_url,
+        "formats": formatted_options[:4]
+    }
+

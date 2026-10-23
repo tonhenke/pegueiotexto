@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.transcribe import router as transcribe_router
 from app.api.checkout import router as checkout_router
 from app.api.affiliates import router as affiliates_router
+from app.api.downloader import router as download_router
 from app.services.cleaner import cleanup_stale_temp_files
 
 @asynccontextmanager
@@ -43,6 +44,7 @@ app.add_middleware(
 app.include_router(transcribe_router)
 app.include_router(checkout_router)
 app.include_router(affiliates_router)
+app.include_router(download_router)
 
 @app.get("/")
 def root():

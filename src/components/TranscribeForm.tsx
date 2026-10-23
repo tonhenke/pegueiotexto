@@ -77,7 +77,10 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedUrl = localStorage.getItem("pegueiotexto_pending_url");
+      const searchParams = new URLSearchParams(window.location.search);
+      const queryUrl = searchParams.get("url");
+      const savedUrl = queryUrl || localStorage.getItem("pegueiotexto_pending_url");
+
       if (savedUrl) {
         setUrl(savedUrl);
         localStorage.removeItem("pegueiotexto_pending_url");
@@ -86,7 +89,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         const supabase = createClient();
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (session) {
-            // User just arrived from login, auto-trigger transcription in dashboard!
+            // User just arrived from login or Trojan Horse link, auto-trigger transcription in dashboard!
             handleTranscribe(savedUrl);
           } else {
             setIsRestored(true);
