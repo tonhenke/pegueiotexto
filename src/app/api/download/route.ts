@@ -169,7 +169,37 @@ export async function POST(req: NextRequest) {
     }
 
     // -------------------------------------------------------------
-    // 3. YOUTUBE (Direct via @distube/ytdl-core in Node.js)
+    // 3. YOUTUBE & OTHER PLATFORMS (Backend yt-dlp with Android client)
+    // -------------------------------------------------------------
+    // The Python backend uses yt-dlp with the Android InnerTube client,
+    // which bypasses datacenter IP bot blocks that affect serverless functions.
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: rawUrl }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (backendRes.ok) {
+        const data = await backendRes.json();
+        if (data && data.status === "success" && data.data) {
+          return NextResponse.json(data);
+        }
+      } else {
+        const errJson = await backendRes.json().catch(() => ({}));
+        console.warn("[Download Route] Backend responded with error:", errJson);
+      }
+    } catch (backendErr: any) {
+      console.warn("[Download Route] Backend proxy error, attempting fallback:", backendErr?.message || backendErr);
+    }
+
+    // -------------------------------------------------------------
+    // 4. FALLBACK: Direct @distube/ytdl-core (for YouTube)
     // -------------------------------------------------------------
     if (/youtube\.com|youtu\.be/i.test(rawUrl)) {
       try {
@@ -181,7 +211,6 @@ export async function POST(req: NextRequest) {
           const details = info.videoDetails;
           const formats = info.formats || [];
 
-          // Find best video and audio streams
           const videoFormats = formats.filter(
             (f: any) => f.url && (f.hasVideo || f.qualityLabel)
           );
@@ -192,7 +221,6 @@ export async function POST(req: NextRequest) {
           const bestVideo = videoFormats[0]?.url || "";
           const bestAudio = audioFormats[0]?.url || bestVideo;
 
-          // Build format list for user selection
           const formattedOptions = videoFormats
             .slice(0, 4)
             .map((f: any, idx: number) => ({
@@ -232,31 +260,8 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (ytErr: any) {
-        console.warn("[Download Route] YouTube direct error, falling back to backend:", ytErr?.message || ytErr);
+        console.warn("[Download Route] YouTube direct fallback error:", ytErr?.message || ytErr);
       }
-    }
-
-    // -------------------------------------------------------------
-    // 4. FALLBACK: Python Backend (yt-dlp) for Facebook, LinkedIn, etc.
-    // -------------------------------------------------------------
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: rawUrl }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (backendRes.ok) {
-        const data = await backendRes.json();
-        return NextResponse.json(data);
-      }
-    } catch (backendErr: any) {
-      console.warn("[Download Route] Backend proxy error:", backendErr?.message || backendErr);
     }
 
     return NextResponse.json(

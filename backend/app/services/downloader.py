@@ -161,7 +161,7 @@ def extract_video_stream_info(url: str) -> dict:
         **base_opts,
         "extractor_args": {
             "youtube": {
-                "player_client": ["android", "ios", "web"],
+                "player_client": ["android"],
                 "player_skip": ["webpage", "configs", "js"]
             }
         }
@@ -172,9 +172,18 @@ def extract_video_stream_info(url: str) -> dict:
         with yt_dlp.YoutubeDL(opts_android) as ydl:
             info = ydl.extract_info(url, download=False)
     except Exception as e1:
-        print(f"[StreamExtractor] Mobile client extraction failed: {e1}. Trying generic fallback...")
+        print(f"[StreamExtractor] Android client extraction failed: {e1}. Trying android + ios fallback...")
         try:
-            with yt_dlp.YoutubeDL(base_opts) as ydl:
+            opts_fallback = {
+                **base_opts,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android", "ios"],
+                        "player_skip": ["webpage", "configs", "js"]
+                    }
+                }
+            }
+            with yt_dlp.YoutubeDL(opts_fallback) as ydl:
                 info = ydl.extract_info(url, download=False)
         except Exception as e2:
             raise RuntimeError(f"Não foi possível obter links diretos do vídeo: {e2}")
