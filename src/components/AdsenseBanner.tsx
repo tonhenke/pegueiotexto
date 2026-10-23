@@ -14,7 +14,7 @@ export default function AdsenseBanner({
   className = "",
 }: AdsenseBannerProps) {
   const adRef = useRef<HTMLDivElement>(null);
-  const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
+  const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "ca-pub-1974829355929040";
 
   useEffect(() => {
     if (adsenseClientId && typeof window !== "undefined") {
