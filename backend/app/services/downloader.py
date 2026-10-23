@@ -148,6 +148,7 @@ def extract_video_stream_info(url: str) -> dict:
     """
     url = normalize_video_url(url)
     base_opts = {
+        "format": "18/best[ext=mp4]/bestaudio/best",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -198,6 +199,7 @@ def extract_video_stream_info(url: str) -> dict:
     thumbnail = info.get("thumbnail")
 
     formats = info.get("formats", [])
+    direct_url = info.get("url")
 
     # Filter progressive mp4 (contains both video and audio)
     progressive_mp4s = [
@@ -224,6 +226,8 @@ def extract_video_stream_info(url: str) -> dict:
     elif all_videos:
         all_videos.sort(key=lambda x: (x.get("height") or 0, x.get("tbr") or 0), reverse=True)
         best_video_url = all_videos[0].get("url")
+    elif direct_url:
+        best_video_url = direct_url
 
     best_audio_url = None
     if all_audios:
@@ -231,6 +235,8 @@ def extract_video_stream_info(url: str) -> dict:
         best_audio_url = all_audios[0].get("url")
     elif best_video_url:
         best_audio_url = best_video_url
+    elif direct_url:
+        best_audio_url = direct_url
 
     # Format options for the frontend selector
     formatted_options = []
@@ -246,6 +252,15 @@ def extract_video_stream_info(url: str) -> dict:
                 "ext": f.get("ext", "mp4"),
                 "url": f.get("url")
             })
+
+    if not formatted_options and direct_url:
+        formatted_options.append({
+            "format_id": "mp4-direct",
+            "label": "MP4 HD (Vídeo + Áudio)",
+            "quality": "HD",
+            "ext": "mp4",
+            "url": direct_url
+        })
 
     return {
         "title": title,
