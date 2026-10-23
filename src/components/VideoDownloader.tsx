@@ -334,21 +334,24 @@ export default function VideoDownloader() {
               alignItems: "flex-start",
             }}
           >
-            {/* Thumbnail */}
-            {videoInfo.thumbnail && (
-              <div
-                style={{
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: "240px",
-                  borderRadius: "14px",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "#000",
-                  aspectRatio: "16/9",
-                  flexShrink: 0,
-                }}
-              >
+            {/* Thumbnail or Media Card */}
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                maxWidth: "240px",
+                borderRadius: "14px",
+                overflow: "hidden",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)",
+                aspectRatio: "16/9",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {videoInfo.thumbnail ? (
                 <img
                   src={videoInfo.thumbnail}
                   alt={videoInfo.title}
@@ -360,25 +363,46 @@ export default function VideoDownloader() {
                   }}
                   crossOrigin="anonymous"
                 />
-                {videoInfo.duration ? (
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: "8px",
-                      right: "8px",
-                      background: "rgba(0, 0, 0, 0.8)",
-                      color: "#fff",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {formatDuration(videoInfo.duration)}
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: "rgba(255, 255, 255, 0.6)",
+                  }}
+                >
+                  <span style={{ fontSize: "36px" }}>
+                    {videoInfo.platform?.toLowerCase().includes("instagram")
+                      ? "📸"
+                      : videoInfo.platform?.toLowerCase().includes("tiktok")
+                      ? "🎵"
+                      : "🎬"}
                   </span>
-                ) : null}
-              </div>
-            )}
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: "rgba(255, 255, 255, 0.4)" }}>
+                    {videoInfo.platform || "Vídeo"}
+                  </span>
+                </div>
+              )}
+              {videoInfo.duration ? (
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: "8px",
+                    right: "8px",
+                    background: "rgba(0, 0, 0, 0.8)",
+                    color: "#fff",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {formatDuration(videoInfo.duration)}
+                </span>
+              ) : null}
+            </div>
 
             {/* Video details & download options */}
             <div style={{ flex: 1, minWidth: "260px" }}>
