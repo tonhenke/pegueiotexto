@@ -4,21 +4,25 @@ import Image from "next/image";
 
 const footerLinks = {
   "Produto": [
-    { label: "Como funciona", href: "#como-funciona" },
-    { label: "Preços", href: "/precos" },
+    { label: "Como funciona", href: "/#como-funciona" },
+    { label: "Preços & Planos", href: "/precos" },
     { label: "Programa de Afiliados", href: "/afiliados" },
+    { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
   ],
   "Plataformas": [
     { label: "Áudios do WhatsApp", href: "/transcrever-whatsapp" },
     { label: "YouTube Transcrição", href: "/transcrever-youtube" },
     { label: "TikTok Transcrição", href: "/transcrever-tiktok" },
     { label: "Instagram Reels", href: "/transcrever-instagram" },
+  ],
+  "Formatos": [
     { label: "Converter MP3 em Texto", href: "/converter-mp3-em-texto" },
-    { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
+    { label: "Converter MP4 em Texto", href: "/converter-mp4-em-texto" },
+    { label: "Converter M4A em Texto", href: "/converter-m4a-em-texto" },
+    { label: "Converter WAV em Texto", href: "/converter-wav-em-texto" },
   ],
   "Empresa": [
     { label: "Sobre nós", href: "/sobre-nos" },
-    { label: "Blog", href: "#" },
     { label: "Privacidade", href: "/privacidade" },
     { label: "Termos de uso", href: "/termos-de-uso", target: "_blank" },
   ],
