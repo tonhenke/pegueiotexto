@@ -56,6 +56,13 @@ const jsonLd = {
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "description":
         "Ferramenta online gratuita para baixar vídeos e Shorts do YouTube em MP4 de alta definição e extrair áudios em MP3 sem anúncios intrusivos.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1350",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",

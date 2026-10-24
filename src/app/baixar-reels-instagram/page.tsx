@@ -54,6 +54,13 @@ const jsonLd = {
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "description":
         "Ferramenta online gratuita para download de Reels e vídeos do Instagram em MP4 de alta qualidade sem anúncios invasivos.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1190",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",

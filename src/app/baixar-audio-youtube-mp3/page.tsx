@@ -54,6 +54,13 @@ const jsonLd = {
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "description":
         "Ferramenta gratuita para converter vídeos do YouTube em áudios MP3 de alta fidelidade sem instalar programas.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1080",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",

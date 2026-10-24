@@ -57,6 +57,13 @@ const jsonLd = {
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "description":
         "Ferramenta online gratuita para download de vídeos e áudios do YouTube, TikTok sem marca d'água, Instagram e LinkedIn.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1280",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",

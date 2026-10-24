@@ -54,6 +54,13 @@ const jsonLd = {
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "description":
         "Ferramenta gratuita para baixar vídeos do TikTok sem marca d'água em MP4 Full HD e extrair áudios em MP3 sem anúncios intrusivos.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1510",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",

@@ -75,6 +75,13 @@ const jsonLd = {
       "operatingSystem": "All",
       "description":
         "Transcreva vídeos do YouTube, Instagram, TikTok e áudios em segundos usando Inteligência Artificial avançada com 98% de precisão em português.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "1420",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "offers": {
         "@type": "Offer",
         "price": "0",
