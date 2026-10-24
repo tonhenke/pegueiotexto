@@ -10,7 +10,13 @@ const footerLinks = {
     { label: "Gerador de Legendas (.SRT)", href: "/gerar-legendas-srt" },
     { label: "Baixar Vídeos da Web", href: "/baixar-video" },
   ],
-  "Plataformas": [
+  "Baixar Mídias": [
+    { label: "Baixar Vídeo do YouTube", href: "/baixar-video-youtube" },
+    { label: "TikTok Sem Marca d'Água", href: "/baixar-video-tiktok" },
+    { label: "Baixar Reels Instagram", href: "/baixar-reels-instagram" },
+    { label: "YouTube para MP3", href: "/baixar-audio-youtube-mp3" },
+  ],
+  "Transcrever IA": [
     { label: "Áudios do WhatsApp", href: "/transcrever-whatsapp" },
     { label: "YouTube Transcrição", href: "/transcrever-youtube" },
     { label: "TikTok Transcrição", href: "/transcrever-tiktok" },

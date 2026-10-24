@@ -25,7 +25,13 @@ interface VideoInfo {
   formats?: DownloadFormat[];
 }
 
-export default function VideoDownloader() {
+interface VideoDownloaderProps {
+  placeholder?: string;
+}
+
+export default function VideoDownloader({
+  placeholder = "https://www.youtube.com/watch?v=..., https://www.tiktok.com/@..., reels, etc.",
+}: VideoDownloaderProps = {}) {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,7 +163,7 @@ export default function VideoDownloader() {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..., https://www.tiktok.com/@..., reels, etc."
+              placeholder={placeholder}
               required
               style={{
                 width: "100%",
