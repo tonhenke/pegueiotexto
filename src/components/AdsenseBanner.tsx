@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 interface AdsenseBannerProps {
   slot?: string;
@@ -13,6 +14,9 @@ export default function AdsenseBanner({
   format = "responsive",
   className = "",
 }: AdsenseBannerProps) {
+  const pathname = usePathname();
+  const isEnglish = pathname?.startsWith("/en");
+
   const adRef = useRef<HTMLDivElement>(null);
   const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || "ca-pub-1974829355929040";
 
@@ -60,7 +64,7 @@ export default function AdsenseBanner({
           textAlign: "center",
         }}
       >
-        Publicidade
+        {isEnglish ? "Advertisement" : "Publicidade"}
       </div>
 
       {adsenseClientId ? (

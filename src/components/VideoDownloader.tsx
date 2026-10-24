@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import AdsenseBanner from "./AdsenseBanner";
 import TrojanHorseCard from "./TrojanHorseCard";
 
@@ -32,6 +33,9 @@ interface VideoDownloaderProps {
 export default function VideoDownloader({
   placeholder = "https://www.youtube.com/watch?v=..., https://www.tiktok.com/@..., reels, etc.",
 }: VideoDownloaderProps = {}) {
+  const pathname = usePathname();
+  const isEnglish = pathname?.startsWith("/en");
+
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +64,11 @@ export default function VideoDownloader({
     if (e) e.preventDefault();
     const cleanUrl = url.trim();
     if (!cleanUrl) {
-      setError("Por favor, cole o link de um vídeo para continuar.");
+      setError(
+        isEnglish
+          ? "Please paste a video link to continue."
+          : "Por favor, cole o link de um vídeo para continuar."
+      );
       return;
     }
 
@@ -79,7 +87,9 @@ export default function VideoDownloader({
       if (!res.ok || json.error) {
         throw new Error(
           json.error ||
-            "Não foi possível processar este vídeo. Verifique se o link está público e tente novamente."
+            (isEnglish
+              ? "Could not process this video. Please verify that the link is public and try again."
+              : "Não foi possível processar este vídeo. Verifique se o link está público e tente novamente.")
         );
       }
 
@@ -87,7 +97,9 @@ export default function VideoDownloader({
     } catch (err: any) {
       setError(
         err.message ||
-          "Ocorreu um erro ao buscar o vídeo. Verifique a URL e sua conexão."
+          (isEnglish
+            ? "An error occurred while fetching the video. Please check the URL and your connection."
+            : "Ocorreu um erro ao buscar o vídeo. Verifique a URL e sua conexão.")
       );
     } finally {
       setLoading(false);
@@ -129,7 +141,7 @@ export default function VideoDownloader({
               justifyContent: "space-between",
             }}
           >
-            <span>Cole o link do vídeo</span>
+            <span>{isEnglish ? "Paste video link" : "Cole o link do vídeo"}</span>
             <button
               type="button"
               onClick={handlePaste}
@@ -146,7 +158,7 @@ export default function VideoDownloader({
                 gap: "4px",
               }}
             >
-              <span>📋</span> Colar da área de transferência
+              <span>📋</span> {isEnglish ? "Paste from clipboard" : "Colar da área de transferência"}
             </button>
           </label>
 
@@ -194,7 +206,7 @@ export default function VideoDownloader({
                   setVideoInfo(null);
                   setError(null);
                 }}
-                title="Limpar"
+                title={isEnglish ? "Clear" : "Limpar"}
                 style={{
                   position: "absolute",
                   right: "14px",
@@ -229,7 +241,7 @@ export default function VideoDownloader({
             {/* Platform pills */}
             <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.45)" }}>
-                Compatível com:
+                {isEnglish ? "Supported:" : "Compatível com:"}
               </span>
               {["YouTube", "TikTok", "Instagram Reels", "Facebook", "LinkedIn"].map((p) => (
                 <span
@@ -285,12 +297,12 @@ export default function VideoDownloader({
                       display: "inline-block",
                     }}
                   />
-                  <span>Processando link...</span>
+                  <span>{isEnglish ? "Processing link..." : "Processando link..."}</span>
                 </>
               ) : (
                 <>
                   <span>🔍</span>
-                  <span>Buscar Vídeo</span>
+                  <span>{isEnglish ? "Search Video" : "Buscar Vídeo"}</span>
                 </>
               )}
             </button>
@@ -449,7 +461,7 @@ export default function VideoDownloader({
                     marginBottom: "18px",
                   }}
                 >
-                  Canal / Autor: <strong>{videoInfo.uploader}</strong>
+                  {isEnglish ? "Channel / Creator:" : "Canal / Autor:"} <strong>{videoInfo.uploader}</strong>
                 </p>
               )}
 
@@ -485,7 +497,7 @@ export default function VideoDownloader({
                     }}
                   >
                     <span>🎬</span>
-                    <span>Baixar Vídeo (MP4 HD)</span>
+                    <span>{isEnglish ? "Download Video (MP4 HD)" : "Baixar Vídeo (MP4 HD)"}</span>
                   </a>
                 )}
 
@@ -513,7 +525,7 @@ export default function VideoDownloader({
                     }}
                   >
                     <span>🎵</span>
-                    <span>Baixar Áudio (MP3)</span>
+                    <span>{isEnglish ? "Download Audio (MP3)" : "Baixar Áudio (MP3)"}</span>
                   </a>
                 )}
 
@@ -540,7 +552,7 @@ export default function VideoDownloader({
                   }}
                 >
                   <span>{copied ? "✓" : "🔗"}</span>
-                  <span>{copied ? "Link Copiado!" : "Copiar Link"}</span>
+                  <span>{copied ? (isEnglish ? "Link Copied!" : "Link Copiado!") : (isEnglish ? "Copy Link" : "Copiar Link")}</span>
                 </button>
               </div>
 
@@ -548,7 +560,7 @@ export default function VideoDownloader({
               {videoInfo.formats && videoInfo.formats.length > 1 && (
                 <div style={{ marginTop: "16px" }}>
                   <span style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.5)", marginRight: "8px" }}>
-                    Outras resoluções:
+                    {isEnglish ? "Other resolutions:" : "Outras resoluções:"}
                   </span>
                   <div style={{ display: "inline-flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
                     {videoInfo.formats.map((fmt, idx) => (

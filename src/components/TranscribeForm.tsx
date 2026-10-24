@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
   Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight,
@@ -25,6 +25,16 @@ const DEMO_TRANSCRIPT = `[00:00] Bem-vindos ao nosso canal! Hoje vamos falar sob
 
 [01:02] Se você chegou até aqui, já entendeu o poder dessa tecnologia. Então deixa o like, se inscreve no canal e a gente se vê no próximo vídeo!`;
 
+const DEMO_TRANSCRIPT_EN = `[00:00] Welcome to our channel! Today we're exploring how artificial intelligence is transforming the way we produce and distribute audio and video content.
+
+[00:12] In recent years, we've seen an exponential explosion in video creation, from podcasts and webinars to meetings and masterclasses. But without indexed text, that content is easily lost.
+
+[00:28] That's where automated transcription comes in. Using cutting-edge AI speech engines, we achieve 99.2% accuracy even with fast dialogue or background noise.
+
+[00:45] You get clean punctuation, precise speaker timestamps, and instant export to CapCut subtitles (.SRT) or formatted documents.
+
+[01:02] If you found this helpful, subscribe to our channel and see you in the next video!`;
+
 const platforms = [
   { name: "YouTube", color: "#FF0000", emoji: "▶" },
   { name: "Instagram", color: "#E1306C", emoji: "📷" },
@@ -43,6 +53,8 @@ interface TranscribeFormProps {
 
 export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: TranscribeFormProps = {}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isEnglish = pathname?.startsWith("/en");
   const [mode, setMode] = useState<Mode>("url");
   const [url, setUrl] = useState(defaultUrl);
   const [file, setFile] = useState<File | null>(null);
@@ -183,21 +195,26 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
 
       setTimeout(() => {
         setStatus("done");
-        setTranscript(data.text || DEMO_TRANSCRIPT);
-        setResultTitle(data.title || (mode === "url" ? url : file?.name || "Transcrição"));
+        setTranscript(data.text || (isEnglish ? DEMO_TRANSCRIPT_EN : DEMO_TRANSCRIPT));
+        setResultTitle(data.title || (mode === "url" ? url : file?.name || (isEnglish ? "Transcription" : "Transcrição")));
         setResultId(data.id || null);
         setResultSrt(data.srt || "");
         setResultVtt(data.vtt || "");
         setResultDuration(data.duration || null);
         setMinutesDeducted(data.minutes_deducted || 0);
         setMediaDeleted(data.media_deleted ?? true);
-        setEngineUsed("Inteligência Artificial");
+        setEngineUsed(isEnglish ? "Artificial Intelligence" : "Inteligência Artificial");
       }, 300);
     } catch (err: any) {
       clearInterval(interval);
       console.error("Erro na transcrição:", err);
       setStatus("error");
-      setErrorMsg(err.message || "Falha ao processar o áudio. Tente novamente.");
+      setErrorMsg(
+        err.message ||
+          (isEnglish
+            ? "Failed to process audio. Please try again."
+            : "Falha ao processar o áudio. Tente novamente.")
+      );
     }
   };
 
@@ -349,11 +366,25 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
 
   const canSubmit = mode === "url" ? url.trim().length > 5 : !!file;
 
-  const progressLabel =
-    progress < 25 ? "Conectando ao servidor..." :
-    progress < 50 ? (mode === "url" ? "Baixando stream do vídeo..." : "Enviando arquivo...") :
-    progress < 75 ? "Processando áudio com Inteligência Artificial..." :
-    progress < 95 ? "Formatando legendas e texto..." : "Pronto!";
+  const progressLabel = isEnglish
+    ? progress < 25
+      ? "Connecting to server..."
+      : progress < 50
+      ? (mode === "url" ? "Downloading video stream..." : "Uploading file...")
+      : progress < 75
+      ? "Processing audio with Artificial Intelligence..."
+      : progress < 95
+      ? "Formatting subtitles and text..."
+      : "Ready!"
+    : progress < 25
+    ? "Conectando ao servidor..."
+    : progress < 50
+    ? (mode === "url" ? "Baixando stream do vídeo..." : "Enviando arquivo...")
+    : progress < 75
+    ? "Processando áudio com Inteligência Artificial..."
+    : progress < 95
+    ? "Formatando legendas e texto..."
+    : "Pronto!";
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
@@ -374,7 +405,17 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <CheckCircle2 size={16} color="#10B981" />
-            <span>Link do seu vídeo recuperado! Seus <strong>5 minutos grátis</strong> já estão prontos para usar. Clique em &quot;Transcrever Vídeo Agora&quot; abaixo.</span>
+            <span>
+              {isEnglish ? (
+                <>
+                  Video link restored! Your <strong>5 free minutes</strong> are ready to use. Click &quot;Transcribe Video Now&quot; below.
+                </>
+              ) : (
+                <>
+                  Link do seu vídeo recuperado! Seus <strong>5 minutos grátis</strong> já estão prontos para usar. Clique em &quot;Transcrever Vídeo Agora&quot; abaixo.
+                </>
+              )}
+            </span>
           </span>
           <button
             onClick={() => setIsRestored(false)}
@@ -393,7 +434,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           onClick={() => { setMode("url"); setStatus("idle"); }}
         >
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-            <Link2 size={15} /> Colar link do vídeo
+            <Link2 size={15} /> {isEnglish ? "Paste video link" : "Colar link do vídeo"}
           </span>
         </button>
         <button
@@ -402,7 +443,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           onClick={() => { setMode("upload"); setStatus("idle"); }}
         >
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-            <Upload size={15} /> Enviar arquivo
+            <Upload size={15} /> {isEnglish ? "Upload file" : "Enviar arquivo"}
           </span>
         </button>
       </div>
@@ -413,7 +454,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           {mode === "url" ? (
             <div>
               <label style={{ display: "block", marginBottom: "12px", color: "var(--text-secondary)", fontSize: "14px", fontWeight: 500 }}>
-                Cole o link do vídeo
+                {isEnglish ? "Paste video link" : "Cole o link do vídeo"}
               </label>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 <input
@@ -433,14 +474,14 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   disabled={!canSubmit}
                   style={{ opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? "pointer" : "not-allowed", whiteSpace: "nowrap" }}
                 >
-                  <Mic2 size={16} /> Transcrever
+                  <Mic2 size={16} /> {isEnglish ? "Transcribe" : "Transcrever"}
                 </button>
               </div>
 
               {/* Platforms Grid */}
               <div style={{ marginTop: "24px" }}>
                 <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px", fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                  Plataformas suportadas
+                  {isEnglish ? "Supported platforms" : "Plataformas suportadas"}
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {platforms.map((p) => (
@@ -465,7 +506,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                     color: "#A78BFA",
                     border: "1px solid rgba(124,58,237,0.2)",
                   }}>
-                    +1.700 mais ↗
+                    {isEnglish ? "+1,700 more ↗" : "+1.700 mais ↗"}
                   </span>
                 </div>
               </div>
@@ -508,10 +549,10 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                       <Upload size={24} color="#A78BFA" />
                     </div>
                     <p style={{ color: "var(--text-primary)", fontWeight: 600, marginBottom: "6px" }}>
-                      Arraste o arquivo ou clique para selecionar
+                      {isEnglish ? "Drag & drop file or click to select" : "Arraste o arquivo ou clique para selecionar"}
                     </p>
                     <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-                      MP4, MP3, WAV, M4A, OGG, WEBM, MKV, AVI (até 2 GB)
+                      {isEnglish ? "MP4, MP3, WAV, M4A, OGG, WEBM, MKV, AVI (up to 2 GB)" : "MP4, MP3, WAV, M4A, OGG, WEBM, MKV, AVI (até 2 GB)"}
                     </p>
                   </div>
                 )}
@@ -525,7 +566,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   disabled={!canSubmit}
                   style={{ opacity: canSubmit ? 1 : 0.4, cursor: canSubmit ? "pointer" : "not-allowed" }}
                 >
-                  <Mic2 size={16} /> Transcrever arquivo
+                  <Mic2 size={16} /> {isEnglish ? "Transcribe file" : "Transcrever arquivo"}
                 </button>
               </div>
             </div>
@@ -544,7 +585,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           </div>
 
           <p style={{ color: "var(--text-primary)", fontWeight: 600, fontSize: "18px", marginBottom: "8px" }}>
-            Transcrevendo...
+            {isEnglish ? "Transcribing..." : "Transcrevendo..."}
           </p>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "24px" }}>
             {progressLabel}
@@ -580,11 +621,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           </div>
 
           <h3 style={{ fontSize: "1.45rem", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
-            Você precisa de mais minutos para este vídeo
+            {isEnglish ? "You need more minutes for this video" : "Você precisa de mais minutos para este vídeo"}
           </h3>
 
           <p style={{ color: "#cbd5e1", fontSize: "15px", maxWidth: 520, margin: "0 auto 24px", lineHeight: 1.6 }}>
-            {insufficientMsg || "A duração deste vídeo excede o tempo disponível no seu saldo atual."}
+            {insufficientMsg || (isEnglish ? "The duration of this video exceeds your available balance." : "A duração deste vídeo excede o tempo disponível no seu saldo atual.")}
           </p>
 
           {/* Packages Showcase (NO per-minute pricing) */}
@@ -603,7 +644,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               textAlign: "center"
             }}>
               <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Starter</div>
-              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>60 minutos</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>{isEnglish ? "60 minutes" : "60 minutos"}</div>
               <div style={{ fontSize: "15px", color: "#A78BFA", fontWeight: 700 }}>R$ 4,90</div>
             </div>
 
@@ -617,7 +658,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             }}>
               <div style={{ position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)", background: "#7C3AED", color: "white", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "100px" }}>POPULAR</div>
               <div style={{ fontSize: "11px", color: "#C4B5FD", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Pro</div>
-              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>300 minutos</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>{isEnglish ? "300 minutes" : "300 minutos"}</div>
               <div style={{ fontSize: "15px", color: "#67E8F9", fontWeight: 700 }}>R$ 17,90</div>
             </div>
 
@@ -629,7 +670,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               textAlign: "center"
             }}>
               <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Business</div>
-              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>1.000 minutos</div>
+              <div style={{ fontSize: "18px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>{isEnglish ? "1,000 minutes" : "1.000 minutos"}</div>
               <div style={{ fontSize: "15px", color: "#10B981", fontWeight: 700 }}>R$ 79,90</div>
             </div>
           </div>
@@ -650,14 +691,14 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 gap: "8px"
               }}
             >
-              <Zap size={16} /> Recarregar Mais Minutos Agora <ArrowRight size={16} />
+              <Zap size={16} /> {isEnglish ? "Refill More Minutes Now" : "Recarregar Mais Minutos Agora"} <ArrowRight size={16} />
             </Link>
             <button
               className="btn-secondary"
               onClick={handleReset}
               style={{ padding: "14px 22px", fontSize: "14px" }}
             >
-              <RotateCcw size={15} /> Tentar outro vídeo
+              <RotateCcw size={15} /> {isEnglish ? "Try another video" : "Tentar outro vídeo"}
             </button>
           </div>
         </div>
@@ -676,19 +717,19 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             <RotateCcw size={22} color="#EF4444" />
           </div>
           <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
-            Não foi possível transcrever
+            {isEnglish ? "Unable to transcribe" : "Não foi possível transcrever"}
           </h3>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 480, margin: "0 auto 24px" }}>
-            {errorMsg || "Ocorreu um problema ao baixar ou processar a mídia. Verifique o link ou formato do arquivo."}
+            {errorMsg || (isEnglish ? "A problem occurred while downloading or processing media. Please check the link or file format." : "Ocorreu um problema ao baixar ou processar a mídia. Verifique o link ou formato do arquivo.")}
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", margin: "0 auto" }}>
             {(errorMsg.toLowerCase().includes("saldo") || errorMsg.toLowerCase().includes("minutos") || errorMsg.toLowerCase().includes("insuficiente")) && (
               <Link href="/precos" className="btn-primary" style={{ textDecoration: "none" }}>
-                Recarregar minutos ↗
+                {isEnglish ? "Refill minutes ↗" : "Recarregar minutos ↗"}
               </Link>
             )}
             <button className="btn-secondary" onClick={handleReset}>
-              <RotateCcw size={16} /> Tentar novamente
+              <RotateCcw size={16} /> {isEnglish ? "Try again" : "Tentar novamente"}
             </button>
           </div>
         </div>
@@ -710,11 +751,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <p style={{ fontWeight: 600, color: "var(--text-primary)", marginBottom: "2px" }}>
-                {resultTitle ? resultTitle.slice(0, 50) + (resultTitle.length > 50 ? "..." : "") : "Transcrição concluída!"}
+                {resultTitle ? resultTitle.slice(0, 50) + (resultTitle.length > 50 ? "..." : "") : (isEnglish ? "Transcription complete!" : "Transcrição concluída!")}
               </p>
               <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
                 {resultDuration ? `${Math.floor(resultDuration / 60)}m ${Math.round(resultDuration % 60)}s • ` : ""}
-                {transcript.split(/\s+/).filter(Boolean).length} palavras • {engineUsed || "Inteligência Artificial"}
+                {transcript.split(/\s+/).filter(Boolean).length} {isEnglish ? "words" : "palavras"} • {engineUsed || (isEnglish ? "Artificial Intelligence" : "Inteligência Artificial")}
                 {minutesDeducted > 0 && (
                   <span style={{ marginLeft: "8px", color: "#6EE7B7", fontWeight: 600 }}>
                     (-{minutesDeducted} min)
@@ -737,21 +778,21 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                     borderColor: sharedToast ? "rgba(6, 182, 212, 0.4)" : undefined,
                     background: sharedToast ? "rgba(6, 182, 212, 0.12)" : undefined,
                   }}
-                  title="Copiar link público desta transcrição para WhatsApp ou Notion"
+                  title={isEnglish ? "Copy public link for this transcription" : "Copiar link público desta transcrição para WhatsApp ou Notion"}
                 >
                   {sharedToast ? (
                     <>
-                      <Check size={14} color="#67E8F9" /> Link copiado!
+                      <Check size={14} color="#67E8F9" /> {isEnglish ? "Link copied!" : "Link copiado!"}
                     </>
                   ) : (
                     <>
-                      <Share2 size={14} /> Compartilhar
+                      <Share2 size={14} /> {isEnglish ? "Share" : "Compartilhar"}
                     </>
                   )}
                 </button>
               )}
               <button className="btn-ghost" onClick={handleReset} style={{ flexShrink: 0 }}>
-                <RotateCcw size={15} /> Nova transcrição
+                <RotateCcw size={15} /> {isEnglish ? "New transcription" : "Nova transcrição"}
               </button>
             </div>
           </div>
@@ -778,7 +819,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 transition: "all 0.2s"
               }}
             >
-              <FileText size={15} /> Texto Completo
+              <FileText size={15} /> {isEnglish ? "Full Transcript" : "Texto Completo"}
             </button>
 
             <button
@@ -800,7 +841,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               }}
             >
               <Sparkles size={15} color="#A78BFA" />
-              <span>Resumo com IA</span>
+              <span>{isEnglish ? "AI Summary" : "Resumo com IA"}</span>
               {summaryData && (
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
               )}
@@ -823,7 +864,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 transition: "all 0.2s"
               }}
             >
-              <FileCode size={15} /> Legendas (.SRT)
+              <FileCode size={15} /> {isEnglish ? "Subtitles (.SRT)" : "Legendas (.SRT)"}
             </button>
           </div>
 
@@ -842,7 +883,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <FileText size={15} color="#A78BFA" />
                   <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
-                    Texto Transcrito
+                    {isEnglish ? "Transcribed Text" : "Texto Transcrito"}
                   </span>
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -855,11 +896,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                     >
                       {isSummarizing ? (
                         <>
-                          <Loader2 size={13} className="animate-spin" /> Gerando resumo...
+                          <Loader2 size={13} className="animate-spin" /> {isEnglish ? "Generating summary..." : "Gerando resumo..."}
                         </>
                       ) : (
                         <>
-                          <Sparkles size={13} /> Gerar resumo com IA
+                          <Sparkles size={13} /> {isEnglish ? "Generate AI summary" : "Gerar resumo com IA"}
                         </>
                       )}
                     </button>
@@ -867,11 +908,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   <button id="btn-copy" className="btn-ghost" style={{ fontSize: "13px" }} onClick={handleCopy}>
                     {copied ? (
                       <>
-                        <Check size={13} color="#10B981" /> Copiado!
+                        <Check size={13} color="#10B981" /> {isEnglish ? "Copied!" : "Copiado!"}
                       </>
                     ) : (
                       <>
-                        <Copy size={13} /> Copiar texto
+                        <Copy size={13} /> {isEnglish ? "Copy text" : "Copiar texto"}
                       </>
                     )}
                   </button>
@@ -900,10 +941,12 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                     <Sparkles size={24} color="#A78BFA" />
                   </div>
                   <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
-                    Resumo Inteligente e Tópicos com IA
+                    {isEnglish ? "Smart AI Summary & Highlights" : "Resumo Inteligente e Tópicos com IA"}
                   </h3>
                   <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 460, margin: "0 auto 24px", lineHeight: 1.6 }}>
-                    Nossa IA sintetiza esta transcrição em segundos com um resumo executivo, principais aprendizados e conclusões práticas.
+                    {isEnglish
+                      ? "Our AI synthesizes this transcription in seconds with an executive summary, key takeaways, and actionable takeaways."
+                      : "Nossa IA sintetiza esta transcrição em segundos com um resumo executivo, principais aprendizados e conclusões práticas."}
                   </p>
                   <button
                     className="btn-primary"
@@ -913,11 +956,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   >
                     {isSummarizing ? (
                       <>
-                        <Loader2 size={16} className="animate-spin" /> Sintetizando com IA...
+                        <Loader2 size={16} className="animate-spin" /> {isEnglish ? "Synthesizing with AI..." : "Sintetizando com IA..."}
                       </>
                     ) : (
                       <>
-                        <Sparkles size={16} /> Gerar Resumo Agora
+                        <Sparkles size={16} /> {isEnglish ? "Generate Summary Now" : "Gerar Resumo Agora"}
                       </>
                     )}
                   </button>
@@ -928,7 +971,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <Sparkles size={16} color="#A78BFA" />
                       <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)" }}>
-                        Síntese Inteligente do Conteúdo
+                        {isEnglish ? "Smart Content Synthesis" : "Síntese Inteligente do Conteúdo"}
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -939,11 +982,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                       >
                         {summaryCopied ? (
                           <>
-                            <Check size={13} color="#10B981" /> Resumo Copiado!
+                            <Check size={13} color="#10B981" /> {isEnglish ? "Summary Copied!" : "Resumo Copiado!"}
                           </>
                         ) : (
                           <>
-                            <Copy size={13} /> Copiar Resumo
+                            <Copy size={13} /> {isEnglish ? "Copy Summary" : "Copiar Resumo"}
                           </>
                         )}
                       </button>
@@ -952,9 +995,9 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                         style={{ fontSize: "13px" }}
                         onClick={handleGenerateSummary}
                         disabled={isSummarizing}
-                        title="Regenerar resumo com IA"
+                        title={isEnglish ? "Regenerate AI summary" : "Regenerar resumo com IA"}
                       >
-                        <RotateCcw size={13} /> {isSummarizing ? "Regenerando..." : "Regenerar"}
+                        <RotateCcw size={13} /> {isSummarizing ? (isEnglish ? "Regenerating..." : "Regenerando...") : (isEnglish ? "Regenerate" : "Regenerar")}
                       </button>
                     </div>
                   </div>
@@ -962,7 +1005,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   {/* Executive Summary */}
                   <div>
                     <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#A78BFA", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
-                      📌 Resumo Executivo
+                      📌 {isEnglish ? "Executive Summary" : "Resumo Executivo"}
                     </h4>
                     <p style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--text-secondary)", background: "rgba(255, 255, 255, 0.03)", padding: "14px 18px", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
                       {summaryData.executive_summary}
@@ -973,7 +1016,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   {summaryData.key_points && summaryData.key_points.length > 0 && (
                     <div>
                       <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#67E8F9", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>
-                        💡 Principais Pontos e Aprendizados
+                        💡 {isEnglish ? "Key Highlights & Takeaways" : "Principais Pontos e Aprendizados"}
                       </h4>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         {summaryData.key_points.map((point, idx) => (
@@ -990,7 +1033,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                   {summaryData.takeaway && (
                     <div>
                       <h4 style={{ fontSize: "13px", fontWeight: 700, color: "#10B981", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
-                        🎯 Conclusão e Próximos Passos
+                        🎯 {isEnglish ? "Conclusion & Next Steps" : "Conclusão e Próximos Passos"}
                       </h4>
                       <p style={{ fontSize: "14px", lineHeight: 1.6, color: "var(--text-secondary)", fontStyle: "italic", borderLeft: "3px solid #10B981", paddingLeft: "14px" }}>
                         &quot;{summaryData.takeaway}&quot;
@@ -1017,7 +1060,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <FileCode size={15} color="#A78BFA" />
                   <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
-                    Legendas com Marcas de Tempo (.SRT)
+                    {isEnglish ? "Timestamped Subtitles (.SRT)" : "Legendas com Marcas de Tempo (.SRT)"}
                   </span>
                 </div>
                 <button
@@ -1031,11 +1074,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 >
                   {copied ? (
                     <>
-                      <Check size={13} color="#10B981" /> Copiado!
+                      <Check size={13} color="#10B981" /> {isEnglish ? "Copied!" : "Copiado!"}
                     </>
                   ) : (
                     <>
-                      <Copy size={13} /> Copiar SRT
+                      <Copy size={13} /> {isEnglish ? "Copy SRT" : "Copiar SRT"}
                     </>
                   )}
                 </button>
@@ -1050,11 +1093,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           {/* Download buttons: TXT, DOCX, PDF, SRT, VTT */}
           <div className="glass-card" style={{ padding: "20px 24px" }}>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Baixar Transcrição
+              {isEnglish ? "Download Transcription" : "Baixar Transcrição"}
             </p>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               <button id="btn-download-txt" className="btn-secondary" style={{ fontSize: "14px" }} onClick={handleDownloadTxt}>
-                <FileText size={16} /> .TXT (Texto)
+                <FileText size={16} /> {isEnglish ? ".TXT (Text)" : ".TXT (Texto)"}
               </button>
               <button
                 id="btn-download-docx"
@@ -1065,11 +1108,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               >
                 {isExportingDocx ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Gerando Word...
+                    <Loader2 size={16} className="animate-spin" /> {isEnglish ? "Generating Word..." : "Gerando Word..."}
                   </>
                 ) : (
                   <>
-                    <FileDown size={16} /> .DOCX (Word Formatado)
+                    <FileDown size={16} /> {isEnglish ? ".DOCX (Formatted Word)" : ".DOCX (Word Formatado)"}
                   </>
                 )}
               </button>
@@ -1082,19 +1125,19 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               >
                 {isExportingPdf ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Gerando PDF...
+                    <Loader2 size={16} className="animate-spin" /> {isEnglish ? "Generating PDF..." : "Gerando PDF..."}
                   </>
                 ) : (
                   <>
-                    <FileDown size={16} color="#EF4444" /> .PDF (Documento)
+                    <FileDown size={16} color="#EF4444" /> {isEnglish ? ".PDF (Document)" : ".PDF (Documento)"}
                   </>
                 )}
               </button>
               <button id="btn-download-srt" className="btn-secondary" style={{ fontSize: "14px" }} onClick={handleDownloadSrt}>
-                <FileCode size={16} /> .SRT (Legendas)
+                <FileCode size={16} /> {isEnglish ? ".SRT (Subtitles)" : ".SRT (Legendas)"}
               </button>
               <button id="btn-download-vtt" className="btn-secondary" style={{ fontSize: "14px" }} onClick={handleDownloadVtt}>
-                <FileType size={16} /> .VTT (Web)
+                <FileType size={16} /> {isEnglish ? ".VTT (Web)" : ".VTT (Web)"}
               </button>
             </div>
 
@@ -1112,7 +1155,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               }}>
                 <Trash2 size={16} color="#10B981" />
                 <p style={{ fontSize: "13px", color: "#6EE7B7" }}>
-                  <strong>Privacidade garantida:</strong> A mídia processada foi permanentemente excluída dos nossos servidores.
+                  <strong>{isEnglish ? "Privacy guaranteed:" : "Privacidade garantida:"}</strong> {isEnglish ? "Processed media was permanently deleted from our servers." : "A mídia processada foi permanentemente excluída dos nossos servidores."}
                 </p>
               </div>
             )}

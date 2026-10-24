@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 
 interface TrojanHorseCardProps {
@@ -15,7 +15,10 @@ export default function TrojanHorseCard({
   platform = "vídeo",
 }: TrojanHorseCardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(false);
+
+  const isEnglish = pathname?.startsWith("/en");
 
   const handleTranscribeWithAI = () => {
     setLoading(true);
@@ -33,8 +36,11 @@ export default function TrojanHorseCard({
     }
   };
 
-  const platformLabel =
-    platform && platform.toLowerCase() !== "vídeo"
+  const platformLabel = isEnglish
+    ? platform && platform.toLowerCase() !== "vídeo" && platform.toLowerCase() !== "video"
+      ? `${platform} video`
+      : "video"
+    : platform && platform.toLowerCase() !== "vídeo" && platform.toLowerCase() !== "video"
       ? `vídeo do ${platform}`
       : "vídeo";
 
@@ -85,10 +91,12 @@ export default function TrojanHorseCard({
               boxShadow: "0 2px 8px rgba(236, 72, 153, 0.3)",
             }}
           >
-            <span>🚀</span> Vá Além do Download
+            <span>🚀</span> {isEnglish ? "Go Beyond the Download" : "Vá Além do Download"}
           </span>
           <span style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.75)" }}>
-            Não fique apenas com o arquivo guardado: extraia o máximo deste conteúdo
+            {isEnglish
+              ? "Don't just keep the file saved: unlock the full power of this content"
+              : "Não fique apenas com o arquivo guardado: extraia o máximo deste conteúdo"}
           </span>
         </div>
 
@@ -102,7 +110,9 @@ export default function TrojanHorseCard({
             marginBottom: "8px",
           }}
         >
-          Quer o texto completo, legendas para CapCut e um resumo com IA deste {platformLabel}?
+          {isEnglish
+            ? `Want the full transcript, CapCut subtitles & AI summary of this ${platformLabel}?`
+            : `Quer o texto completo, legendas para CapCut e um resumo com IA deste ${platformLabel}?`}
         </h3>
 
         <p
@@ -113,8 +123,17 @@ export default function TrojanHorseCard({
             marginBottom: "20px",
           }}
         >
-          Em vez de perder horas assistindo ou transcrevendo manualmente, o <strong>Peguei o Texto</strong> processa
-          este conteúdo em segundos usando Inteligência Artificial de última geração.
+          {isEnglish ? (
+            <>
+              Instead of wasting hours watching or manually typing, <strong>Peguei o Texto</strong> processes this content
+              in seconds using state-of-the-art Artificial Intelligence.
+            </>
+          ) : (
+            <>
+              Em vez de perder horas assistindo ou transcrevendo manualmente, o <strong>Peguei o Texto</strong> processa
+              este conteúdo em segundos usando Inteligência Artificial de última geração.
+            </>
+          )}
         </p>
 
         {/* Feature grid */}
@@ -135,10 +154,12 @@ export default function TrojanHorseCard({
             }}
           >
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", marginBottom: "4px" }}>
-              📝 Transcrição 99.2% Precisa
+              {isEnglish ? "📝 99.2% Accurate Transcript" : "📝 Transcrição 99.2% Precisa"}
             </div>
             <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.65)", lineHeight: "1.4" }}>
-              Pontuação nativa em português e minutagem automática.
+              {isEnglish
+                ? "Automatic punctuation, multi-speaker separation & precise timestamps."
+                : "Pontuação nativa em português e minutagem automática."}
             </div>
           </div>
 
@@ -151,10 +172,12 @@ export default function TrojanHorseCard({
             }}
           >
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", marginBottom: "4px" }}>
-              🎬 Legendas .SRT & .VTT
+              {isEnglish ? "🎬 .SRT & .VTT Subtitles" : "🎬 Legendas .SRT & .VTT"}
             </div>
             <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.65)", lineHeight: "1.4" }}>
-              Pronto para importar direto no CapCut, Premiere ou DaVinci.
+              {isEnglish
+                ? "Ready to drag and drop straight into CapCut, Premiere, or DaVinci."
+                : "Pronto para importar direto no CapCut, Premiere ou DaVinci."}
             </div>
           </div>
 
@@ -167,10 +190,12 @@ export default function TrojanHorseCard({
             }}
           >
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", marginBottom: "4px" }}>
-              💡 Resumo Executivo IA
+              {isEnglish ? "💡 AI Executive Summary" : "💡 Resumo Executivo IA"}
             </div>
             <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.65)", lineHeight: "1.4" }}>
-              Principais insights, lições e tópicos em tópicos claros.
+              {isEnglish
+                ? "Core takeaways, lessons, and topics structured in clean bullet points."
+                : "Principais insights, lições e tópicos em tópicos claros."}
             </div>
           </div>
 
@@ -183,10 +208,12 @@ export default function TrojanHorseCard({
             }}
           >
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", marginBottom: "4px" }}>
-              📱 Posts Prontos p/ Redes
+              {isEnglish ? "📱 Viral Social Drafts" : "📱 Posts Prontos p/ Redes"}
             </div>
             <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.65)", lineHeight: "1.4" }}>
-              Converta em carrossel de Instagram e artigos de LinkedIn.
+              {isEnglish
+                ? "Repurpose into Instagram carousel slides and LinkedIn articles."
+                : "Converta em carrossel de Instagram e artigos de LinkedIn."}
             </div>
           </div>
         </div>
@@ -223,17 +250,19 @@ export default function TrojanHorseCard({
             }}
           >
             {loading ? (
-              <span>Carregando plataforma...</span>
+              <span>{isEnglish ? "Loading platform..." : "Carregando plataforma..."}</span>
             ) : (
               <>
-                <span>Transcrever este Vídeo com IA Agora</span>
+                <span>{isEnglish ? "Transcribe this Video with AI Now" : "Transcrever este Vídeo com IA Agora"}</span>
                 <span style={{ fontSize: "18px" }}>→</span>
               </>
             )}
           </button>
 
           <span style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.5)" }}>
-            ✨ Teste gratuito imediato • Sem necessidade de cartão
+            {isEnglish
+              ? "✨ Instant free trial • No credit card required"
+              : "✨ Teste gratuito imediato • Sem necessidade de cartão"}
           </span>
         </div>
       </div>
