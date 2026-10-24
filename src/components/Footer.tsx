@@ -100,9 +100,13 @@ export default function Footer() {
             >
               Termos de uso
             </Link>
-            <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-              Cookies
-            </span>
+            <span style={{ color: "rgba(255, 255, 255, 0.2)" }}>•</span>
+            <Link href="/" style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}>
+              🇧🇷 Português
+            </Link>
+            <Link href="/en" style={{ color: "var(--text-muted)", fontSize: "13px", textDecoration: "none" }}>
+              🇺🇸 English
+            </Link>
           </div>
         </div>
       </div>
