@@ -95,30 +95,6 @@ export default function Footer() {
                 ? "AI video and audio transcription. Fast, accurate, and with guaranteed privacy."
                 : "Transcrição de vídeos e áudios com IA. Rápido, preciso e com privacidade garantida."}
             </p>
-            <div style={{ marginTop: "16px" }}>
-              <a
-                href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.9";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
-                  alt="Launched on StartupBase"
-                  height="34"
-                  style={{ height: "34px", width: "auto", display: "block" }}
-                />
-              </a>
-            </div>
           </div>
 
           {/* Links */}
@@ -142,6 +118,33 @@ export default function Footer() {
                   </Link>
                 ))}
               </div>
+
+              {(category === "Empresa" || category === "Company") && (
+                <div style={{ marginTop: "16px" }}>
+                  <a
+                    href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.9";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
+                      alt="Launched on StartupBase"
+                      height="34"
+                      style={{ height: "34px", width: "auto", display: "block" }}
+                    />
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>
