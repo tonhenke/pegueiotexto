@@ -35,7 +35,7 @@ export default function Footer() {
           { label: "Convert WAV to Text", href: "/converter-wav-em-texto" },
         ],
         "Company": [
-          { label: "Pricing & Plans", href: "/precos" },
+          { label: "Pricing & Plans", href: "/en/pricing" },
           { label: "Affiliate Program", href: "/afiliados" },
           { label: "About Us", href: "/sobre-nos" },
           { label: "Terms of Service", href: "/termos-de-uso", target: "_blank" },

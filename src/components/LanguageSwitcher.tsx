@@ -35,6 +35,8 @@ export default function LanguageSwitcher() {
           router.push("/en");
         } else if (pathname.includes("baixar-video") || pathname.includes("baixar")) {
           router.push("/en/download-video");
+        } else if (pathname.includes("preco") || pathname.includes("pricing")) {
+          router.push("/en/pricing");
         } else {
           router.push("/en");
         }
@@ -45,6 +47,8 @@ export default function LanguageSwitcher() {
           router.push("/");
         } else if (pathname.includes("download-video")) {
           router.push("/baixar-video");
+        } else if (pathname.includes("pricing") || pathname.includes("preco")) {
+          router.push("/precos");
         } else {
           router.push("/");
         }

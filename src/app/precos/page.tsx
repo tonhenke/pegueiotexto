@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Check, Zap, Star, Sparkles, ArrowRight, ShieldCheck, Clock, Crown, Flame } from "lucide-react";
@@ -219,9 +220,19 @@ const faqs = [
 ];
 
 export default function PrecosPage() {
+  const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem("pegueiotexto_lang");
+      if (savedLang === "en") {
+        router.push("/en/pricing");
+      }
+    } catch {}
+  }, [router]);
 
   const activePlans = [freePlan, ...(billingCycle === "annual" ? annualSubscriptions : packages)];
 

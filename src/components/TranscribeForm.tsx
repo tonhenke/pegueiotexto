@@ -678,7 +678,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
             <Link
-              href="/precos"
+              href={isEnglish ? "/en/pricing" : "/precos"}
               className="btn-primary"
               style={{
                 padding: "14px 32px",
@@ -724,7 +724,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           </p>
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", margin: "0 auto" }}>
             {(errorMsg.toLowerCase().includes("saldo") || errorMsg.toLowerCase().includes("minutos") || errorMsg.toLowerCase().includes("insuficiente")) && (
-              <Link href="/precos" className="btn-primary" style={{ textDecoration: "none" }}>
+              <Link href={isEnglish ? "/en/pricing" : "/precos"} className="btn-primary" style={{ textDecoration: "none" }}>
                 {isEnglish ? "Refill minutes ↗" : "Recarregar minutos ↗"}
               </Link>
             )}
