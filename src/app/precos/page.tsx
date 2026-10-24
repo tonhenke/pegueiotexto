@@ -311,12 +311,15 @@ export default function PrecosPage() {
             <div style={{
               display: "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
+              flexWrap: "wrap",
               gap: "6px",
               background: "rgba(255, 255, 255, 0.04)",
               border: "1px solid rgba(124, 58, 237, 0.35)",
               borderRadius: "100px",
               padding: "6px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)"
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.25)",
+              maxWidth: "100%",
             }}>
               <button
                 type="button"

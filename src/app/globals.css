@@ -506,19 +506,10 @@ select option {
 }
 
 .pricing-card.featured {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 1px var(--brand-primary), var(--shadow-glow);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.45), 0 12px 36px -8px rgba(124, 58, 237, 0.35);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08) 0%, var(--bg-card) 100%);
   z-index: 2;
-}
-
-.pricing-card.featured::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--gradient-brand);
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
 }
 
 .pricing-card:hover:not(.featured) {
