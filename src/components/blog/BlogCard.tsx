@@ -28,26 +28,20 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
           marginBottom: "40px",
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "0px",
-          }}
-        >
+        <div className="blog-featured-split">
           {/* Cover gradient or visual */}
           <div
             style={{
-              minHeight: "260px",
+              minHeight: "200px",
               background: post.coverGradient || "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              padding: "32px",
+              padding: "clamp(20px, 4vw, 32px)",
               position: "relative",
             }}
           >
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               <span
                 className="badge"
                 style={{
@@ -72,7 +66,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
               </span>
             </div>
 
-            <div style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "0.85rem" }}>
+            <div style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "0.85rem", marginTop: "16px" }}>
               Peguei o Texto • Blog Oficial
             </div>
           </div>
@@ -80,7 +74,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
           {/* Text Content */}
           <div
             style={{
-              padding: "36px",
+              padding: "clamp(20px, 4vw, 36px)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",

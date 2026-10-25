@@ -212,7 +212,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: "16px",
-                padding: "16px 20px",
+                padding: "14px 16px",
                 background: "rgba(14, 13, 36, 0.6)",
                 border: "1px solid var(--border-subtle)",
                 borderRadius: "16px",
@@ -250,16 +250,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           </header>
 
           {/* Main Layout: Content + Sticky Sidebar */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr min(320px, 100%)",
-              gap: "48px",
-              alignItems: "start",
-            }}
-          >
+          <div className="blog-layout-grid">
             {/* Left Column: Markdown Prose */}
-            <div>
+            <div className="blog-main-column">
               <div
                 className="blog-prose"
                 dangerouslySetInnerHTML={{ __html: post.htmlContent || "" }}
@@ -301,7 +294,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 className="glass-card"
                 style={{
                   marginTop: "48px",
-                  padding: "36px",
+                  padding: "clamp(20px, 4vw, 36px)",
                   borderRadius: "24px",
                   border: "1px solid rgba(124, 58, 237, 0.35)",
                   background: "linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(6, 182, 212, 0.08))",
@@ -341,7 +334,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
 
             {/* Right Column: Sticky Sidebar */}
-            <aside style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <aside className="blog-sidebar-column">
               {/* Table of contents */}
               {post.tableOfContents && post.tableOfContents.length > 0 && (
                 <TableOfContents toc={post.tableOfContents} />
@@ -410,13 +403,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </p>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                  gap: "24px",
-                }}
-              >
+              <div className="blog-related-grid">
                 {relatedPosts.map((related) => (
                   <BlogCard key={related.slug} post={related} />
                 ))}

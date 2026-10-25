@@ -161,13 +161,7 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
 
       {/* Grid of Results */}
       {filteredPosts.length > 0 ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-            gap: "28px",
-          }}
-        >
+        <div className="blog-cards-grid">
           {filteredPosts.map((post) => (
             <BlogCard key={post.slug} post={post} />
           ))}

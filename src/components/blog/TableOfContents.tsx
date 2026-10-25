@@ -40,13 +40,11 @@ export default function TableOfContents({ toc }: TableOfContentsProps) {
 
   return (
     <nav
-      className="glass-card"
+      className="glass-card blog-sticky-sidebar"
       style={{
         borderRadius: "16px",
         padding: "20px",
         border: "1px solid var(--border-subtle)",
-        position: "sticky",
-        top: "96px",
       }}
       aria-label="Sumário do Artigo"
     >
