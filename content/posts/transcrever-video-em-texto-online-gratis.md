@@ -10,6 +10,7 @@ tags: ["Transcrever Vídeo em Texto", "Vídeo em Texto", "Converter Vídeo em Te
 readTime: "7 min de leitura"
 featured: true
 coverGradient: "linear-gradient(135deg, #7C3AED 0%, #2563EB 50%, #06B6D4 100%)"
+coverImage: "/blog/transcrever-video-em-texto.jpg"
 ---
 
 Quantas vezes você assistiu a uma aula, palestra, reunião gravada ou vídeo do YouTube e desejou ter **todo o conteúdo falado em um documento de texto editável** para poder sublinhar, copiar trechos ou fazer uma busca rápida com `Ctrl + F`?

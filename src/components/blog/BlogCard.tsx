@@ -29,24 +29,49 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
         }}
       >
         <div className="blog-featured-split">
-          {/* Cover gradient or visual */}
+          {/* Cover image or gradient visual */}
           <div
             style={{
-              minHeight: "200px",
+              minHeight: "240px",
               background: post.coverGradient || "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               padding: "clamp(20px, 4vw, 32px)",
               position: "relative",
+              overflow: "hidden",
             }}
           >
-            <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            {post.coverImage && (
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            )}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: post.coverImage
+                  ? "linear-gradient(180deg, rgba(8, 8, 22, 0.45) 0%, rgba(8, 8, 22, 0.8) 100%)"
+                  : "transparent",
+                pointerEvents: "none",
+              }}
+            />
+
+            <div style={{ position: "relative", zIndex: 2, display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
               <span
                 className="badge"
                 style={{
-                  background: "rgba(0, 0, 0, 0.4)",
-                  backdropFilter: "blur(8px)",
+                  background: "rgba(0, 0, 0, 0.55)",
+                  backdropFilter: "blur(10px)",
                   color: "#FFFFFF",
                   border: "1px solid rgba(255, 255, 255, 0.25)",
                 }}
@@ -56,17 +81,27 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
               <span
                 className="badge"
                 style={{
-                  background: "rgba(255, 255, 255, 0.2)",
-                  backdropFilter: "blur(8px)",
+                  background: "rgba(255, 255, 255, 0.22)",
+                  backdropFilter: "blur(10px)",
                   color: "#FFFFFF",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  border: "1px solid rgba(255, 255, 255, 0.35)",
                 }}
               >
                 {post.category}
               </span>
             </div>
 
-            <div style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: "0.85rem", marginTop: "16px" }}>
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+                color: "rgba(255, 255, 255, 0.9)",
+                fontSize: "0.85rem",
+                marginTop: "16px",
+                fontWeight: 500,
+                textShadow: "0 2px 4px rgba(0,0,0,0.6)",
+              }}
+            >
               Peguei o Texto • Blog Oficial
             </div>
           </div>
@@ -178,19 +213,45 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
         style={{
           display: "block",
           textDecoration: "none",
-          height: "160px",
+          height: "170px",
           background: post.coverGradient || "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
-          padding: "20px",
+          padding: "18px",
           position: "relative",
+          overflow: "hidden",
         }}
       >
+        {post.coverImage && (
+          <img
+            src={post.coverImage}
+            alt={post.title}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: post.coverImage
+              ? "linear-gradient(180deg, rgba(8, 8, 22, 0.3) 0%, rgba(8, 8, 22, 0.7) 100%)"
+              : "transparent",
+            pointerEvents: "none",
+          }}
+        />
         <span
           className="badge"
           style={{
-            background: "rgba(0, 0, 0, 0.45)",
+            position: "relative",
+            zIndex: 2,
+            background: "rgba(0, 0, 0, 0.55)",
             backdropFilter: "blur(6px)",
             color: "#FFFFFF",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
             fontSize: "0.75rem",
           }}
         >

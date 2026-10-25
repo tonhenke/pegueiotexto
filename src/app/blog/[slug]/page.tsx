@@ -50,11 +50,30 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       publishedTime: post.date,
       authors: [post.author.name],
       tags: post.tags,
+      images: post.coverImage
+        ? [
+            {
+              url: post.coverImage.startsWith("http")
+                ? post.coverImage
+                : `https://pegueiotexto.com.br${post.coverImage}`,
+              width: 1200,
+              height: 675,
+              alt: post.title,
+            },
+          ]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
+      images: post.coverImage
+        ? [
+            post.coverImage.startsWith("http")
+              ? post.coverImage
+              : `https://pegueiotexto.com.br${post.coverImage}`,
+          ]
+        : undefined,
     },
   };
 }
@@ -75,11 +94,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     year: "numeric",
   });
 
+  const fullCoverImageUrl = post.coverImage
+    ? post.coverImage.startsWith("http")
+      ? post.coverImage
+      : `https://pegueiotexto.com.br${post.coverImage}`
+    : undefined;
+
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": post.title,
     "description": post.description,
+    "image": fullCoverImageUrl ? [fullCoverImageUrl] : undefined,
     "datePublished": post.date,
     "dateModified": post.date,
     "author": {
@@ -248,6 +274,34 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <ShareButtons title={post.title} slug={post.slug} />
             </div>
           </header>
+
+          {/* Featured Cover Banner */}
+          {post.coverImage && (
+            <div
+              style={{
+                marginBottom: "40px",
+                borderRadius: "24px",
+                overflow: "hidden",
+                border: "1px solid rgba(124, 58, 237, 0.3)",
+                boxShadow: "0 16px 40px rgba(0, 0, 0, 0.45)",
+                background: "rgba(14, 13, 36, 0.6)",
+                position: "relative",
+                aspectRatio: "16 / 9",
+                maxHeight: "480px",
+              }}
+            >
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </div>
+          )}
 
           {/* Main Layout: Content + Sticky Sidebar */}
           <div className="blog-layout-grid">
