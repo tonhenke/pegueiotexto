@@ -35,6 +35,7 @@ export default function Footer() {
           { label: "Convert WAV to Text", href: "/converter-wav-em-texto" },
         ],
         "Company": [
+          { label: "Blog & Guides", href: "/blog" },
           { label: "Pricing & Plans", href: "/en/pricing" },
           { label: "Affiliate Program", href: "/afiliados" },
           { label: "About Us", href: "/sobre-nos" },
@@ -68,6 +69,7 @@ export default function Footer() {
           { label: "Converter WAV em Texto", href: "/converter-wav-em-texto" },
         ],
         "Empresa": [
+          { label: "Blog & Dicas", href: "/blog" },
           { label: "Preços & Planos", href: "/precos" },
           { label: "Programa de Afiliados", href: "/afiliados" },
           { label: "Sobre nós", href: "/sobre-nos" },

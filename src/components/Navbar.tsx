@@ -23,9 +23,10 @@ export default function Navbar() {
         { label: "Pricing", href: "/en/pricing" },
       ]
     : [
-        { label: "Como funciona", href: "#como-funciona" },
-        { label: "Plataformas", href: "#plataformas" },
+        { label: "Como funciona", href: "/#como-funciona" },
+        { label: "Plataformas", href: "/#plataformas" },
         { label: "Baixar Vídeo", href: "/baixar-video" },
+        { label: "Blog", href: "/blog" },
         { label: "Preços", href: "/precos" },
       ];
 
