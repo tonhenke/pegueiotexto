@@ -40,7 +40,7 @@ export default function TableOfContents({ toc }: TableOfContentsProps) {
 
   return (
     <nav
-      className="glass-card blog-sticky-sidebar"
+      className="glass-card"
       style={{
         borderRadius: "16px",
         padding: "20px",

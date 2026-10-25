@@ -868,9 +868,27 @@ select option {
     align-items: start;
   }
 
-  .blog-sticky-sidebar {
+  .blog-sidebar-column {
     position: sticky;
     top: 96px;
+    align-self: start;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .blog-sidebar-column::-webkit-scrollbar {
+    width: 4px;
+  }
+  .blog-sidebar-column::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .blog-sidebar-column::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.25);
+    border-radius: 4px;
+  }
+  .blog-sidebar-column::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-primary);
   }
 }
 
