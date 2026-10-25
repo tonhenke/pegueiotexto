@@ -35,12 +35,12 @@ Transformar a fala de um arquivo de vídeo em caracteres digitais destrava uma s
 
 Nem todas as soluções de transcrição oferecem o mesmo resultado. Veja um comparativo direto entre as principais alternativas disponíveis:
 
-| Solução | Velocidade (vídeo de 30 min) | Pontuação e Parágrafos | Aceita Links e Arquivos? | Formatos de Exportação |
+| Ferramenta / Método | Velocidade | Pontuação com IA | Tipos de Mídia Aceitos | Formatos de Exportação |
 | :--- | :--- | :--- | :--- | :--- |
-| **Peguei o Texto (IA Neural)** | **Menos de 30 segundos** | **Alta precisão (98%+) com vírgulas e pontos** | **Sim (YouTube, TikTok, Reels e MP4)** | **Word (.docx), PDF, TXT, SRT e VTT** |
-| **Legenda Automática do YouTube** | Imediato | Muito baixa (sem pontuação, texto corrido) | Apenas vídeos públicos do YouTube | Apenas copiar do navegador |
-| **Softwares de Edição (Premiere / CapCut)** | 5 a 15 minutos | Média a boa | Apenas arquivos locais pesados | Legendas (.srt) ou texto na timeline |
-| **Digitação Manual / Freelancers** | 2 a 4 dias | Alta | Sim | Geralmente Word |
+| 🚀 **Peguei o Texto** | **< 30 segundos** | ✅ Alta (98%+) com vírgulas e pontos | ✅ Links (YouTube, Reels) + Arquivos MP4 | ✅ Word (.docx), PDF, TXT e SRT |
+| 📺 **Legendas do YouTube** | Instantâneo | ❌ Muito baixa (sem pontuação) | ⚠️ Apenas vídeos do YouTube | ❌ Apenas copiar no navegador |
+| 🎬 **Softwares (Premiere/CapCut)** | 5 a 15 min | ⚠️ Média (requer ajustes manuais) | ❌ Apenas arquivos locais pesados | ⚠️ Legendas (.srt) ou timeline |
+| ✍️ **Digitação Manual** | 2 a 4 dias | ✅ Alta (feita por humano) | ✅ Qualquer arquivo de mídia | ⚠️ Geralmente apenas Word |
 
 A grande desvantagem dos transcritores nativos (como o do YouTube) é a ausência de pontuação: o texto sai em um bloco corrido e confuso, exigindo horas de revisão humana para torná-lo legível. Ferramentas especializadas baseadas em modelos neurais como o Whisper, por outro lado, já entregam o documento diagramado e pronto para uso profissional.
 

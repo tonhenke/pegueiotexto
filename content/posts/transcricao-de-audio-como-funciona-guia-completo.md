@@ -57,13 +57,13 @@ Antes de iniciar qualquer trabalho de transcrição, é fundamental definir o n�
 
 Até poucos anos atrás, a única forma confiável de transcrever áudios era contratar um transcritor profissional ou digitar na mão pausando o áudio a cada 3 segundos. Veja a comparação direta entre os dois modelos:
 
-| Critério | Transcrição Manual | Transcrição Automática com IA (Peguei o Texto) |
+| Critério Comparativo | Transcrição Manual (Humana) | Transcrição com IA (Peguei o Texto) |
 | :--- | :--- | :--- |
-| **Tempo de Execução** | 4 a 6 horas para cada 1 hora de áudio | **Menos de 1 minuto** para cada 1 hora de áudio |
-| **Custo Médio** | R$ 3,00 a R$ 8,00 por minuto gravado | **Gratuito para testar** / Centavos por hora |
-| **Disponibilidade** | Dias úteis, prazos de entrega de 2 a 5 dias | **24 horas por dia, 7 dias por semana, instantâneo** |
-| **Pontuação e Formatação** | Depende do cansaço do digitador | **Pontuação algorítmica consistente e neutra** |
-| **Exportação** | Geralmente apenas Word | **Word (.docx), PDF, TXT e Legendas (.SRT / .VTT)** |
+| ⏱️ **Tempo de Execução** | 4 a 6 horas para cada 1h de áudio | 🚀 **Menos de 1 minuto** para cada 1h de áudio |
+| 💰 **Custo Médio** | R$ 3,00 a R$ 8,00 por minuto gravado | ✅ **5 min grátis** / Centavos por hora |
+| 🕒 **Disponibilidade** | Prazos de 2 a 5 dias úteis | ⚡ **24/7 em tempo real, sem espera** |
+| ✍️ **Pontuação e Gramática** | Varia de acordo com o digitador | ✅ **Pontuação neural completa e consistente** |
+| 📄 **Formatos de Saída** | Geralmente apenas Word | ✅ **Word (.docx), PDF, TXT e Legendas (.SRT)** |
 
 ---
 

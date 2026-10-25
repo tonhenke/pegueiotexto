@@ -37,11 +37,11 @@ Ao **transcrever vídeo em texto**, você ganha superpoderes:
 
 Atualmente, existem três maneiras principais de extrair o texto de uma mídia visual. Veja o comparativo:
 
-| Método | Tempo para 30 min | Precisão e Pontuação | Funciona com links e arquivos? | Custo |
+| Método de Transcrição | Tempo (vídeo de 30 min) | Precisão e Pontuação | Suporte a Links e Arquivos | Custo Médio |
 | :--- | :--- | :--- | :--- | :--- |
-| **Digitação Manual** | 2 a 3 horas | Alta (mas cansativo) | Sim | Muito tempo ou caro |
-| **Legendas Nativas do YouTube** | Imediato | Baixa (sem pontuação, muitas falhas) | Apenas no próprio YouTube | Gratuito |
-| **IA Neural (Peguei o Texto)** | **15 a 30 segundos** | **Superior a 98% (pontuação completa)** | **Sim (links + arquivos MP4/MOV)** | **5 minutos grátis** |
+| 🚀 **Peguei o Texto (IA)** | **15 a 30 segundos** | ✅ Superior a 98% (pontuação completa) | ✅ Sim (Links da Web + Arquivos MP4/MOV) | ✅ 5 minutos grátis |
+| 📺 **Legendas do YouTube** | Instantâneo | ❌ Baixa (sem pontuação, falhas comuns) | ⚠️ Apenas vídeos do YouTube | Gratuito |
+| ✍️ **Digitação Manual** | 2 a 3 horas | ✅ Alta (mas processo exaustivo) | ✅ Qualquer gravação | Muito tempo ou custo alto |
 
 As legendas automáticas tradicionais geram blocos de palavras corridas sem pontos, vírgulas ou separação de parágrafos. Já os modelos neurais de última geração (como o Whisper) compreendem a entonação da voz, dividem as frases corretamente e formatam o documento pronto para leitura.
 

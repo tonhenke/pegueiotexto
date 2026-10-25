@@ -120,13 +120,18 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     toc.push({ id, text: plainText, level });
   }
 
-  // Configure custom renderer to inject IDs into headers
+  // Configure custom renderer to inject IDs into headers and wrap tables
   const renderer = new marked.Renderer();
   renderer.heading = function ({ tokens, depth }) {
     const text = this.parser.parseInline(tokens);
     const plainText = text.replace(/<[^>]+>/g, "");
     const id = slugify(plainText);
     return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+  };
+
+  const defaultTable = renderer.table.bind(renderer);
+  renderer.table = function (token) {
+    return `<div class="blog-table-wrapper">${defaultTable(token)}</div>\n`;
   };
 
   const htmlContent = await marked.parse(content, { renderer, async: true });
