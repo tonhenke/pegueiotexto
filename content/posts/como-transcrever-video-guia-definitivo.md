@@ -1,12 +1,12 @@
 ---
-title: "Como Transcrever Vídeo em Texto Online Grátis com IA (Guia Definitivo 2026)"
-description: "Aprenda o passo a passo para transcrever qualquer vídeo em texto em segundos. Cole links do YouTube, TikTok e Reels ou envie arquivos MP4 e receba o texto pontuado com IA."
+title: "Como Transcrever Vídeo: Guia Completo para YouTube, Reels e Arquivos (2026)"
+description: "Aprenda a transcrever vídeos do YouTube, TikTok, Reels e arquivos de gravação MP4 com Inteligência Artificial. Baixe legendas SRT ou textos em segundos."
 date: "2026-10-25"
 author:
   name: "Equipe Peguei o Texto"
   role: "Especialistas em IA & Conteúdo Audiovisual"
 category: "Tutoriais"
-tags: ["Transcrever Vídeo", "Vídeo em Texto", "YouTube", "Inteligência Artificial", "Legendas"]
+tags: ["Transcrever Vídeo", "YouTube", "TikTok", "Inteligência Artificial", "Legendas"]
 readTime: "6 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #06B6D4 100%)"
