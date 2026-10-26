@@ -8,7 +8,7 @@ author:
 category: "Tutoriais"
 tags: ["Transcrever Vídeo em Texto", "Vídeo em Texto", "Converter Vídeo em Texto", "Inteligência Artificial", "Word"]
 readTime: "7 min de leitura"
-featured: true
+featured: false
 coverGradient: "linear-gradient(135deg, #7C3AED 0%, #2563EB 50%, #06B6D4 100%)"
 coverImage: "/blog/transcrever-video-em-texto.jpg"
 ---
