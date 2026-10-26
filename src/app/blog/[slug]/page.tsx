@@ -277,19 +277,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           {/* Featured Cover Banner */}
           {post.coverImage && (
-            <div
-              style={{
-                marginBottom: "40px",
-                borderRadius: "24px",
-                overflow: "hidden",
-                border: "1px solid rgba(124, 58, 237, 0.3)",
-                boxShadow: "0 16px 40px rgba(0, 0, 0, 0.45)",
-                background: "rgba(14, 13, 36, 0.6)",
-                position: "relative",
-                aspectRatio: "16 / 9",
-                maxHeight: "480px",
-              }}
-            >
+            <div className="blog-cover-banner">
               <img
                 src={post.coverImage}
                 alt={post.title}
@@ -300,6 +288,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   display: "block",
                 }}
               />
+            </div>
+          )}
+
+          {/* Mobile Table of Contents: positioned immediately after main cover on mobile */}
+          {post.tableOfContents && post.tableOfContents.length > 0 && (
+            <div className="blog-mobile-toc">
+              <TableOfContents toc={post.tableOfContents} />
             </div>
           )}
 
@@ -389,9 +384,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
             {/* Right Column: Sticky Sidebar */}
             <aside className="blog-sidebar-column">
-              {/* Table of contents */}
+              {/* Table of contents (desktop only) */}
               {post.tableOfContents && post.tableOfContents.length > 0 && (
-                <TableOfContents toc={post.tableOfContents} />
+                <div className="blog-desktop-toc">
+                  <TableOfContents toc={post.tableOfContents} />
+                </div>
               )}
 
               {/* Sidebar Action Widget */}
