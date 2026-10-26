@@ -235,6 +235,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const mp3DownloadUrl = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
+
       if (!formats.length) {
         formats = [
           {
@@ -244,17 +246,13 @@ export async function POST(req: NextRequest) {
             quality: "HD",
             url: videoUrl,
           },
-          ...(audioUrl
-            ? [
-                {
-                  id: "mp3-audio",
-                  label: "Áudio MP3 (Download)",
-                  ext: "mp3",
-                  quality: "128k",
-                  url: audioUrl,
-                },
-              ]
-            : []),
+          {
+            id: "mp3-audio",
+            label: "Áudio MP3 (Download)",
+            ext: "mp3",
+            quality: "192k",
+            url: mp3DownloadUrl,
+          },
         ];
       }
 
@@ -268,7 +266,7 @@ export async function POST(req: NextRequest) {
           duration: 0,
           video_url: videoUrl,
           video_hd_url: videoUrl,
-          audio_url: audioUrl,
+          audio_url: mp3DownloadUrl,
           formats,
         },
       });
@@ -291,6 +289,9 @@ export async function POST(req: NextRequest) {
 
       if (backendRes.ok) {
         const data = await backendRes.json();
+        if (data?.data) {
+          data.data.audio_url = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
+        }
         return NextResponse.json(data);
       }
     } catch (backendErr: any) {

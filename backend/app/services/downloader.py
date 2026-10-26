@@ -79,7 +79,7 @@ def download_audio_from_url(url: str) -> dict:
         base_opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
-            "preferredquality": "128",
+            "preferredquality": "192",
         }]
 
     # Strategy 1 (Primary): Direct Mobile InnerTube API (android)

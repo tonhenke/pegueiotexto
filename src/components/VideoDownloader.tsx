@@ -41,6 +41,7 @@ export default function VideoDownloader({
   const [error, setError] = useState<string | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [downloadingAudio, setDownloadingAudio] = useState(false);
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "";
@@ -506,26 +507,52 @@ export default function VideoDownloader({
                   <a
                     id="btn-download-mp3"
                     href={videoInfo.audio_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={`${videoInfo.title.slice(0, 30)}.mp3`}
+                    download={`${videoInfo.title.slice(0, 40)}.mp3`}
+                    onClick={() => {
+                      setDownloadingAudio(true);
+                      setTimeout(() => setDownloadingAudio(false), 12000);
+                    }}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "8px",
                       padding: "12px 18px",
                       borderRadius: "10px",
-                      background: "rgba(255, 255, 255, 0.08)",
-                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      background: downloadingAudio
+                        ? "rgba(139, 92, 246, 0.25)"
+                        : "rgba(255, 255, 255, 0.08)",
+                      border: downloadingAudio
+                        ? "1px solid rgba(139, 92, 246, 0.5)"
+                        : "1px solid rgba(255, 255, 255, 0.15)",
                       color: "#ffffff",
                       fontSize: "14px",
                       fontWeight: 600,
                       textDecoration: "none",
-                      transition: "background 0.2s ease",
+                      transition: "all 0.2s ease",
+                      cursor: "pointer",
                     }}
                   >
-                    <span>🎵</span>
-                    <span>{isEnglish ? "Download Audio (MP3)" : "Baixar Áudio (MP3)"}</span>
+                    {downloadingAudio ? (
+                      <>
+                        <span
+                          style={{
+                            width: "14px",
+                            height: "14px",
+                            border: "2px solid #a78bfa",
+                            borderTopColor: "transparent",
+                            borderRadius: "50%",
+                            animation: "spin 0.8s linear infinite",
+                            display: "inline-block",
+                          }}
+                        />
+                        <span>{isEnglish ? "Preparing MP3..." : "Gerando MP3..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🎵</span>
+                        <span>{isEnglish ? "Download Audio (MP3)" : "Baixar Áudio (MP3)"}</span>
+                      </>
+                    )}
                   </a>
                 )}
 
