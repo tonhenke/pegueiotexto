@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
           method: "POST",
@@ -225,13 +225,15 @@ export async function POST(req: NextRequest) {
         console.warn("[Download Route] Backend stream error:", bErr);
       }
 
-      // 3. Fallback direct resolver if cloud datacenter IP was challenged
-      const fallbackDownloadUrl = videoId
-        ? `https://ssyoutube.com/watch?v=${videoId}`
-        : rawUrl;
-
-      const finalVideoUrl = videoUrl || fallbackDownloadUrl;
-      const finalAudioUrl = audioUrl || fallbackDownloadUrl;
+      if (!videoUrl) {
+        return NextResponse.json(
+          {
+            error:
+              "Não foi possível gerar os links de download direto para este vídeo do YouTube no momento. Verifique se o vídeo é público e tente novamente.",
+          },
+          { status: 422 }
+        );
+      }
 
       if (!formats.length) {
         formats = [
@@ -240,15 +242,19 @@ export async function POST(req: NextRequest) {
             label: "MP4 HD (Download Rápido)",
             ext: "mp4",
             quality: "HD",
-            url: finalVideoUrl,
+            url: videoUrl,
           },
-          {
-            id: "mp3-audio",
-            label: "Áudio MP3 (Download)",
-            ext: "mp3",
-            quality: "128k",
-            url: finalAudioUrl,
-          },
+          ...(audioUrl
+            ? [
+                {
+                  id: "mp3-audio",
+                  label: "Áudio MP3 (Download)",
+                  ext: "mp3",
+                  quality: "128k",
+                  url: audioUrl,
+                },
+              ]
+            : []),
         ];
       }
 
@@ -260,9 +266,9 @@ export async function POST(req: NextRequest) {
           uploader: oembedAuthor,
           platform: "YouTube",
           duration: 0,
-          video_url: finalVideoUrl,
-          video_hd_url: finalVideoUrl,
-          audio_url: finalAudioUrl,
+          video_url: videoUrl,
+          video_hd_url: videoUrl,
+          audio_url: audioUrl,
           formats,
         },
       });
