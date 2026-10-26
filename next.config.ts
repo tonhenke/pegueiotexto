@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         destination: "/termos-de-uso",
         permanent: true,
       },
+      {
+        source: "/blog/transcricao-de-audio-como-funciona-guia-completo",
+        destination: "/blog/transcricao-de-audio",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
