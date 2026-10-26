@@ -39,6 +39,11 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "https://pegueiotexto.com.br",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br",
+      "en": "https://pegueiotexto.com.br/en",
+      "x-default": "https://pegueiotexto.com.br",
+    },
   },
   openGraph: {
     title: "Peguei o Texto: Transcrição de Vídeos em Segundos com IA",

@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**/*": ["./data/**/*"],
   },
+  async redirects() {
+    return [
+      {
+        source: "/termos",
+        destination: "/termos-de-uso",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [],
