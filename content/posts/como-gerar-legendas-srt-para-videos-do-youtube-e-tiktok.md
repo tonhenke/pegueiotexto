@@ -10,6 +10,7 @@ tags: ["Legendas", "SRT", "VTT", "YouTube", "TikTok", "CapCut", "SEO de Vídeo"]
 readTime: "5 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #EC4899 0%, #7C3AED 100%)"
+coverImage: "/blog/gerar-legendas-srt-vtt.jpg"
 ---
 
 Você sabia que **mais de 80% das pessoas assistem a vídeos no celular sem áudio** no feed do Instagram, TikTok e LinkedIn?

@@ -8,8 +8,9 @@ author:
 category: "Tutoriais"
 tags: ["Reuniões", "Produtividade", "Zoom", "Google Meet", "Microsoft Teams"]
 readTime: "6 min de leitura"
-featured: true
+featured: false
 coverGradient: "linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)"
+coverImage: "/blog/transcrever-reunioes-zoom-meet.jpg"
 ---
 
 Passar horas assistindo novamente a gravações de reuniões do **Zoom**, **Google Meet** ou **Microsoft Teams** apenas para redigir atas ou encontrar uma decisão tomada é uma das maiores perdas de tempo no ambiente corporativo moderno.

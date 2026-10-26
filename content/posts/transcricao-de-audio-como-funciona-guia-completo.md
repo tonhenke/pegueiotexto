@@ -10,6 +10,7 @@ tags: ["Transcrição de Áudio", "Áudio em Texto", "Inteligência Artificial",
 readTime: "7 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 50%, #06B6D4 100%)"
+coverImage: "/blog/transcricao-de-audio-guia.jpg"
 ---
 
 A **transcrição de áudio** deixou de ser um serviço lento e restrito a estenógrafos ou profissionais de degravação jurídica para se transformar em uma ferramenta indispensável no cotidiano de empresas, criadores de conteúdo, estudantes e profissionais liberais.

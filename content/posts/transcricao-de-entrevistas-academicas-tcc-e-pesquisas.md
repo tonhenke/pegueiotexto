@@ -10,6 +10,7 @@ tags: ["TCC", "Pesquisa Qualitativa", "Mestrado", "Entrevistas", "Metodologia"]
 readTime: "7 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #10B981 0%, #06B6D4 100%)"
+coverImage: "/blog/transcricao-entrevistas-academicas.jpg"
 ---
 
 Quem já passou ou está passando pela elaboração de um **TCC**, dissertação de **mestrado** ou tese de **doutorado** sabe: a fase de pesquisa qualitativa com entrevistas é ao mesmo tempo enriquecedora e exaustiva.

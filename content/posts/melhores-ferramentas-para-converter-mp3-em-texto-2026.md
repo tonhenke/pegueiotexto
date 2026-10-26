@@ -10,6 +10,7 @@ tags: ["MP3", "Áudio para Texto", "Whisper", "Produtividade", "Ferramentas IA"]
 readTime: "5 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)"
+coverImage: "/blog/converter-mp3-em-texto.jpg"
 ---
 
 O formato **MP3** continua sendo o padrão universal para áudios digitais em todo o mundo. Seja para gravações de voz feitas pelo celular, episódios de podcasts, aulas gravadas ou memorandos de trabalho, quase todo mundo lida com arquivos MP3 semanalmente.

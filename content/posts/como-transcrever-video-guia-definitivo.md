@@ -10,6 +10,7 @@ tags: ["Transcrever Vídeo", "YouTube", "TikTok", "Inteligência Artificial", "L
 readTime: "6 min de leitura"
 featured: false
 coverGradient: "linear-gradient(135deg, #EC4899 0%, #8B5CF6 50%, #06B6D4 100%)"
+coverImage: "/blog/como-transcrever-video.jpg"
 ---
 
 Você já precisou extrair o conteúdo falado de um vídeo do **YouTube**, aula online ou gravação em **MP4** e se pegou pausando o vídeo a cada 5 segundos para tentar digitar tudo o que a pessoa falava?
