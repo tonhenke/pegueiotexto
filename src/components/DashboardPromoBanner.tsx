@@ -257,7 +257,7 @@ export default function DashboardPromoBanner({
                   fontWeight: 700,
                 }}
               >
-                Apenas R$ 9,93 por mês
+                Oferta Especial de Boas-Vindas
               </span>
 
               <span
@@ -291,38 +291,50 @@ export default function DashboardPromoBanner({
           >
             {/* Left Column: Pricing, Bullet Points, and CTAs */}
             <div>
-              {/* Big Price Display */}
-              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "18px", flexWrap: "wrap" }}>
-                <span
-                  style={{
-                    fontSize: "2.6rem",
-                    fontWeight: 900,
-                    color: "var(--text-primary)",
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1,
-                  }}
-                >
-                  R$ 119,25
-                </span>
-                <span
-                  style={{
-                    fontSize: "1.15rem",
-                    color: "var(--text-muted)",
-                    textDecoration: "line-through",
-                    fontWeight: 500,
-                  }}
-                >
-                  R$ 159,00
-                </span>
-                <span
-                  style={{
-                    fontSize: "0.95rem",
-                    color: "var(--text-secondary)",
-                    fontWeight: 500,
-                  }}
-                >
-                  cobrado anualmente
-                </span>
+              {/* Big Monthly Price Display in Prominence */}
+              <div style={{ marginBottom: "18px" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontSize: "2.85rem",
+                      fontWeight: 900,
+                      color: "var(--text-primary)",
+                      letterSpacing: "-0.03em",
+                      lineHeight: 1,
+                    }}
+                  >
+                    R$ 9,93
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "1.3rem",
+                      fontWeight: 800,
+                      color: "#A78BFA",
+                    }}
+                  >
+                    /mês
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.95rem",
+                      color: "var(--text-secondary)",
+                      fontWeight: 500,
+                      marginLeft: "4px",
+                    }}
+                  >
+                    no plano anual (cobrado R$ 119,25/ano à vista)
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "0.95rem",
+                      color: "var(--text-muted)",
+                      textDecoration: "line-through",
+                      fontWeight: 500,
+                    }}
+                  >
+                    R$ 159,00
+                  </span>
+                </div>
               </div>
 
               {/* 2x2 Features Grid */}
@@ -340,7 +352,7 @@ export default function DashboardPromoBanner({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
-                  <span>Modelo de IA <strong>Whisper ultra-rápido</strong></span>
+                  <span>Transcrição com IA <strong>ultra-rápida e de alta precisão</strong></span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
