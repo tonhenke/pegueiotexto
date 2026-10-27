@@ -131,13 +131,62 @@ export default function HomePage() {
               <span className="text-gradient">Pegue o texto.</span>
             </h1>
 
-            <p className="hero-subtitle" style={{ margin: "0 auto 40px" }}>
+            <p
+              className="hero-subtitle"
+              style={{
+                margin: "0 auto 28px auto",
+                fontSize: "0.95rem",
+                lineHeight: 1.6,
+                maxWidth: "580px",
+              }}
+            >
               Transcreva qualquer vídeo da internet em segundos: YouTube, Instagram, TikTok, Vimeo e mais.
               Ou faça upload do seu arquivo. Privacidade garantida: sua mídia é deletada após o download.
             </p>
 
+            {/* Embedded YouTube Video Showcase */}
+            <div
+              style={{
+                maxWidth: "760px",
+                width: "100%",
+                margin: "0 auto 36px auto",
+                borderRadius: "20px",
+                overflow: "hidden",
+                border: "1px solid rgba(124, 58, 237, 0.35)",
+                boxShadow: "0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 35px rgba(124, 58, 237, 0.2)",
+                background: "rgba(11, 10, 22, 0.8)",
+                backdropFilter: "blur(12px)",
+                padding: "8px",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  paddingBottom: "56.25%",
+                  height: 0,
+                  overflow: "hidden",
+                  borderRadius: "14px",
+                }}
+              >
+                <iframe
+                  src="https://www.youtube.com/embed/leNA0tw7Fzk?rel=0&modestbranding=1"
+                  title="Apresentação das Funcionalidades do Peguei o Texto"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    border: "none",
+                  }}
+                />
+              </div>
+            </div>
+
             {/* CTA buttons */}
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap", marginBottom: "64px" }}>
+            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap", marginBottom: "48px" }}>
               <Link href="/dashboard" className="btn-primary" style={{ fontSize: "16px", padding: "14px 32px" }}>
                 <Mic2 size={18} /> Transcrever agora
               </Link>
