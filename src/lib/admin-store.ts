@@ -205,7 +205,10 @@ export async function getUsersList(): Promise<UserRecord[]> {
     }
   }
 
-  // Calculate total_spent per user from purchases
+  // Reset and calculate total_spent per user strictly from confirmed purchases
+  for (const u of userMap.values()) {
+    u.total_spent = 0;
+  }
   const purchases = getPurchasesList();
   for (const pur of purchases) {
     if (pur.buyer_email && pur.status === "paid") {
