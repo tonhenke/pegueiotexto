@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-const SMTP_HOST = process.env.SMTP_HOST || "smtppro.zoho.com";
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.zoho.com";
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || "465", 10);
 const SMTP_USER = process.env.SMTP_USER || "contato@pegueiotexto.com.br";
 const SMTP_PASS = process.env.SMTP_PASS || "";
