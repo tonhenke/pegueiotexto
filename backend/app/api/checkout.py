@@ -115,7 +115,31 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
         user_email=user_email
     )
 
-    # 6. Record affiliate conversion if present
+    # 6. Record purchase in central Admin Dashboard & notify admin
+    if not fulfill_result.get("already_processed"):
+        try:
+            import requests
+            paid_amount = (session.get("amount_total") or plan_info.get("amount", 0)) / 100.0
+            requests.post(
+                "http://localhost:3000/api/admin/purchases?action=record_purchase",
+                json={
+                    "stripe_session_id": session.get("id"),
+                    "buyer_email": user_email,
+                    "buyer_name": (session.get("customer_details") or {}).get("name") or "",
+                    "user_id": user_id,
+                    "plan_id": plan_id,
+                    "plan_name": plan_info.get("name", plan_id),
+                    "amount": paid_amount,
+                    "currency": "BRL",
+                    "payment_method": (session.get("payment_method_types") or ["card"])[0],
+                    "affiliate_code": metadata.get("affiliate_code")
+                },
+                timeout=3
+            )
+        except Exception as pur_err:
+            print(f"[Admin Purchase Record] Erro ao registrar compra: {pur_err}")
+
+    # 7. Record affiliate conversion if present
     affiliate_code = metadata.get("affiliate_code")
     if affiliate_code and not fulfill_result.get("already_processed"):
         try:
@@ -328,6 +352,29 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
                     user_email=user_email
                 )
                 print(f" -> Créditos adicionados no Supabase com sucesso! Resultado: {res}")
+
+                if not res.get("already_processed"):
+                    try:
+                        import requests
+                        paid_amount = (session.get("amount_total") or plan_info.get("amount", 0)) / 100.0
+                        requests.post(
+                            "http://localhost:3000/api/admin/purchases?action=record_purchase",
+                            json={
+                                "stripe_session_id": session.get("id"),
+                                "buyer_email": user_email,
+                                "buyer_name": (session.get("customer_details") or {}).get("name") or "",
+                                "user_id": user_id,
+                                "plan_id": plan_id,
+                                "plan_name": plan_info.get("name", plan_id),
+                                "amount": paid_amount,
+                                "currency": "BRL",
+                                "payment_method": (session.get("payment_method_types") or ["card"])[0],
+                                "affiliate_code": metadata.get("affiliate_code")
+                            },
+                            timeout=3
+                        )
+                    except Exception as pur_wh_err:
+                        print(f"[Admin Webhook Record] Erro ao registrar compra: {pur_wh_err}")
             except Exception as e:
                 print(f"[Stripe Webhook] Erro ao creditar minutos no Supabase: {e}")
         else:

@@ -120,6 +120,28 @@ function LoginForm() {
 
         if (error) throw error;
 
+        // Record new account in admin dashboard
+        try {
+          const refSource =
+            (typeof window !== "undefined" &&
+              (localStorage.getItem("pending_referral_code") ||
+                localStorage.getItem("peguei_affiliate_click_code"))) ||
+            "organico";
+
+          fetch("/api/admin/users?action=record_user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: data.user?.id,
+              email: email.trim(),
+              name: name.trim(),
+              plan: "gratuito",
+              credits_minutes: 5,
+              referral_source: refSource,
+            }),
+          }).catch(() => {});
+        } catch {}
+
         if (data.session) {
           // Direct login without email confirmation
           redirectAfterAuth();

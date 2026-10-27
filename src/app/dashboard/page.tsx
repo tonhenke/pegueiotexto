@@ -67,6 +67,20 @@ export default function DashboardPage() {
           });
         }
 
+        if (user.email) {
+          fetch("/api/admin/users?action=record_user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.full_name || profileData?.name || user.email.split("@")[0],
+              plan: activePlan,
+              credits_minutes: activeCredits,
+            }),
+          }).catch(() => {});
+        }
+
         // 2. Real-time Payment Verification & Status Sync
         const params = new URLSearchParams(window.location.search);
         const sessionId = params.get("session_id");
@@ -94,6 +108,21 @@ export default function DashboardPage() {
                 plan: activePlan,
               }));
               setCurrentPlan(activePlan);
+
+              // Sync purchase and plan directly to Admin Store
+              if (user.email) {
+                fetch("/api/admin/users?action=record_user", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    name: user.user_metadata?.full_name || profileData?.name || user.email.split("@")[0],
+                    plan: activePlan,
+                    credits_minutes: activeCredits,
+                  }),
+                }).catch(() => {});
+              }
 
               const addedText = verifyData.credits_added ? ` (+${verifyData.credits_added} minutos)` : "";
               setPaymentSuccess(
