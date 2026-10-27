@@ -16,6 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
 import AccountSidebarDrawer from "@/components/AccountSidebarDrawer";
+import DashboardPromoBanner from "@/components/DashboardPromoBanner";
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -629,6 +630,13 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Dynamic Promo Banner: 5h Welcome Discount (25% OFF Pro Anual) -> Referral Program */}
+          <DashboardPromoBanner
+            user={user}
+            profile={profile}
+            currentPlan={currentPlan}
+          />
 
           {/* Main Transcribe Widget */}
           <div style={{ marginBottom: "60px" }}>

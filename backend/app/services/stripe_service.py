@@ -34,6 +34,13 @@ PLANS: Dict[str, Dict[str, Any]] = {
         "currency": "brl",
         "minutes": 3600,
     },
+    "pro_annual_discount": {
+        "name": "Plano Anual Pro com 25% OFF (3.600 minutos)",
+        "description": "Oferta relâmpago de boas-vindas: 300 minutos/mês (3.600 minutos no total) com 25% de desconto especial",
+        "amount": 11925,  # R$ 119,25 in cents
+        "currency": "brl",
+        "minutes": 3600,
+    },
     "business": {
         "name": "Pacote Business (1.000 minutos)",
         "description": "1.000 minutos de transcrição com Inteligência Artificial",

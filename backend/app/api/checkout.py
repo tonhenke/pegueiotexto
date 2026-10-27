@@ -86,8 +86,9 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
 
     # 3. Extract metadata
     metadata = session.get("metadata", {}) or {}
-    plan_id = metadata.get("plan_id", "starter").lower()
-    plan_info = PLANS.get(plan_id, PLANS["starter"])
+    raw_plan_id = metadata.get("plan_id", "starter").lower()
+    plan_info = PLANS.get(raw_plan_id, PLANS["starter"])
+    plan_id = "pro_annual" if raw_plan_id == "pro_annual_discount" else raw_plan_id
     try:
         minutes = int(metadata.get("minutes") or plan_info["minutes"])
     except Exception:

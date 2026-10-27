@@ -66,6 +66,7 @@ export async function GET(request: Request) {
   const referralCode = userId.slice(0, 8);
   const referrals = getStoredReferrals();
   const userReferrals = referrals.filter((r) => r.referrer_id === userId);
+  const wasReferred = referrals.some((r) => r.referred_user_id === userId);
 
   const totalInvites = userReferrals.length;
   const totalMinutesEarned = userReferrals.reduce((acc, r) => acc + (r.minutes_awarded_referrer || 10), 0);
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
     referral_code: referralCode,
     total_invites: totalInvites,
     total_minutes_earned: totalMinutesEarned,
+    was_referred: wasReferred,
     history: userReferrals.map((r) => ({
       created_at: r.created_at,
       minutes: r.minutes_awarded_referrer,
