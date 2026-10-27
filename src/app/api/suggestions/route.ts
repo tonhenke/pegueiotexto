@@ -79,15 +79,21 @@ export async function POST(req: NextRequest) {
     });
 
     // 1. Send notification email to team (feedbacks@pegueiotexto.com.br)
-    sendSuggestionNotificationEmail({
-      category: cleanCategory,
-      categoryLabel,
-      title: record.title,
-      description: record.description,
-      userEmail: record.user_email,
-      userName: record.user_name,
-      userId: record.user_id,
-    }).catch((err) => console.error("[API Suggestions] Erro no envio de e-mail de notificação:", err));
+    let emailSent = false;
+    try {
+      emailSent = await sendSuggestionNotificationEmail({
+        category: cleanCategory,
+        categoryLabel,
+        title: record.title,
+        description: record.description,
+        userEmail: record.user_email,
+        userName: record.user_name,
+        userId: record.user_id,
+      });
+      console.log(`[API Suggestions] Email notification status: ${emailSent}`);
+    } catch (err) {
+      console.error("[API Suggestions] Erro no envio de e-mail de notificação:", err);
+    }
 
     // 2. Send confirmation email to user if email was provided
     if (record.user_email && record.user_email.includes("@")) {
@@ -103,6 +109,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: "Sugestão enviada com sucesso! Muito obrigado pela sua contribuição.",
       suggestion: record,
+      emailSent,
     });
   } catch (error: any) {
     console.error("[API Suggestions POST] Erro:", error);

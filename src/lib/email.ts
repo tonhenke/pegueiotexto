@@ -3,12 +3,13 @@ import nodemailer from "nodemailer";
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.zoho.com";
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || "465", 10);
 const SMTP_USER = process.env.SMTP_USER || "contato@pegueiotexto.com.br";
-const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_PASS = process.env.SMTP_PASS || "L4SRYb2jj8Rx";
 const FROM_NAME = "Peguei o Texto";
 const FROM_EMAIL = `"${FROM_NAME}" <${SMTP_USER}>`;
 
 function getTransporter() {
   if (!SMTP_PASS) {
+    console.warn("[Email] SMTP_PASS vazio.");
     return null;
   }
 
