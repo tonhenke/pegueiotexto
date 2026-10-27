@@ -35,6 +35,10 @@ import {
   Edit3,
   ChevronRight,
   Filter,
+  Lightbulb,
+  Trash2,
+  MessageSquare,
+  Tag,
 } from "lucide-react";
 
 interface AdminAffiliate {
@@ -100,12 +104,12 @@ interface AdminSettings {
 }
 
 interface Props {
-  initialTab?: "usuarios" | "vendas" | "afiliados";
+  initialTab?: "usuarios" | "vendas" | "afiliados" | "sugestoes";
 }
 
 export default function AdminHub({ initialTab = "usuarios" }: Props) {
   // Navigation tab state
-  const [activeTab, setActiveTab] = useState<"usuarios" | "vendas" | "afiliados">(initialTab);
+  const [activeTab, setActiveTab] = useState<"usuarios" | "vendas" | "afiliados" | "sugestoes">(initialTab);
 
   // Authentication state
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -153,6 +157,13 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
   const [processingAffiliateCode, setProcessingAffiliateCode] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [lastApprovedAffiliate, setLastApprovedAffiliate] = useState<AdminAffiliate | null>(null);
+
+  // TAB 4: SUGGESTIONS STATE
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestionCategoryFilter, setSuggestionCategoryFilter] = useState("all");
+  const [suggestionStatusFilter, setSuggestionStatusFilter] = useState("all");
+  const [suggestionSearch, setSuggestionSearch] = useState("");
+  const [updatingSuggestionId, setUpdatingSuggestionId] = useState<string | null>(null);
 
   const getAdminToken = () => {
     if (typeof window !== "undefined") {
@@ -267,9 +278,54 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
     }
   };
 
+  // Fetch Suggestions
+  const fetchSuggestions = async () => {
+    try {
+      const res = await fetch("/api/suggestions");
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar sugestões:", e);
+    }
+  };
+
+  const handleUpdateSuggestionStatus = async (id: string, newStatus: string) => {
+    setUpdatingSuggestionId(id);
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      if (res.ok) {
+        setSuggestions((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
+        );
+      }
+    } catch (e) {
+      console.error("Erro ao atualizar status da sugestão:", e);
+    } finally {
+      setUpdatingSuggestionId(null);
+    }
+  };
+
+  const handleDeleteSuggestion = async (id: string) => {
+    if (!confirm("Deseja realmente excluir esta sugestão?")) return;
+    try {
+      const res = await fetch(`/api/suggestions?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      }
+    } catch (e) {
+      console.error("Erro ao excluir sugestão:", e);
+    }
+  };
+
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchPurchases(), fetchAffiliates()]);
+    await Promise.all([fetchUsers(), fetchPurchases(), fetchAffiliates(), fetchSuggestions()]);
     setLoading(false);
   };
 
@@ -1040,6 +1096,40 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                         {affiliatesSummary.pending}
                       </span>
                     )}
+                  </button>
+
+                  {/* TAB 4: SUGESTÕES & FEEDBACK */}
+                  <button
+                    onClick={() => setActiveTab("sugestoes")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      borderBottom: activeTab === "sugestoes" ? "3px solid #38BDF8" : "3px solid transparent",
+                      color: activeTab === "sugestoes" ? "#FFFFFF" : "var(--text-muted)",
+                      padding: "12px 18px",
+                      fontSize: "14px",
+                      fontWeight: activeTab === "sugestoes" ? 700 : 500,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <Lightbulb size={17} color={activeTab === "sugestoes" ? "#38BDF8" : "var(--text-muted)"} />
+                    Sugestões & Feedback
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        background: activeTab === "sugestoes" ? "rgba(56, 189, 248, 0.3)" : "rgba(255, 255, 255, 0.08)",
+                        color: activeTab === "sugestoes" ? "#7DD3FC" : "var(--text-muted)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {suggestions.length}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -2151,6 +2241,394 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                       </table>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* ======================================================== */}
+              {/* TAB 4: SUGESTÕES & FEEDBACK                             */}
+              {/* ======================================================== */}
+              {activeTab === "sugestoes" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  {/* Stats Cards */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                      gap: "16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "rgba(255, 255, 255, 0.03)",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        borderRadius: "14px",
+                        padding: "20px",
+                      }}
+                    >
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                        Total de Sugestões
+                      </div>
+                      <div style={{ fontSize: "2rem", fontWeight: 800, color: "#FFFFFF" }}>
+                        {suggestions.length}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
+                        Enviadas pela comunidade
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(245, 158, 11, 0.05)",
+                        border: "1px solid rgba(245, 158, 11, 0.2)",
+                        borderRadius: "14px",
+                        padding: "20px",
+                      }}
+                    >
+                      <div style={{ fontSize: "12px", color: "#FCD34D", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                        Pendentes
+                      </div>
+                      <div style={{ fontSize: "2rem", fontWeight: 800, color: "#FBBF24" }}>
+                        {suggestions.filter((s) => s.status === "pending" || !s.status).length}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#FCD34D", marginTop: "4px" }}>
+                        Aguardando avaliação
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(56, 189, 248, 0.05)",
+                        border: "1px solid rgba(56, 189, 248, 0.2)",
+                        borderRadius: "14px",
+                        padding: "20px",
+                      }}
+                    >
+                      <div style={{ fontSize: "12px", color: "#7DD3FC", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                        Em Análise
+                      </div>
+                      <div style={{ fontSize: "2rem", fontWeight: 800, color: "#38BDF8" }}>
+                        {suggestions.filter((s) => s.status === "in_review").length}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#7DD3FC", marginTop: "4px" }}>
+                        No roadmap técnico
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(16, 185, 129, 0.05)",
+                        border: "1px solid rgba(16, 185, 129, 0.2)",
+                        borderRadius: "14px",
+                        padding: "20px",
+                      }}
+                    >
+                      <div style={{ fontSize: "12px", color: "#6EE7B7", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                        Implementadas
+                      </div>
+                      <div style={{ fontSize: "2rem", fontWeight: 800, color: "#10B981" }}>
+                        {suggestions.filter((s) => s.status === "implemented").length}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#6EE7B7", marginTop: "4px" }}>
+                        Lançadas na plataforma
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter and Search Bar */}
+                  <div
+                    style={{
+                      background: "rgba(255, 255, 255, 0.03)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: "14px",
+                      padding: "16px 20px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "14px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: "1 1 280px" }}>
+                      <Search size={16} color="var(--text-muted)" />
+                      <input
+                        type="text"
+                        value={suggestionSearch}
+                        onChange={(e) => setSuggestionSearch(e.target.value)}
+                        placeholder="Buscar por título, autor ou palavras na descrição..."
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          color: "#FFFFFF",
+                          fontSize: "14px",
+                          width: "100%",
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                      <select
+                        value={suggestionCategoryFilter}
+                        onChange={(e) => setSuggestionCategoryFilter(e.target.value)}
+                        style={{
+                          background: "rgba(0, 0, 0, 0.4)",
+                          border: "1px solid rgba(255, 255, 255, 0.12)",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          color: "#FFFFFF",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="all">Todas as Categorias</option>
+                        <option value="ux">🎨 UX & Interface</option>
+                        <option value="transcription">🎙️ Transcrição & Áudio</option>
+                        <option value="ai">🤖 Inteligência Artificial</option>
+                        <option value="bugs">🐛 Bugs & Problemas</option>
+                        <option value="features">💡 Nova Funcionalidade</option>
+                        <option value="other">💬 Outros</option>
+                      </select>
+
+                      <select
+                        value={suggestionStatusFilter}
+                        onChange={(e) => setSuggestionStatusFilter(e.target.value)}
+                        style={{
+                          background: "rgba(0, 0, 0, 0.4)",
+                          border: "1px solid rgba(255, 255, 255, 0.12)",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          color: "#FFFFFF",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="all">Todos os Status</option>
+                        <option value="pending">🟡 Pendente</option>
+                        <option value="in_review">🔵 Em Análise</option>
+                        <option value="implemented">🟢 Implementada</option>
+                        <option value="dismissed">⚪ Descartada</option>
+                      </select>
+
+                      <button
+                        onClick={fetchSuggestions}
+                        style={{
+                          background: "rgba(255, 255, 255, 0.05)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: "8px",
+                          padding: "8px 14px",
+                          color: "#FFFFFF",
+                          fontSize: "13px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <RefreshCw size={14} />
+                        <span>Atualizar</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Suggestions List */}
+                  {suggestions.length === 0 ? (
+                    <div
+                      style={{
+                        background: "rgba(255, 255, 255, 0.02)",
+                        border: "1px dashed rgba(255, 255, 255, 0.12)",
+                        borderRadius: "16px",
+                        padding: "60px 20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Lightbulb size={40} color="#FBBF24" style={{ margin: "0 auto 16px auto", opacity: 0.6 }} />
+                      <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "8px" }}>
+                        Nenhuma sugestão recebida ainda
+                      </h3>
+                      <p style={{ fontSize: "14px", color: "var(--text-muted)", maxWidth: "480px", margin: "0 auto 20px auto" }}>
+                        Assim que os usuários enviarem ideias ou reportarem problemas pela página{" "}
+                        <Link href="/sugestoes" style={{ color: "#38BDF8", textDecoration: "underline" }} target="_blank">
+                          /sugestoes
+                        </Link>
+                        , elas aparecerão listadas aqui em tempo real!
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                      {suggestions
+                        .filter((s) => {
+                          const matchesCategory = suggestionCategoryFilter === "all" || s.category === suggestionCategoryFilter;
+                          const matchesStatus = suggestionStatusFilter === "all" || s.status === suggestionStatusFilter;
+                          const matchesSearch =
+                            !suggestionSearch ||
+                            s.title?.toLowerCase().includes(suggestionSearch.toLowerCase()) ||
+                            s.description?.toLowerCase().includes(suggestionSearch.toLowerCase()) ||
+                            s.user_email?.toLowerCase().includes(suggestionSearch.toLowerCase()) ||
+                            s.user_name?.toLowerCase().includes(suggestionSearch.toLowerCase());
+                          return matchesCategory && matchesStatus && matchesSearch;
+                        })
+                        .map((s) => {
+                          const categoryPills: Record<string, { bg: string; text: string; icon: string }> = {
+                            ux: { bg: "rgba(129, 140, 248, 0.15)", text: "#818CF8", icon: "🎨" },
+                            transcription: { bg: "rgba(52, 211, 153, 0.15)", text: "#34D399", icon: "🎙️" },
+                            ai: { bg: "rgba(192, 132, 252, 0.15)", text: "#C084FC", icon: "🤖" },
+                            bugs: { bg: "rgba(248, 113, 113, 0.15)", text: "#F87171", icon: "🐛" },
+                            features: { bg: "rgba(251, 191, 36, 0.15)", text: "#FBBF24", icon: "💡" },
+                            other: { bg: "rgba(255, 255, 255, 0.1)", text: "#E2E8F0", icon: "💬" },
+                          };
+                          const catInfo = categoryPills[s.category] || categoryPills.other;
+                          const formattedDate = s.created_at
+                            ? new Date(s.created_at).toLocaleString("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Data N/A";
+
+                          return (
+                            <div
+                              key={s.id}
+                              style={{
+                                background: "rgba(255, 255, 255, 0.03)",
+                                border: "1px solid rgba(255, 255, 255, 0.08)",
+                                borderRadius: "14px",
+                                padding: "22px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "12px",
+                                transition: "all 0.2s ease",
+                              }}
+                            >
+                              {/* Top Bar of Card */}
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <span
+                                    style={{
+                                      background: catInfo.bg,
+                                      color: catInfo.text,
+                                      fontSize: "12px",
+                                      fontWeight: 700,
+                                      padding: "4px 10px",
+                                      borderRadius: "100px",
+                                    }}
+                                  >
+                                    {catInfo.icon} {s.category_label || s.category}
+                                  </span>
+
+                                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                                    📅 {formattedDate}
+                                  </span>
+                                </div>
+
+                                {/* Status Selector & Actions */}
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                  <select
+                                    value={s.status || "pending"}
+                                    onChange={(e) => handleUpdateSuggestionStatus(s.id, e.target.value)}
+                                    disabled={updatingSuggestionId === s.id}
+                                    style={{
+                                      background:
+                                        s.status === "implemented"
+                                          ? "rgba(16, 185, 129, 0.2)"
+                                          : s.status === "in_review"
+                                          ? "rgba(56, 189, 248, 0.2)"
+                                          : s.status === "dismissed"
+                                          ? "rgba(255, 255, 255, 0.08)"
+                                          : "rgba(245, 158, 11, 0.2)",
+                                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                                      color:
+                                        s.status === "implemented"
+                                          ? "#34D399"
+                                          : s.status === "in_review"
+                                          ? "#38BDF8"
+                                          : s.status === "dismissed"
+                                          ? "#94A3B8"
+                                          : "#FBBF24",
+                                      borderRadius: "8px",
+                                      padding: "6px 12px",
+                                      fontSize: "12px",
+                                      fontWeight: 700,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    <option value="pending">🟡 Pendente</option>
+                                    <option value="in_review">🔵 Em Análise</option>
+                                    <option value="implemented">🟢 Implementada</option>
+                                    <option value="dismissed">⚪ Descartada</option>
+                                  </select>
+
+                                  <button
+                                    onClick={() => handleDeleteSuggestion(s.id)}
+                                    title="Excluir sugestão"
+                                    style={{
+                                      background: "rgba(239, 68, 68, 0.1)",
+                                      border: "1px solid rgba(239, 68, 68, 0.25)",
+                                      borderRadius: "8px",
+                                      padding: "6px 10px",
+                                      color: "#FCA5A5",
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Title */}
+                              <h4 style={{ fontSize: "16px", fontWeight: 700, color: "#FFFFFF", margin: "4px 0 0 0" }}>
+                                {s.title}
+                              </h4>
+
+                              {/* Description Box */}
+                              <div
+                                style={{
+                                  background: "rgba(0, 0, 0, 0.3)",
+                                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                                  borderRadius: "10px",
+                                  padding: "12px 16px",
+                                  fontSize: "14px",
+                                  color: "#E2E8F0",
+                                  lineHeight: 1.6,
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {s.description}
+                              </div>
+
+                              {/* Author Footer */}
+                              <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "12px", color: "var(--text-muted)" }}>
+                                <span>
+                                  👤 <strong>Autor:</strong> {s.user_name || "Não informado"}
+                                </span>
+                                {s.user_email ? (
+                                  <span>
+                                    ✉️{" "}
+                                    <a
+                                      href={`mailto:${s.user_email}?subject=Resposta sobre sua sugestão no Peguei o Texto`}
+                                      style={{ color: "#38BDF8", textDecoration: "none" }}
+                                    >
+                                      {s.user_email}
+                                    </a>
+                                  </span>
+                                ) : (
+                                  <span>✉️ Anônimo</span>
+                                )}
+                                {s.user_id && (
+                                  <span style={{ fontFamily: "monospace", opacity: 0.7 }}>
+                                    ID: {s.user_id.substring(0, 8)}...
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

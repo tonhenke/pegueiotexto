@@ -40,6 +40,19 @@ export interface AdminAlertSettings {
   sound_enabled: boolean;
 }
 
+export interface SuggestionRecord {
+  id: string;
+  category: "ux" | "transcription" | "ai" | "bugs" | "features" | "other" | string;
+  category_label: string;
+  title: string;
+  description: string;
+  user_email?: string;
+  user_name?: string;
+  user_id?: string;
+  status: "pending" | "in_review" | "implemented" | "dismissed";
+  created_at: string;
+}
+
 // File path helpers supporting local development and Vercel/serverless /tmp
 function getStorageDir(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -60,6 +73,7 @@ const DATA_DIR = getStorageDir();
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const PURCHASES_FILE = path.join(DATA_DIR, "purchases.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "admin_settings.json");
+const SUGGESTIONS_FILE = path.join(DATA_DIR, "suggestions.json");
 
 export function readStoreJSON<T>(filePath: string): T[] {
   const filename = path.basename(filePath);
@@ -545,4 +559,58 @@ export async function dispatchPurchaseAlert(purchase: PurchaseRecord): Promise<v
       console.warn("[AdminStore] Erro ao enviar e-mail via Resend:", resendErr);
     }
   }
+}
+
+/**
+ * Funções de gerenciamento de Sugestões / Feedbacks dos usuários
+ */
+export function getSuggestions(): SuggestionRecord[] {
+  return readStoreJSON<SuggestionRecord>(SUGGESTIONS_FILE);
+}
+
+export function saveSuggestion(data: {
+  category: string;
+  category_label: string;
+  title: string;
+  description: string;
+  user_email?: string;
+  user_name?: string;
+  user_id?: string;
+}): SuggestionRecord {
+  const list = getSuggestions();
+  const newRecord: SuggestionRecord = {
+    id: `sug_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    category: data.category,
+    category_label: data.category_label,
+    title: data.title.trim(),
+    description: data.description.trim(),
+    user_email: data.user_email?.trim() || undefined,
+    user_name: data.user_name?.trim() || undefined,
+    user_id: data.user_id?.trim() || undefined,
+    status: "pending",
+    created_at: new Date().toISOString(),
+  };
+
+  list.unshift(newRecord);
+  writeStoreJSON(SUGGESTIONS_FILE, list);
+  return newRecord;
+}
+
+export function updateSuggestionStatus(id: string, status: SuggestionRecord["status"]): boolean {
+  const list = getSuggestions();
+  const idx = list.findIndex((s) => s.id === id);
+  if (idx === -1) return false;
+  list[idx].status = status;
+  writeStoreJSON(SUGGESTIONS_FILE, list);
+  return true;
+}
+
+export function deleteSuggestion(id: string): boolean {
+  const list = getSuggestions();
+  const filtered = list.filter((s) => s.id !== id);
+  if (filtered.length !== list.length) {
+    writeStoreJSON(SUGGESTIONS_FILE, filtered);
+    return true;
+  }
+  return false;
 }

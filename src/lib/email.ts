@@ -360,3 +360,218 @@ export async function sendAdminPurchaseAlertEmail({
     return false;
   }
 }
+
+/**
+ * 4. Notificação de Nova Sugestão / Feedback para a equipe (feedbacks@pegueiotexto.com.br)
+ */
+export async function sendSuggestionNotificationEmail({
+  category,
+  categoryLabel,
+  title,
+  description,
+  userEmail,
+  userName,
+  userId,
+}: {
+  category: string;
+  categoryLabel: string;
+  title: string;
+  description: string;
+  userEmail?: string;
+  userName?: string;
+  userId?: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+
+  const targetEmail = process.env.FEEDBACK_TARGET_EMAIL || "feedbacks@pegueiotexto.com.br";
+  const nowBR = new Date().toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const categoryColors: Record<string, { bg: string; text: string; icon: string }> = {
+    ux: { bg: "#EEF2FF", text: "#4338CA", icon: "🎨" },
+    transcription: { bg: "#ECFDF5", text: "#065F46", icon: "🎙️" },
+    ai: { bg: "#F5F3FF", text: "#6D28D9", icon: "🤖" },
+    bugs: { bg: "#FEF2F2", text: "#991B1B", icon: "🐛" },
+    features: { bg: "#FFFBEB", text: "#92400E", icon: "💡" },
+    other: { bg: "#F3F4F6", text: "#374151", icon: "💬" },
+  };
+
+  const style = categoryColors[category] || categoryColors.other;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Nova Sugestão Recebida</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0b0a16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #ffffff;">
+      <div style="max-width: 620px; margin: 0 auto; padding: 32px 20px;">
+        
+        <!-- HEADER -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.02em;">
+            💡 Nova Sugestão da Comunidade
+          </h1>
+          <p style="margin: 6px 0 0 0; font-size: 14px; color: #94a3b8;">
+            Enviada via página de sugestões do Peguei o Texto
+          </p>
+        </div>
+
+        <!-- MAIN CARD -->
+        <div style="background-color: #151329; border: 1px solid #2a274c; border-radius: 16px; padding: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);">
+          
+          <!-- CATEGORY BADGE -->
+          <div style="margin-bottom: 16px;">
+            <span style="display: inline-block; background-color: ${style.bg}; color: ${style.text}; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 9999px;">
+              ${style.icon} ${categoryLabel}
+            </span>
+          </div>
+
+          <!-- TITLE -->
+          <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 800; color: #ffffff; line-height: 1.35;">
+            ${title}
+          </h2>
+
+          <!-- DESCRIPTION BOX -->
+          <div style="background-color: #0b0a16; border: 1px solid #221f3f; border-radius: 12px; padding: 18px; margin-bottom: 22px;">
+            <div style="font-size: 12px; font-weight: 700; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+              Detalhes da Sugestão / Problema:
+            </div>
+            <div style="font-size: 15px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">
+${description}
+            </div>
+          </div>
+
+          <!-- AUTHOR INFO -->
+          <div style="background-color: rgba(255, 255, 255, 0.03); border-top: 1px solid #221f3f; padding-top: 16px; font-size: 13px; color: #94a3b8;">
+            <p style="margin: 4px 0;"><strong>👤 Autor:</strong> ${userName || "Não informado"} ${userEmail ? `(&lt;${userEmail}&gt;)` : "(Anônimo)"}</p>
+            <p style="margin: 4px 0;"><strong>📅 Data:</strong> ${nowBR}</p>
+            ${userId ? `<p style="margin: 4px 0;"><strong>🆔 User ID:</strong> <code style="color: #cbd5e1;">${userId}</code></p>` : ""}
+          </div>
+
+          <!-- ADMIN HUB LINK -->
+          <div style="text-align: center; margin-top: 24px;">
+            <a href="https://pegueiotexto.com.br/admin" style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 14px;">
+              Ver no Hub de Admin →
+            </a>
+          </div>
+
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #64748b;">
+          Peguei o Texto • Sistema de Feedback e Melhoria Contínua
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: targetEmail,
+      replyTo: userEmail || SMTP_USER,
+      subject: `💡 [${categoryLabel}] ${title}`,
+      html,
+    });
+    console.log(`[Email] Sugestão enviada com sucesso para ${targetEmail}`);
+    return true;
+  } catch (err: any) {
+    console.error("[Email] Erro ao enviar sugestão para equipe:", err.message);
+    return false;
+  }
+}
+
+/**
+ * 5. E-mail de agradecimento para o usuário que enviou a sugestão
+ */
+export async function sendSuggestionUserConfirmationEmail({
+  to,
+  userName,
+  title,
+  categoryLabel,
+}: {
+  to: string;
+  userName?: string;
+  title: string;
+  categoryLabel: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+
+  const cleanName = userName && userName.trim() ? userName.trim() : to.split("@")[0];
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Obrigado pela sua sugestão!</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0b0a16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #ffffff;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 32px 20px;">
+        
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #ffffff;">
+            Peguei o <span style="color: #a78bfa;">Texto</span>
+          </h1>
+        </div>
+
+        <div style="background-color: #151329; border: 1px solid #2a274c; border-radius: 16px; padding: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);">
+          <div style="font-size: 36px; margin-bottom: 12px; text-align: center;">💡</div>
+          <h2 style="text-align: center; margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #ffffff;">
+            Olá, ${cleanName}! Obrigado pela sua contribuição.
+          </h2>
+
+          <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6; margin: 16px 0;">
+            Recebemos com muito carinho a sua sugestão na categoria <strong>${categoryLabel}</strong>:
+          </p>
+
+          <div style="background-color: #0b0a16; border-left: 4px solid #7c3aed; padding: 14px 18px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">
+              "${title}"
+            </p>
+          </div>
+
+          <p style="font-size: 14px; color: #94a3b8; line-height: 1.6;">
+            Nossa equipe de produto analisa todas as ideias enviadas para priorizar as melhorias que mais geram valor para a nossa comunidade.
+          </p>
+
+          <div style="text-align: center; margin-top: 26px;">
+            <a href="https://pegueiotexto.com.br/dashboard" style="display: inline-block; background: #7c3aed; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px;">
+              Acessar meu Dashboard →
+            </a>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #64748b;">
+          Peguei o Texto • Evoluindo com a sua ajuda
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject: `💡 Recebemos sua sugestão para o Peguei o Texto!`,
+      html,
+    });
+    return true;
+  } catch (err: any) {
+    console.warn("[Email] Falha ao enviar confirmação de sugestão para o usuário:", err.message);
+    return false;
+  }
+}

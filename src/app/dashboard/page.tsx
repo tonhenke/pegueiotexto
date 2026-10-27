@@ -549,6 +549,30 @@ export default function DashboardPage() {
                   Recarregar minutos <ArrowRight size={14} />
                 </Link>
 
+                <Link
+                  href="/sugestoes"
+                  id="btn-dashboard-feedback"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "13px",
+                    padding: "8px 14px",
+                    borderRadius: "100px",
+                    background: "rgba(251, 191, 36, 0.08)",
+                    border: "1px solid rgba(251, 191, 36, 0.25)",
+                    color: "#FBBF24",
+                    fontWeight: 600,
+                    textDecoration: "none",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(251, 191, 36, 0.16)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(251, 191, 36, 0.08)")}
+                >
+                  <Lightbulb size={14} />
+                  <span>Sugerir Melhoria</span>
+                </Link>
+
                 <button
                   onClick={() => {
                     setSidebarInitialSection(null);

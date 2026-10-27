@@ -20,8 +20,23 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/blog/tiktok-video-download",
-        destination: "/blog/baixar-video-tiktok",
+        destination: "/baixar-video-tiktok",
         permanent: true,
+      },
+      {
+        source: "/sugest%C3%B5es",
+        destination: "/sugestoes",
+        permanent: true,
+      },
+      {
+        source: "/feedback",
+        destination: "/sugestoes",
+        permanent: false,
+      },
+      {
+        source: "/feedbacks",
+        destination: "/sugestoes",
+        permanent: false,
       },
     ];
   },
