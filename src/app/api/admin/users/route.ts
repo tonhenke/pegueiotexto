@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAuthenticatedAdmin } from "@/lib/admin-auth";
 import { getUsersList, upsertUser, UserRecord } from "@/lib/admin-store";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function GET(request: Request) {
   if (!isAuthenticatedAdmin(request)) {
@@ -65,7 +66,25 @@ export async function POST(request: Request) {
         referral_source,
       });
 
+      // Dispatch welcome email via Zoho Mail if it is a new signup
+      if (body.is_new_signup) {
+        sendWelcomeEmail({
+          to: email,
+          name: name || user.name,
+        }).catch((err) => console.warn("[Email] Erro ao disparar boas-vindas:", err));
+      }
+
       return NextResponse.json({ success: true, user });
+    }
+
+    // Action 1.5: Send welcome email manually (testing or admin resend)
+    if (action === "send_welcome") {
+      const { email, name } = body;
+      if (!email) {
+        return NextResponse.json({ detail: "E-mail é obrigatório." }, { status: 400 });
+      }
+      const sent = await sendWelcomeEmail({ to: email, name });
+      return NextResponse.json({ success: sent });
     }
 
     // Action 2: Update user plan or credits (admin only)

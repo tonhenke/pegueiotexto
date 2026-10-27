@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
+import { sendPlanActivatedEmail, sendAdminPurchaseAlertEmail } from "./email";
 
 export interface UserRecord {
   id: string;
@@ -483,7 +484,47 @@ export async function dispatchPurchaseAlert(purchase: PurchaseRecord): Promise<v
     }
   }
 
-  // Resend Email Dispatch (if RESEND_API_KEY is available)
+  // 1. Send Plan Activation & Confirmation Email to Customer via Zoho Mail
+  try {
+    const minutesMap: Record<string, number> = {
+      starter: 60,
+      starter_annual: 720,
+      pro: 180,
+      pro_annual: 2160,
+      business: 400,
+      business_annual: 4800,
+    };
+    const cleanPlan = (purchase.plan_id || "").toLowerCase().trim();
+    const mins = minutesMap[cleanPlan] || 60;
+
+    sendPlanActivatedEmail({
+      to: purchase.buyer_email,
+      name: purchase.buyer_name,
+      planName: purchase.plan_name,
+      minutesAdded: mins,
+      amountFormatted: formattedAmount,
+      stripeSessionId: purchase.stripe_session_id,
+    }).catch((err) => console.warn("[Email] Erro ao enviar confirmação de plano:", err));
+  } catch (err) {
+    console.warn("[Email] Falha ao processar envio de ativação de plano:", err);
+  }
+
+  // 2. Send Admin Purchase Notification via Zoho Mail
+  try {
+    sendAdminPurchaseAlertEmail({
+      buyerEmail: purchase.buyer_email,
+      buyerName: purchase.buyer_name,
+      planName: purchase.plan_name,
+      amountFormatted: formattedAmount,
+      paymentMethod: purchase.payment_method,
+      stripeSessionId: purchase.stripe_session_id,
+      affiliateCode: purchase.affiliate_code,
+    }).catch((err) => console.warn("[Email] Erro ao enviar alerta de venda para admin:", err));
+  } catch (err) {
+    console.warn("[Email] Falha ao processar alerta de admin:", err);
+  }
+
+  // 3. Resend Email Dispatch (fallback if configured)
   const resendApiKey = process.env.RESEND_API_KEY;
   if (resendApiKey && settings.notify_email !== false) {
     try {
@@ -497,26 +538,7 @@ export async function dispatchPurchaseAlert(purchase: PurchaseRecord): Promise<v
           from: "Peguei o Texto <vendas@pegueiotexto.com.br>",
           to: [settings.admin_email || "tonhenke@gmail.com"],
           subject: `🎉 Nova Venda! ${purchase.plan_name} - ${formattedAmount} (${purchase.buyer_email})`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px;">
-              <h2 style="color: #7c3aed; margin-top: 0;">🎉 Nova Compra Realizada!</h2>
-              <p style="font-size: 16px; color: #374151;">Uma nova compra acabou de ser confirmada na plataforma <strong>Peguei o Texto</strong>:</p>
-              
-              <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 8px 0;"><strong>👤 Cliente:</strong> ${purchase.buyer_email} (${purchase.buyer_name || "N/A"})</p>
-                <p style="margin: 8px 0;"><strong>📦 Plano:</strong> ${purchase.plan_name}</p>
-                <p style="margin: 8px 0;"><strong>💵 Valor:</strong> <span style="font-size: 18px; color: #059669; font-weight: bold;">${formattedAmount}</span></p>
-                <p style="margin: 8px 0;"><strong>💳 Método:</strong> ${(purchase.payment_method || "card").toUpperCase()}</p>
-                <p style="margin: 8px 0;"><strong>📅 Data:</strong> ${formattedDate}</p>
-                ${purchase.affiliate_code ? `<p style="margin: 8px 0;"><strong>🤝 Código de Afiliado:</strong> ${purchase.affiliate_code}</p>` : ""}
-                <p style="margin: 8px 0;"><strong>🆔 ID Stripe:</strong> <code>${purchase.stripe_session_id || purchase.id}</code></p>
-              </div>
-
-              <a href="https://pegueiotexto.com.br/admin" style="display: inline-block; background: #7c3aed; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                Ver no Dashboard de Admin →
-              </a>
-            </div>
-          `,
+          html: `<p>Nova venda de ${purchase.plan_name} para ${purchase.buyer_email}</p>`,
         }),
       });
     } catch (resendErr) {

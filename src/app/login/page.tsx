@@ -138,6 +138,7 @@ function LoginForm() {
               plan: "gratuito",
               credits_minutes: 5,
               referral_source: refSource,
+              is_new_signup: true,
             }),
           }).catch(() => {});
         } catch {}
