@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         destination: "/blog/transcricao-de-audio",
         permanent: true,
       },
+      {
+        source: "/blog/tiktok-video-download",
+        destination: "/blog/baixar-video-tiktok",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
