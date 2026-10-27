@@ -12,15 +12,39 @@
     "total_spent": 0
   },
   {
-    "id": "usr_ehenke28_test",
+    "id": "9cd7fca6-210a-4bec-9304-951ed123ea79",
     "email": "ehenke28@gmail.com",
     "name": "Everton",
     "plan": "gratuito",
     "plan_name": "Gratuito",
     "credits_minutes": 5,
     "referral_source": "organico",
-    "created_at": "2026-10-27T15:06:00.000Z",
-    "last_active_at": "2026-10-27T15:06:00.000Z",
+    "created_at": "2026-10-27T18:45:39.754Z",
+    "last_active_at": "2026-10-27T18:45:39.754Z",
+    "total_spent": 0
+  },
+  {
+    "id": "75e44f15-c2c5-4023-ac27-fc464e269dce",
+    "email": "flavinhacontabilidade@gmail.com",
+    "name": "Flávia Magalhães Alves",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 5,
+    "referral_source": "google_oauth",
+    "created_at": "2026-10-27T12:25:15.173Z",
+    "last_active_at": "2026-10-27T12:25:15.173Z",
+    "total_spent": 0
+  },
+  {
+    "id": "a625ae45-540a-4d47-b9cd-f012f6ad6abd",
+    "email": "katidemori@gmail.com",
+    "name": "Katerina Demori",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 1,
+    "referral_source": "google_oauth",
+    "created_at": "2026-10-16T17:09:15.630Z",
+    "last_active_at": "2026-10-16T17:09:15.630Z",
     "total_spent": 0
   }
 ]

@@ -200,6 +200,7 @@ export async function getUsersList(): Promise<UserRecord[]> {
           }
         }
       }
+      writeStoreJSON(USERS_FILE, Array.from(userMap.values()));
     } catch (sbErr) {
       console.warn("[AdminStore] Supabase admin sync opcional ignorado:", sbErr);
     }
