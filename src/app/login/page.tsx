@@ -124,7 +124,17 @@ function LoginForm() {
           // Direct login without email confirmation
           redirectAfterAuth();
         } else {
-          setSuccessMsg("Conta criada com sucesso! Verifique seu e-mail para confirmar seu cadastro e liberar seus 5 minutos grátis.");
+          // Try immediate sign in with the created credentials
+          const { data: signInData } = await supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          });
+
+          if (signInData?.session) {
+            redirectAfterAuth();
+          } else {
+            setSuccessMsg("Conta criada com sucesso! Verifique seu e-mail para confirmar seu cadastro e liberar seus 5 minutos grátis.");
+          }
         }
       }
     } catch (err: any) {
