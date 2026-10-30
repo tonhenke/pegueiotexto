@@ -114,6 +114,23 @@ export default function VideoDownloader({
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const trackDownload = (format: "mp4" | "mp3") => {
+    try {
+      if (typeof window !== "undefined") {
+        (window as any).dataLayer = (window as any).dataLayer || [];
+        (window as any).dataLayer.push({
+          event: "video_download",
+          download_format: format,
+          video_platform: videoInfo?.platform || "web",
+          video_title: videoInfo?.title || "",
+          video_duration: videoInfo?.duration || 0,
+        });
+      }
+    } catch (e) {
+      console.error("GTM track error:", e);
+    }
+  };
+
   return (
     <div style={{ width: "100%", maxWidth: "840px", margin: "0 auto" }}>
       {/* Search Input Box */}
@@ -483,6 +500,7 @@ export default function VideoDownloader({
                     target="_blank"
                     rel="noreferrer"
                     download={`${videoInfo.title.slice(0, 30)}.mp4`}
+                    onClick={() => trackDownload("mp4")}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -511,6 +529,7 @@ export default function VideoDownloader({
                     onClick={() => {
                       setDownloadingAudio(true);
                       setTimeout(() => setDownloadingAudio(false), 12000);
+                      trackDownload("mp3");
                     }}
                     style={{
                       display: "inline-flex",

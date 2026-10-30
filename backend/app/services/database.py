@@ -93,14 +93,22 @@ def get_user_active_plan(user_id: str) -> Dict[str, Any]:
         "pro_annual": "Pro Anual",
         "business": "Business",
         "business_annual": "Business Anual",
+        "ilimitado": "Ilimitado",
+        "unlimited": "Ilimitado",
         "gratuito": "Gratuito"
     }
 
+    user_email = str(profile.get("email", "")).lower().strip() if profile else ""
+    is_unlimited = plan_id in ["ilimitado", "unlimited"] or user_email == "tonhenke@gmail.com" or credits >= 900000
+    if is_unlimited and plan_id not in ["ilimitado", "unlimited"]:
+        plan_id = "ilimitado"
+
     return {
         "plan": plan_id,
-        "plan_name": plan_names.get(plan_id, plan_id.capitalize()),
-        "credits_minutes": credits,
-        "is_paid": plan_id in ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual"]
+        "plan_name": plan_names.get(plan_id, "Ilimitado" if is_unlimited else plan_id.capitalize()),
+        "credits_minutes": 999999 if is_unlimited else credits,
+        "is_paid": plan_id in ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"],
+        "is_unlimited": is_unlimited
     }
 
 def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, Any]:
@@ -124,7 +132,29 @@ def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, A
             profile = {"id": user_id, "credits_minutes": 5, "plan": "gratuito"}
 
     current_balance = int(profile.get("credits_minutes", 0))
+    user_plan = str(profile.get("plan", "")).lower().strip()
+    user_email = str(profile.get("email", "")).lower().strip()
     minutes_needed = max(1, math.ceil(duration_seconds / 60))
+
+    # Unlimited transcription for ilimitado / unlimited plan or tonhenke@gmail.com
+    is_unlimited = user_plan in ["ilimitado", "unlimited", "admin"] or user_email == "tonhenke@gmail.com" or current_balance >= 900000
+
+    if is_unlimited:
+        try:
+            sb.table("credit_transactions").insert({
+                "user_id": user_id,
+                "amount_minutes": 0,
+                "type": "usage_unlimited"
+            }).execute()
+        except Exception as e:
+            print(f"[Database] Log de uso ilimitado: {e}")
+
+        return {
+            "allowed": True,
+            "minutes_deducted": 0,
+            "credits_remaining": 999999,
+            "error": None
+        }
 
     if current_balance < minutes_needed:
         return {

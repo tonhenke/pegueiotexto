@@ -68,6 +68,13 @@ export default function DashboardPage() {
         }
 
         if (user.email) {
+          const refSource =
+            (typeof window !== "undefined" &&
+              (localStorage.getItem("pending_referral_code") ||
+                localStorage.getItem("peguei_affiliate_click_code") ||
+                localStorage.getItem("pegueiotexto_ref"))) ||
+            (user.app_metadata?.provider === "google" ? "google_oauth" : "organico");
+
           fetch("/api/admin/users?action=record_user", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -77,6 +84,7 @@ export default function DashboardPage() {
               name: user.user_metadata?.full_name || profileData?.name || user.email.split("@")[0],
               plan: activePlan,
               credits_minutes: activeCredits,
+              referral_source: refSource,
             }),
           }).catch(() => {});
         }
@@ -456,6 +464,20 @@ export default function DashboardPage() {
       bg: "rgba(236, 72, 153, 0.12)",
       border: "rgba(236, 72, 153, 0.45)",
     },
+    ilimitado: {
+      label: "Ilimitado",
+      badge: "Transcrição Ilimitada",
+      color: "#10B981",
+      bg: "rgba(16, 185, 129, 0.12)",
+      border: "rgba(16, 185, 129, 0.35)",
+    },
+    unlimited: {
+      label: "Ilimitado",
+      badge: "Transcrição Ilimitada",
+      color: "#10B981",
+      bg: "rgba(16, 185, 129, 0.12)",
+      border: "rgba(16, 185, 129, 0.35)",
+    },
     gratuito: {
       label: "Gratuito",
       badge: "5 min de teste",
@@ -465,7 +487,8 @@ export default function DashboardPage() {
     },
   };
 
-  const activePlanCfg = planConfigs[currentPlan] || planConfigs.gratuito;
+  const isUnlimited = currentPlan === "ilimitado" || currentPlan === "unlimited" || credits >= 900000;
+  const activePlanCfg = planConfigs[currentPlan] || (isUnlimited ? planConfigs.ilimitado : planConfigs.gratuito);
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
@@ -514,7 +537,9 @@ export default function DashboardPage() {
                     borderRadius: "100px", padding: "4px 12px",
                     fontSize: "12px", color: activePlanCfg.color, fontWeight: 700
                   }}>
-                    {currentPlan.includes("business") ? (
+                    {isUnlimited ? (
+                      <Crown size={12} color={activePlanCfg.color} />
+                    ) : currentPlan.includes("business") ? (
                       <Crown size={12} color={activePlanCfg.color} />
                     ) : currentPlan.includes("pro") ? (
                       <Zap size={12} color={activePlanCfg.color} />
@@ -534,20 +559,22 @@ export default function DashboardPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <div style={{
                   display: "flex", alignItems: "center", gap: "8px",
-                  background: "rgba(124,58,237,0.12)",
-                  border: "1px solid rgba(124,58,237,0.3)",
+                  background: isUnlimited ? "rgba(16, 185, 129, 0.12)" : "rgba(124,58,237,0.12)",
+                  border: isUnlimited ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(124,58,237,0.3)",
                   borderRadius: "100px",
                   padding: "8px 18px"
                 }}>
-                  <Zap size={16} color="#A78BFA" />
+                  <Zap size={16} color={isUnlimited ? "#10B981" : "#A78BFA"} />
                   <span style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 700 }}>
-                    {credits} min restantes
+                    {isUnlimited ? "Ilimitado" : `${credits} min restantes`}
                   </span>
                 </div>
 
-                <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
-                  Recarregar minutos <ArrowRight size={14} />
-                </Link>
+                {!isUnlimited && (
+                  <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
+                    Recarregar minutos <ArrowRight size={14} />
+                  </Link>
+                )}
 
                 <Link
                   href="/sugestoes"

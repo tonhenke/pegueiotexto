@@ -201,7 +201,8 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
   const fetchUsers = async () => {
     try {
       const token = getAdminToken();
-      const res = await fetch("/api/admin/users", {
+      const res = await fetch(`/api/admin/users?t=${Date.now()}`, {
+        cache: "no-store",
         headers: { ...(token ? { "x-admin-token": token } : {}) },
       });
       if (res.ok) {
@@ -1252,7 +1253,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                     </div>
 
                     {/* Plan Filter Pills */}
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center", flex: "1 1 auto" }}>
                       <span style={{ fontSize: "12px", color: "var(--text-muted)", marginRight: "4px" }}>
                         Filtrar por plano:
                       </span>
@@ -1263,6 +1264,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                         { id: "starter", label: "Starter" },
                         { id: "pro", label: "Pro" },
                         { id: "business", label: "Business" },
+                        { id: "ilimitado", label: "Ilimitado 👑" },
                       ].map((item) => (
                         <button
                           key={item.id}
@@ -1282,6 +1284,33 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                           {item.label}
                         </button>
                       ))}
+
+                      <button
+                        onClick={async () => {
+                          setLoading(true);
+                          await fetchUsers();
+                          setLoading(false);
+                        }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          background: "rgba(124, 58, 237, 0.15)",
+                          color: "#C4B5FD",
+                          border: "1px solid rgba(124, 58, 237, 0.4)",
+                          padding: "6px 14px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          marginLeft: "auto",
+                          transition: "all 0.15s ease",
+                        }}
+                        title="Sincronizar em tempo real com o Supabase"
+                      >
+                        <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+                        <span>Sincronizar</span>
+                      </button>
                     </div>
                   </div>
 
@@ -1486,6 +1515,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                             <option value="pro_annual">Pro Anual (2.160 min - 25% OFF)</option>
                             <option value="business">Business (400 min)</option>
                             <option value="business_annual">Business Anual (4.800 min)</option>
+                            <option value="ilimitado">Ilimitado (Acesso Vitalício / Admin)</option>
                           </select>
                         </div>
 

@@ -1,14 +1,26 @@
 [
   {
-    "id": "usr_admin_ton",
+    "id": "f173135c-7608-4948-8f22-ed94fc7cc28b",
+    "email": "msempreendimentos4@gmail.com",
+    "name": "msempreendimentos",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 5,
+    "referral_source": "google_oauth",
+    "created_at": "2026-10-30T17:41:04.660Z",
+    "last_active_at": "2026-10-30T17:41:06.205Z",
+    "total_spent": 0
+  },
+  {
+    "id": "19c00d97-49e5-4484-a7e5-6ed2d6e2b4f6",
     "email": "tonhenke@gmail.com",
     "name": "Everton Henke (Admin)",
-    "plan": "pro_annual",
-    "plan_name": "Pro Anual (2.160 min - 25% OFF)",
-    "credits_minutes": 2160,
+    "plan": "ilimitado",
+    "plan_name": "Ilimitado (Acesso Vitalício)",
+    "credits_minutes": 999999,
     "referral_source": "admin",
-    "created_at": "2026-10-22T09:00:00.000Z",
-    "last_active_at": "2026-10-27T15:20:00.000Z",
+    "created_at": "2026-10-30T12:09:11.393Z",
+    "last_active_at": "2026-10-30T18:30:00.000Z",
     "total_spent": 0
   },
   {

@@ -3,6 +3,9 @@ import { isAuthenticatedAdmin } from "@/lib/admin-auth";
 import { getUsersList, upsertUser, UserRecord } from "@/lib/admin-store";
 import { sendWelcomeEmail } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   if (!isAuthenticatedAdmin(request)) {
     return NextResponse.json({ detail: "Acesso administrativo não autorizado." }, { status: 401 });
@@ -20,24 +23,33 @@ export async function GET(request: Request) {
     const newToday = users.filter((u) => new Date(u.created_at) >= oneDayAgo).length;
     const newThisWeek = users.filter((u) => new Date(u.created_at) >= sevenDaysAgo).length;
 
-    const paidPlans = ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual"];
+    const paidPlans = ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"];
     const paidUsers = users.filter((u) => paidPlans.includes((u.plan || "").toLowerCase().trim())).length;
     const freeUsers = totalUsers - paidUsers;
 
     const conversionRate = totalUsers > 0 ? Number(((paidUsers / totalUsers) * 100).toFixed(1)) : 0;
 
-    return NextResponse.json({
-      success: true,
-      users,
-      summary: {
-        total_users: totalUsers,
-        new_today: newToday,
-        new_this_week: newThisWeek,
-        paid_users: paidUsers,
-        free_users: freeUsers,
-        conversion_rate: conversionRate,
+    return NextResponse.json(
+      {
+        success: true,
+        users,
+        summary: {
+          total_users: totalUsers,
+          new_today: newToday,
+          new_this_week: newThisWeek,
+          paid_users: paidUsers,
+          free_users: freeUsers,
+          conversion_rate: conversionRate,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (err) {
     console.error("[Admin Users GET] Erro:", err);
     return NextResponse.json({ detail: "Erro ao buscar lista de usuários." }, { status: 500 });

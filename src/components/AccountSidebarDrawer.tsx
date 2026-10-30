@@ -469,7 +469,7 @@ export default function AccountSidebarDrawer({
                     color: "#C4B5FD",
                   }}
                 >
-                  {profile?.plan || "Plano Gratuito"}
+                  {profile?.plan === "ilimitado" || profile?.plan === "unlimited" ? "Plano Ilimitado" : (profile?.plan || "Plano Gratuito")}
                 </span>
               </div>
               <p
@@ -516,7 +516,7 @@ export default function AccountSidebarDrawer({
               </div>
               <div>
                 <span style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", display: "block" }}>
-                  {credits} minutos restantes
+                  {credits >= 900000 || (profile?.plan && (profile.plan === "ilimitado" || profile.plan === "unlimited")) ? "Ilimitado" : `${credits} minutos restantes`}
                 </span>
                 <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
                   Saldo de transcrição
