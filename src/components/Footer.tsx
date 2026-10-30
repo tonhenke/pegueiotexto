@@ -124,7 +124,7 @@ export default function Footer() {
               </div>
 
               {(category === "Empresa" || category === "Company") && (
-                <div style={{ marginTop: "16px" }}>
+                <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start" }}>
                   <a
                     href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
                     target="_blank"
@@ -143,6 +143,29 @@ export default function Footer() {
                     <img
                       src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
                       alt="Launched on StartupBase"
+                      height="34"
+                      style={{ height: "34px", width: "auto", display: "block" }}
+                    />
+                  </a>
+
+                  <a
+                    href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.9";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/product-hunt-badge.svg"
+                      alt="Featured on Product Hunt"
                       height="34"
                       style={{ height: "34px", width: "auto", display: "block" }}
                     />
