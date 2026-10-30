@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthenticatedAdmin } from "@/lib/admin-auth";
-import { getUsersList, upsertUser, UserRecord } from "@/lib/admin-store";
+import { getUsersList, upsertUser, deleteUserAccount, UserRecord } from "@/lib/admin-store";
 import { sendWelcomeEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -119,9 +119,58 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, user });
     }
 
+    // Action 3: Delete user account (admin only)
+    if (action === "delete_user") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso administrativo não autorizado." }, { status: 401 });
+      }
+
+      const { email, id } = body;
+      if (!email && !id) {
+        return NextResponse.json({ detail: "E-mail ou ID do usuário é obrigatório." }, { status: 400 });
+      }
+
+      if (email && email.toLowerCase().trim() === "tonhenke@gmail.com") {
+        return NextResponse.json({ detail: "Não é permitido excluir a conta do Administrador principal." }, { status: 400 });
+      }
+
+      const result = await deleteUserAccount({ email, id });
+      return NextResponse.json({ success: true, ...result });
+    }
+
     return NextResponse.json({ detail: "Ação não reconhecida." }, { status: 400 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Admin Users POST] Erro:", err);
-    return NextResponse.json({ detail: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json({ detail: err.message || "Erro interno do servidor." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!isAuthenticatedAdmin(request)) {
+    return NextResponse.json({ detail: "Acesso administrativo não autorizado." }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const emailParam = searchParams.get("email");
+    const idParam = searchParams.get("id");
+    const body = await request.json().catch(() => ({}));
+
+    const email = body.email || emailParam;
+    const id = body.id || idParam;
+
+    if (!email && !id) {
+      return NextResponse.json({ detail: "E-mail ou ID é obrigatório." }, { status: 400 });
+    }
+
+    if (email && email.toLowerCase().trim() === "tonhenke@gmail.com") {
+      return NextResponse.json({ detail: "Não é permitido excluir a conta do Administrador principal." }, { status: 400 });
+    }
+
+    const result = await deleteUserAccount({ email, id });
+    return NextResponse.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error("[Admin Users DELETE] Erro:", err);
+    return NextResponse.json({ detail: err.message || "Erro ao excluir usuário." }, { status: 500 });
   }
 }

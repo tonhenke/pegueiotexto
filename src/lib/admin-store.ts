@@ -344,6 +344,119 @@ export function upsertUser(data: Partial<UserRecord> & { email: string }): UserR
   return userRecord;
 }
 
+export async function deleteUserAccount(query: { email?: string; id?: string }): Promise<{ deleted: boolean; email?: string; detail?: string }> {
+  const cleanEmail = query.email ? query.email.toLowerCase().trim() : undefined;
+  const targetId = query.id?.trim();
+
+  if (!cleanEmail && !targetId) {
+    throw new Error("E-mail ou ID deve ser fornecido para exclusão.");
+  }
+
+  // 1. Remove from local store (users.json and /tmp)
+  const users = readStoreJSON<UserRecord>(USERS_FILE);
+  const foundUser = users.find(
+    (u) => (cleanEmail && u.email?.toLowerCase().trim() === cleanEmail) || (targetId && u.id === targetId)
+  );
+
+  const resolvedEmail = cleanEmail || foundUser?.email?.toLowerCase().trim();
+  const resolvedId = targetId || foundUser?.id;
+
+  if (resolvedEmail === "tonhenke@gmail.com") {
+    throw new Error("Não é permitido excluir o usuário Administrador principal.");
+  }
+
+  const updatedUsers = users.filter((u) => {
+    if (resolvedEmail && u.email?.toLowerCase().trim() === resolvedEmail) return false;
+    if (resolvedId && u.id === resolvedId) return false;
+    return true;
+  });
+
+  writeStoreJSON(USERS_FILE, updatedUsers);
+
+  // 2. Delete from Supabase Auth & DB tables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cufpliitnvavlygsrrzu.supabase.co";
+  const serviceKey = getSupabaseServiceKey();
+
+  if (serviceKey) {
+    try {
+      const sb = createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+
+      // Find user ID from Supabase Auth if needed
+      let supabaseUserId = resolvedId;
+      if (!supabaseUserId || !supabaseUserId.includes("-")) {
+        if (resolvedEmail) {
+          const { data: authList } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          const matchingAuthUser = authList?.users?.find(
+            (u) => u.email?.toLowerCase().trim() === resolvedEmail
+          );
+          if (matchingAuthUser) {
+            supabaseUserId = matchingAuthUser.id;
+          }
+        }
+      }
+
+      // If still not found, check profiles by email
+      if (!supabaseUserId && resolvedEmail) {
+        const { data: prof } = await sb.from("profiles").select("id").eq("email", resolvedEmail).maybeSingle();
+        if (prof?.id) {
+          supabaseUserId = prof.id;
+        }
+      }
+
+      if (supabaseUserId) {
+        // Delete dependent records first to avoid foreign key issues
+        try {
+          await sb.from("transcriptions").delete().eq("user_id", supabaseUserId);
+        } catch (e) {
+          console.warn("[deleteUserAccount] transcriptions delete error:", e);
+        }
+
+        try {
+          await sb.from("credit_transactions").delete().eq("user_id", supabaseUserId);
+        } catch (e) {
+          console.warn("[deleteUserAccount] credit_transactions delete error:", e);
+        }
+
+        try {
+          await sb.from("referrals").delete().or(`user_id.eq.${supabaseUserId},referred_user_id.eq.${supabaseUserId}`);
+        } catch (e) {
+          console.warn("[deleteUserAccount] referrals delete error:", e);
+        }
+
+        try {
+          await sb.from("profiles").delete().eq("id", supabaseUserId);
+        } catch (e) {
+          console.warn("[deleteUserAccount] profiles delete by id error:", e);
+        }
+
+        // Delete from Supabase Auth
+        try {
+          await sb.auth.admin.deleteUser(supabaseUserId);
+        } catch (authDelErr) {
+          console.warn("[deleteUserAccount] auth deleteUser error:", authDelErr);
+        }
+      }
+
+      // Extra safety: delete profile by email if still present
+      if (resolvedEmail) {
+        try {
+          await sb.from("profiles").delete().eq("email", resolvedEmail);
+        } catch {}
+      }
+    } catch (sbError) {
+      console.error("[deleteUserAccount] Erro Supabase:", sbError);
+    }
+  }
+
+  return {
+    deleted: true,
+    email: resolvedEmail,
+    detail: `Usuário ${resolvedEmail || resolvedId} excluído com sucesso.`,
+  };
+}
+
 // ==========================================
 // PURCHASES STORE
 // ==========================================

@@ -139,6 +139,9 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
   const [editPlan, setEditPlan] = useState("");
   const [editCredits, setEditCredits] = useState<number>(0);
   const [editSaving, setEditSaving] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // TAB 2: PURCHASES STATE
   const [purchases, setPurchases] = useState<AdminPurchase[]>([]);
@@ -505,6 +508,46 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
       console.error("Erro ao atualizar usuário:", e);
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  // Delete User
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    setDeletingUser(true);
+    setDeleteError(null);
+    try {
+      const token = getAdminToken();
+      const res = await fetch("/api/admin/users?action=delete_user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "x-admin-token": token } : {}),
+        },
+        body: JSON.stringify({
+          email: userToDelete.email,
+          id: userToDelete.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers((prev) => prev.filter((u) => u.email !== userToDelete.email && u.id !== userToDelete.id));
+        if (usersSummary) {
+          setUsersSummary((prev: any) => ({
+            ...prev,
+            total_users: Math.max(0, (prev?.total_users || 1) - 1),
+          }));
+        }
+        setUserToDelete(null);
+        fetchUsers();
+      } else {
+        setDeleteError(data.detail || "Erro ao excluir usuário.");
+      }
+    } catch (err: any) {
+      setDeleteError(err.message || "Erro ao conectar com o servidor.");
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -1423,28 +1466,64 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
 
                                   {/* Action */}
                                   <td style={{ padding: "14px 20px", textAlign: "right" }}>
-                                    <button
-                                      onClick={() => {
-                                        setEditingUser(u);
-                                        setEditPlan(u.plan || "gratuito");
-                                        setEditCredits(u.credits_minutes ?? 5);
-                                      }}
-                                      style={{
-                                        background: "rgba(255, 255, 255, 0.05)",
-                                        border: "1px solid rgba(255, 255, 255, 0.15)",
-                                        borderRadius: "6px",
-                                        padding: "6px 10px",
-                                        color: "#C4B5FD",
-                                        fontSize: "12px",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "4px",
-                                      }}
-                                    >
-                                      <Edit3 size={13} /> Gerenciar
-                                    </button>
+                                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                      <button
+                                        onClick={() => {
+                                          setEditingUser(u);
+                                          setEditPlan(u.plan || "gratuito");
+                                          setEditCredits(u.credits_minutes ?? 5);
+                                        }}
+                                        style={{
+                                          background: "rgba(255, 255, 255, 0.05)",
+                                          border: "1px solid rgba(255, 255, 255, 0.15)",
+                                          borderRadius: "6px",
+                                          padding: "6px 10px",
+                                          color: "#C4B5FD",
+                                          fontSize: "12px",
+                                          fontWeight: 600,
+                                          cursor: "pointer",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "4px",
+                                        }}
+                                        title="Editar plano e créditos"
+                                      >
+                                        <Edit3 size={13} /> Gerenciar
+                                      </button>
+
+                                      {u.email.toLowerCase().trim() !== "tonhenke@gmail.com" && (
+                                        <button
+                                          onClick={() => {
+                                            setDeleteError(null);
+                                            setUserToDelete(u);
+                                          }}
+                                          style={{
+                                            background: "rgba(239, 68, 68, 0.1)",
+                                            border: "1px solid rgba(239, 68, 68, 0.25)",
+                                            borderRadius: "6px",
+                                            padding: "6px 8px",
+                                            color: "#F87171",
+                                            fontSize: "12px",
+                                            cursor: "pointer",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            transition: "all 0.15s ease",
+                                          }}
+                                          title={`Excluir conta de ${u.email}`}
+                                          onMouseEnter={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = "rgba(239, 68, 68, 0.25)";
+                                            (e.currentTarget as HTMLElement).style.borderColor = "rgba(239, 68, 68, 0.5)";
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = "rgba(239, 68, 68, 0.1)";
+                                            (e.currentTarget as HTMLElement).style.borderColor = "rgba(239, 68, 68, 0.25)";
+                                          }}
+                                        >
+                                          <Trash2 size={13} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -1539,23 +1618,172 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                           />
                         </div>
 
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+                          {editingUser.email.toLowerCase().trim() !== "tonhenke@gmail.com" ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const target = editingUser;
+                                setEditingUser(null);
+                                setDeleteError(null);
+                                setUserToDelete(target);
+                              }}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                background: "rgba(239, 68, 68, 0.12)",
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                color: "#F87171",
+                                borderRadius: "8px",
+                                padding: "8px 12px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <Trash2 size={13} /> Excluir Conta
+                            </button>
+                          ) : <div />}
+
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingUser(null)}
+                              className="btn-ghost"
+                              style={{ padding: "8px 16px", fontSize: "13px" }}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={editSaving}
+                              onClick={handleSaveUserEdit}
+                              className="btn-primary"
+                              style={{ padding: "8px 18px", fontSize: "13px", fontWeight: 700 }}
+                            >
+                              {editSaving ? "Salvando..." : "Salvar Alterações"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MODAL: DELETE USER CONFIRMATION */}
+                  {userToDelete && (
+                    <div
+                      style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0, 0, 0, 0.82)",
+                        backdropFilter: "blur(8px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                        padding: "20px",
+                      }}
+                      onClick={() => !deletingUser && setUserToDelete(null)}
+                    >
+                      <div
+                        className="glass-card"
+                        style={{
+                          maxWidth: "460px",
+                          width: "100%",
+                          padding: "28px",
+                          border: "1px solid rgba(239, 68, 68, 0.4)",
+                          borderRadius: "16px",
+                          background: "#0D0B1C",
+                          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.6)",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                          <div
+                            style={{
+                              width: "44px",
+                              height: "44px",
+                              borderRadius: "12px",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              border: "1px solid rgba(239, 68, 68, 0.35)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#F87171",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <AlertCircle size={24} />
+                          </div>
+                          <div>
+                            <h3 style={{ fontSize: "1.2rem", fontWeight: 800, color: "#FFFFFF", margin: 0 }}>
+                              Excluir Usuário
+                            </h3>
+                            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+                              Esta ação é permanente e irreversível
+                            </p>
+                          </div>
+                        </div>
+
+                        <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "20px" }}>
+                          Você está prestes a excluir definitivamente a conta de <strong style={{ color: "#FFFFFF" }}>{userToDelete.name || userToDelete.email}</strong> (<span style={{ color: "#C4B5FD" }}>{userToDelete.email}</span>).
+                          <br /><br />
+                          O acesso será revogado no Supabase Auth e seu perfil, transcrições e histórico de créditos serão permanentemente apagados.
+                        </p>
+
+                        {deleteError && (
+                          <div
+                            style={{
+                              padding: "10px 14px",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              borderRadius: "8px",
+                              color: "#FCA5A5",
+                              fontSize: "13px",
+                              marginBottom: "16px",
+                            }}
+                          >
+                            {deleteError}
+                          </div>
+                        )}
+
                         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                           <button
                             type="button"
-                            onClick={() => setEditingUser(null)}
+                            disabled={deletingUser}
+                            onClick={() => {
+                              setUserToDelete(null);
+                              setDeleteError(null);
+                            }}
                             className="btn-ghost"
-                            style={{ padding: "8px 16px", fontSize: "13px" }}
+                            style={{ padding: "9px 18px", fontSize: "13px" }}
                           >
                             Cancelar
                           </button>
                           <button
                             type="button"
-                            disabled={editSaving}
-                            onClick={handleSaveUserEdit}
-                            className="btn-primary"
-                            style={{ padding: "8px 18px", fontSize: "13px", fontWeight: 700 }}
+                            disabled={deletingUser}
+                            onClick={handleConfirmDeleteUser}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              background: "#DC2626",
+                              border: "none",
+                              borderRadius: "8px",
+                              color: "#FFFFFF",
+                              padding: "9px 20px",
+                              fontSize: "13px",
+                              fontWeight: 700,
+                              cursor: deletingUser ? "not-allowed" : "pointer",
+                              boxShadow: "0 4px 14px rgba(220, 38, 38, 0.35)",
+                              opacity: deletingUser ? 0.7 : 1,
+                            }}
                           >
-                            {editSaving ? "Salvando..." : "Salvar Alterações"}
+                            <Trash2 size={15} />
+                            {deletingUser ? "Excluindo..." : "Sim, Excluir Definitivamente"}
                           </button>
                         </div>
                       </div>
