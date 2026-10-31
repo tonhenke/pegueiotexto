@@ -28,6 +28,40 @@ export async function GET(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!backendRes.ok) {
+      if (/youtube\.com|youtu\.be/i.test(videoUrl)) {
+        try {
+          const { Ytdl } = await import("@distube/ytdl-core");
+          const { Readable } = await import("stream");
+          const ytdl = new Ytdl();
+          const info = await ytdl.getInfo(videoUrl);
+          const rawTitle = info.videoDetails.title || "audio";
+          const asciiTitle =
+            rawTitle
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-zA-Z0-9 _-]/g, "")
+              .replace(/\s+/g, " ")
+              .slice(0, 60)
+              .trim() || "audio";
+
+          const nodeStream = ytdl.download(videoUrl, {
+            filter: { hasAudio: true, hasVideo: false },
+          });
+          const webStream = Readable.toWeb(nodeStream as any);
+
+          return new NextResponse(webStream as any, {
+            status: 200,
+            headers: {
+              "Content-Type": "audio/mp4",
+              "Content-Disposition": `attachment; filename="${asciiTitle}.m4a"; filename*=UTF-8''${encodeURIComponent(rawTitle)}.m4a`,
+              "Cache-Control": "no-cache",
+            },
+          });
+        } catch (ytdlErr: any) {
+          console.warn("[Download MP3] Fallback ytdl error:", ytdlErr);
+        }
+      }
+
       const errJson = await backendRes.json().catch(() => null);
       return NextResponse.json(
         {
@@ -55,6 +89,44 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error("[Download MP3 Proxy Error]:", err);
+
+    // Fallback on exception (e.g. backend network down/aborted)
+    const { searchParams } = new URL(req.url);
+    const videoUrl = searchParams.get("url")?.trim();
+    if (videoUrl && /youtube\.com|youtu\.be/i.test(videoUrl)) {
+      try {
+        const { Ytdl } = await import("@distube/ytdl-core");
+        const { Readable } = await import("stream");
+        const ytdl = new Ytdl();
+        const info = await ytdl.getInfo(videoUrl);
+        const rawTitle = info.videoDetails.title || "audio";
+        const asciiTitle =
+          rawTitle
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9 _-]/g, "")
+            .replace(/\s+/g, " ")
+            .slice(0, 60)
+            .trim() || "audio";
+
+        const nodeStream = ytdl.download(videoUrl, {
+          filter: { hasAudio: true, hasVideo: false },
+        });
+        const webStream = Readable.toWeb(nodeStream as any);
+
+        return new NextResponse(webStream as any, {
+          status: 200,
+          headers: {
+            "Content-Type": "audio/mp4",
+            "Content-Disposition": `attachment; filename="${asciiTitle}.m4a"; filename*=UTF-8''${encodeURIComponent(rawTitle)}.m4a`,
+            "Cache-Control": "no-cache",
+          },
+        });
+      } catch (ytdlFallbackErr) {
+        console.warn("[Download MP3] Catch fallback error:", ytdlFallbackErr);
+      }
+    }
+
     return NextResponse.json(
       {
         error:

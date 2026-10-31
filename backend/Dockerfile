@@ -1,10 +1,11 @@
 FROM python:3.11-slim
 
-# Install system dependencies (ffmpeg is required for full yt-dlp audio extraction)
+# Install system dependencies (ffmpeg is required for full yt-dlp audio extraction, nodejs for JS challenges)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     ca-certificates \
     curl \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

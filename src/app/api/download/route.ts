@@ -225,6 +225,69 @@ export async function POST(req: NextRequest) {
         console.warn("[Download Route] Backend stream error:", bErr);
       }
 
+      // 3. Fail-safe fallback: Direct @distube/ytdl-core resolution
+      if (!videoUrl) {
+        try {
+          const { Ytdl } = await import("@distube/ytdl-core");
+          const ytdl = new Ytdl();
+          const info = await ytdl.getInfo(rawUrl);
+
+          if (info && info.videoDetails) {
+            if (!oembedTitle || oembedTitle === "Vídeo do YouTube") {
+              oembedTitle = info.videoDetails.title || oembedTitle;
+            }
+            if (!oembedAuthor || oembedAuthor === "YouTube") {
+              oembedAuthor = info.videoDetails.author?.name || oembedAuthor;
+            }
+            if (info.videoDetails.thumbnails?.length) {
+              oembedThumbnail =
+                info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url ||
+                oembedThumbnail;
+            }
+
+            const allVideos = (info.formats || []).filter(
+              (f) => f.hasVideo && f.url
+            );
+
+            // Sort prioritizing mp4 container and height descending
+            allVideos.sort((a, b) => {
+              const aMp4 = a.container === "mp4" ? 1 : 0;
+              const bMp4 = b.container === "mp4" ? 1 : 0;
+              if (aMp4 !== bMp4) return bMp4 - aMp4;
+              return (b.height || 0) - (a.height || 0);
+            });
+
+            const progressive = allVideos.filter((f) => f.hasAudio);
+            const primary = progressive[0] || allVideos[0];
+
+            if (primary && primary.url) {
+              videoUrl = primary.url;
+              const seenQualities = new Set<string>();
+              formats = [];
+
+              for (const v of allVideos) {
+                const qLabel =
+                  v.qualityLabel || (v.height ? `${v.height}p` : "HD");
+                if (!seenQualities.has(qLabel) && v.url) {
+                  seenQualities.add(qLabel);
+                  formats.push({
+                    id: `yt-${v.itag || qLabel}`,
+                    label: `MP4 ${qLabel}`,
+                    quality: qLabel,
+                    ext: v.container || "mp4",
+                    url: `/api/download/video?url=${encodeURIComponent(rawUrl)}&itag=${v.itag}&title=${encodeURIComponent(oembedTitle)}`,
+                    directUrl: v.url,
+                  });
+                }
+                if (formats.length >= 5) break;
+              }
+            }
+          }
+        } catch (ytdlErr: any) {
+          console.warn("[Download Route] ytdl-core fallback error:", ytdlErr?.message || ytdlErr);
+        }
+      }
+
       if (!videoUrl) {
         return NextResponse.json(
           {
@@ -236,6 +299,7 @@ export async function POST(req: NextRequest) {
       }
 
       const mp3DownloadUrl = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
+      const videoStreamUrl = `/api/download/video?url=${encodeURIComponent(rawUrl)}&title=${encodeURIComponent(oembedTitle)}`;
 
       if (!formats.length) {
         formats = [
@@ -244,7 +308,7 @@ export async function POST(req: NextRequest) {
             label: "MP4 HD (Download Rápido)",
             ext: "mp4",
             quality: "HD",
-            url: videoUrl,
+            url: videoStreamUrl,
           },
           {
             id: "mp3-audio",
@@ -264,8 +328,8 @@ export async function POST(req: NextRequest) {
           uploader: oembedAuthor,
           platform: "YouTube",
           duration: 0,
-          video_url: videoUrl,
-          video_hd_url: videoUrl,
+          video_url: videoStreamUrl,
+          video_hd_url: videoStreamUrl,
           audio_url: mp3DownloadUrl,
           formats,
         },

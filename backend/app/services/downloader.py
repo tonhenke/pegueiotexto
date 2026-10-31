@@ -82,43 +82,31 @@ def download_audio_from_url(url: str) -> dict:
             "preferredquality": "192",
         }]
 
-    # Strategy 1 (Primary): Direct Mobile InnerTube API (android)
-    # player_skip skips downloading the browser HTML page, bypassing datacenter IP bot detection
-    opts_mobile_android = {
-        **base_opts,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android"],
-                "player_skip": ["webpage", "configs", "js"]
-            }
-        }
-    }
+    # Progressive extraction strategies across multiple player clients
+    strategies = [
+        {"player_client": ["android"]},
+        {"player_client": ["ios", "android"]},
+        {"player_client": ["web", "mweb"]},
+        None,
+    ]
 
     info = None
-    try:
-        with yt_dlp.YoutubeDL(opts_mobile_android) as ydl:
-            info = ydl.extract_info(url, download=True)
-    except Exception as e1:
-        print(f"[Downloader] Estratégia android direta falhou: {e1}. Tentando android + ios...")
+    last_err = None
+    for strat in strategies:
         try:
-            opts_mobile_combo = {
-                **base_opts,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios"],
-                        "player_skip": ["webpage", "configs", "js"]
-                    }
-                }
-            }
-            with yt_dlp.YoutubeDL(opts_mobile_combo) as ydl:
+            curr_opts = {**base_opts}
+            if strat:
+                curr_opts["extractor_args"] = {"youtube": strat}
+            with yt_dlp.YoutubeDL(curr_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-        except Exception as e2:
-            print(f"[Downloader] Estratégia combo falhou: {e2}. Tentando fallback genérico...")
-            with yt_dlp.YoutubeDL(base_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
+                if info:
+                    break
+        except Exception as e:
+            last_err = e
+            continue
 
     if not info:
-        raise RuntimeError("Não foi possível extrair informações do vídeo.")
+        raise RuntimeError(f"Não foi possível extrair informações do vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Áudio da Internet")
     duration = int(info.get("duration") or 0)
@@ -148,7 +136,6 @@ def extract_video_stream_info(url: str) -> dict:
     """
     url = normalize_video_url(url)
     base_opts = {
-        "format": "18/best[ext=mp4]/bestaudio/best",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -158,39 +145,30 @@ def extract_video_stream_info(url: str) -> dict:
     if cookie_file:
         base_opts["cookiefile"] = cookie_file
 
-    opts_android = {
-        **base_opts,
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android"],
-                "player_skip": ["webpage", "configs", "js"]
-            }
-        }
-    }
-
     info = None
-    try:
-        with yt_dlp.YoutubeDL(opts_android) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except Exception as e1:
-        print(f"[StreamExtractor] Android client extraction failed: {e1}. Trying android + ios fallback...")
+    last_err = None
+    strategies = [
+        {"player_client": ["android"]},
+        {"player_client": ["ios", "android"]},
+        {"player_client": ["web", "mweb"]},
+        None,
+    ]
+
+    for strat in strategies:
         try:
-            opts_fallback = {
-                **base_opts,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["android", "ios"],
-                        "player_skip": ["webpage", "configs", "js"]
-                    }
-                }
-            }
-            with yt_dlp.YoutubeDL(opts_fallback) as ydl:
+            curr_opts = {**base_opts}
+            if strat:
+                curr_opts["extractor_args"] = {"youtube": strat}
+            with yt_dlp.YoutubeDL(curr_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-        except Exception as e2:
-            raise RuntimeError(f"Não foi possível obter links diretos do vídeo: {e2}")
+                if info:
+                    break
+        except Exception as e:
+            last_err = e
+            continue
 
     if not info:
-        raise RuntimeError("Não foi possível extrair informações do vídeo.")
+        raise RuntimeError(f"Não foi possível obter links diretos do vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Vídeo da Web")
     duration = int(info.get("duration") or 0)
