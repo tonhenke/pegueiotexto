@@ -93,13 +93,29 @@ export function recordDeletedUser(email?: string, id?: string): void {
   }
 }
 
+export function unrecordDeletedUser(email?: string, id?: string): void {
+  const list = getDeletedUsers();
+  const cleanEmail = email?.toLowerCase().trim();
+  const cleanId = id?.trim();
+  const updated = list.filter((d) => {
+    if (cleanEmail && d.email === cleanEmail) return false;
+    if (cleanId && d.id === cleanId) return false;
+    return true;
+  });
+  if (updated.length !== list.length) {
+    writeStoreJSON(DELETED_USERS_FILE, updated);
+  }
+}
+
 export function isUserDeleted(user: { email?: string; id?: string }): boolean {
   const deleted = getDeletedUsers();
   const cleanEmail = user.email?.toLowerCase().trim();
   const cleanId = user.id?.trim();
-  return deleted.some(
-    (d) => (cleanEmail && d.email === cleanEmail) || (cleanId && d.id === cleanId)
-  );
+  return deleted.some((d) => {
+    if (cleanId && d.id) return d.id === cleanId;
+    if (cleanEmail && d.email) return d.email === cleanEmail;
+    return false;
+  });
 }
 
 export function readStoreJSON<T>(filePath: string): T[] {
@@ -223,7 +239,10 @@ export async function getUsersList(): Promise<UserRecord[]> {
       if (authData?.users) {
         for (const su of authData.users) {
           const email = (su.email || "").toLowerCase().trim();
-          if (!email || isUserDeleted({ email, id: su.id })) continue;
+          if (!email) continue;
+
+          // Clear any old tombstone if this email was re-registered
+          unrecordDeletedUser(email, su.id);
 
           const existing = userMap.get(email);
           const metaName = su.user_metadata?.full_name || su.user_metadata?.name || email.split("@")[0];
@@ -261,7 +280,7 @@ export async function getUsersList(): Promise<UserRecord[]> {
       if (profiles) {
         for (const p of profiles) {
           const email = (p.email || "").toLowerCase().trim();
-          if (isUserDeleted({ email, id: p.id })) continue;
+          if (!email) continue;
 
           let target = email ? userMap.get(email) : Array.from(userMap.values()).find((u) => u.id === p.id);
 
@@ -321,7 +340,7 @@ export async function getUsersList(): Promise<UserRecord[]> {
             validSupabaseEmails.has(emailKey) ||
             (userRecord.id && validSupabaseIds.has(userRecord.id));
 
-          if (!inAuthOrProfiles || isUserDeleted({ email: emailKey, id: userRecord.id })) {
+          if (!inAuthOrProfiles) {
             userMap.delete(emailKey);
           }
         }
