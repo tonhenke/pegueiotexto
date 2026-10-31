@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: "/blog/como-transcrever-audio-de-reunioes-zoom-meet-teams",
+        destination: "/blog/como-transcrever-reunioes",
+        permanent: true,
+      },
+      {
         source: "/blog/tiktok-video-download",
         destination: "/baixar-video-tiktok",
         permanent: true,
