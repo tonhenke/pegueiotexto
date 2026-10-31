@@ -532,7 +532,15 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setUsers((prev) => prev.filter((u) => u.email !== userToDelete.email && u.id !== userToDelete.id));
+        const cleanDelEmail = userToDelete.email?.toLowerCase().trim();
+        const delId = userToDelete.id;
+        setUsers((prev) =>
+          prev.filter((u) => {
+            if (cleanDelEmail && u.email?.toLowerCase().trim() === cleanDelEmail) return false;
+            if (delId && u.id === delId) return false;
+            return true;
+          })
+        );
         if (usersSummary) {
           setUsersSummary((prev: any) => ({
             ...prev,
@@ -540,7 +548,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
           }));
         }
         setUserToDelete(null);
-        fetchUsers();
+        await fetchUsers();
       } else {
         setDeleteError(data.detail || "Erro ao excluir usuário.");
       }

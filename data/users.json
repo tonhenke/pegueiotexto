@@ -8,7 +8,7 @@
     "credits_minutes": 5,
     "referral_source": "google_oauth",
     "created_at": "2026-10-30T17:41:04.660Z",
-    "last_active_at": "2026-10-30T17:41:06.205Z",
+    "last_active_at": "2026-10-30T17:41:06.205472Z",
     "total_spent": 0
   },
   {
@@ -17,22 +17,10 @@
     "name": "Everton Henke (Admin)",
     "plan": "ilimitado",
     "plan_name": "Ilimitado (Acesso Vitalício)",
-    "credits_minutes": 999999,
+    "credits_minutes": 999955,
     "referral_source": "admin",
     "created_at": "2026-10-30T12:09:11.393Z",
-    "last_active_at": "2026-10-30T18:30:00.000Z",
-    "total_spent": 0
-  },
-  {
-    "id": "9cd7fca6-210a-4bec-9304-951ed123ea79",
-    "email": "ehenke28@gmail.com",
-    "name": "Everton",
-    "plan": "gratuito",
-    "plan_name": "Gratuito",
-    "credits_minutes": 5,
-    "referral_source": "organico",
-    "created_at": "2026-10-27T18:45:39.754Z",
-    "last_active_at": "2026-10-27T18:45:39.754Z",
+    "last_active_at": "2026-10-30T12:09:23.390292Z",
     "total_spent": 0
   },
   {
@@ -44,7 +32,7 @@
     "credits_minutes": 5,
     "referral_source": "google_oauth",
     "created_at": "2026-10-27T12:25:15.173Z",
-    "last_active_at": "2026-10-27T12:25:15.173Z",
+    "last_active_at": "2026-10-27T12:25:17.012426Z",
     "total_spent": 0
   },
   {
@@ -56,7 +44,40 @@
     "credits_minutes": 1,
     "referral_source": "google_oauth",
     "created_at": "2026-10-16T17:09:15.630Z",
-    "last_active_at": "2026-10-16T17:09:15.630Z",
+    "last_active_at": "2026-10-26T15:58:24.85499Z",
     "total_spent": 0
+  },
+  {
+    "id": "57719bf9-e45a-4031-a8a3-b00b9dc77f39",
+    "email": "silviofortunat@gmail.com",
+    "name": "Silvio",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 5,
+    "referral_source": "organico",
+    "created_at": "2026-10-31T03:55:01.352935Z",
+    "last_active_at": "2026-10-31T03:55:01.424947Z"
+  },
+  {
+    "id": "b8eec9d7-69c8-457d-a966-d12d06136e36",
+    "email": "afonsomagesk@gmail.com",
+    "name": "Afonso magesk",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 1,
+    "referral_source": "organico",
+    "created_at": "2026-10-31T02:51:06.429059Z",
+    "last_active_at": "2026-10-31T02:51:08.276119Z"
+  },
+  {
+    "id": "19ce247e-18b1-4a8f-91eb-545c453482c7",
+    "email": "pegueiotexto@gmail.com",
+    "name": "Everton",
+    "plan": "gratuito",
+    "plan_name": "Gratuito",
+    "credits_minutes": 5,
+    "referral_source": "organico",
+    "created_at": "2026-10-30T23:55:24.373553Z",
+    "last_active_at": "2026-10-30T23:55:24.477264Z"
   }
 ]

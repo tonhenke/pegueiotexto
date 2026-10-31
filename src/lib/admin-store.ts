@@ -74,6 +74,33 @@ const USERS_FILE = path.join(DATA_DIR, "users.json");
 const PURCHASES_FILE = path.join(DATA_DIR, "purchases.json");
 const SETTINGS_FILE = path.join(DATA_DIR, "admin_settings.json");
 const SUGGESTIONS_FILE = path.join(DATA_DIR, "suggestions.json");
+const DELETED_USERS_FILE = path.join(DATA_DIR, "deleted_users.json");
+
+export function getDeletedUsers(): Array<{ email?: string; id?: string; deleted_at: string }> {
+  return readStoreJSON<{ email?: string; id?: string; deleted_at: string }>(DELETED_USERS_FILE);
+}
+
+export function recordDeletedUser(email?: string, id?: string): void {
+  const list = getDeletedUsers();
+  const cleanEmail = email?.toLowerCase().trim();
+  const cleanId = id?.trim();
+  const exists = list.some(
+    (d) => (cleanEmail && d.email === cleanEmail) || (cleanId && d.id === cleanId)
+  );
+  if (!exists) {
+    list.push({ email: cleanEmail, id: cleanId, deleted_at: new Date().toISOString() });
+    writeStoreJSON(DELETED_USERS_FILE, list);
+  }
+}
+
+export function isUserDeleted(user: { email?: string; id?: string }): boolean {
+  const deleted = getDeletedUsers();
+  const cleanEmail = user.email?.toLowerCase().trim();
+  const cleanId = user.id?.trim();
+  return deleted.some(
+    (d) => (cleanEmail && d.email === cleanEmail) || (cleanId && d.id === cleanId)
+  );
+}
 
 export function readStoreJSON<T>(filePath: string): T[] {
   const filename = path.basename(filePath);
@@ -108,7 +135,14 @@ export function readStoreJSON<T>(filePath: string): T[] {
     map.set(getRecordKey(item), item);
   }
 
-  return Array.from(map.values()) as T[];
+  let list = Array.from(map.values()) as T[];
+
+  // Automatically filter out any deleted user if reading users.json
+  if (filename === "users.json") {
+    list = list.filter((item: any) => !isUserDeleted({ email: item.email, id: item.id }));
+  }
+
+  return list;
 }
 
 export function writeStoreJSON<T>(filePath: string, data: T[]): void {
@@ -169,7 +203,9 @@ export async function getUsersList(): Promise<UserRecord[]> {
   const userMap = new Map<string, UserRecord>();
 
   for (const u of storedUsers) {
-    if (u.email) userMap.set(u.email.toLowerCase().trim(), u);
+    if (u.email && !isUserDeleted(u)) {
+      userMap.set(u.email.toLowerCase().trim(), u);
+    }
   }
 
   // Attempt to enrich with Supabase Auth or Profiles
@@ -187,7 +223,7 @@ export async function getUsersList(): Promise<UserRecord[]> {
       if (authData?.users) {
         for (const su of authData.users) {
           const email = (su.email || "").toLowerCase().trim();
-          if (!email) continue;
+          if (!email || isUserDeleted({ email, id: su.id })) continue;
 
           const existing = userMap.get(email);
           const metaName = su.user_metadata?.full_name || su.user_metadata?.name || email.split("@")[0];
@@ -205,6 +241,8 @@ export async function getUsersList(): Promise<UserRecord[]> {
               last_active_at: su.last_sign_in_at || su.created_at || new Date().toISOString(),
             });
           } else {
+            // Keep user id in sync with real Supabase Auth ID
+            existing.id = su.id;
             if (!existing.name || existing.name === email.split("@")[0]) {
               existing.name = metaName;
             }
@@ -223,6 +261,8 @@ export async function getUsersList(): Promise<UserRecord[]> {
       if (profiles) {
         for (const p of profiles) {
           const email = (p.email || "").toLowerCase().trim();
+          if (isUserDeleted({ email, id: p.id })) continue;
+
           let target = email ? userMap.get(email) : Array.from(userMap.values()).find((u) => u.id === p.id);
 
           if (!target && email) {
@@ -257,6 +297,36 @@ export async function getUsersList(): Promise<UserRecord[]> {
           }
         }
       }
+      // 3. Purge ghost accounts: if Supabase Auth or Profiles was retrieved, any user in userMap
+      // that does not exist in Supabase Auth AND does not exist in Supabase Profiles has been deleted
+      const validSupabaseEmails = new Set<string>();
+      const validSupabaseIds = new Set<string>();
+
+      if (authData?.users) {
+        for (const su of authData.users) {
+          if (su.email) validSupabaseEmails.add(su.email.toLowerCase().trim());
+          if (su.id) validSupabaseIds.add(su.id);
+        }
+      }
+      if (profiles) {
+        for (const p of profiles) {
+          if (p.email) validSupabaseEmails.add(p.email.toLowerCase().trim());
+          if (p.id) validSupabaseIds.add(p.id);
+        }
+      }
+
+      if (validSupabaseEmails.size > 0 || validSupabaseIds.size > 0) {
+        for (const [emailKey, userRecord] of Array.from(userMap.entries())) {
+          const inAuthOrProfiles =
+            validSupabaseEmails.has(emailKey) ||
+            (userRecord.id && validSupabaseIds.has(userRecord.id));
+
+          if (!inAuthOrProfiles || isUserDeleted({ email: emailKey, id: userRecord.id })) {
+            userMap.delete(emailKey);
+          }
+        }
+      }
+
       writeStoreJSON(USERS_FILE, Array.from(userMap.values()));
     } catch (sbErr) {
       console.warn("[AdminStore] Supabase admin sync opcional ignorado:", sbErr);
@@ -365,6 +435,9 @@ export async function deleteUserAccount(query: { email?: string; id?: string }):
     throw new Error("Não é permitido excluir o usuário Administrador principal.");
   }
 
+  // Record tombstone so this user is permanently deleted across all stores and builds
+  recordDeletedUser(resolvedEmail, resolvedId);
+
   const updatedUsers = users.filter((u) => {
     if (resolvedEmail && u.email?.toLowerCase().trim() === resolvedEmail) return false;
     if (resolvedId && u.id === resolvedId) return false;
@@ -383,59 +456,66 @@ export async function deleteUserAccount(query: { email?: string; id?: string }):
         auth: { autoRefreshToken: false, persistSession: false },
       });
 
-      // Find user ID from Supabase Auth if needed
+      // Find user ID from Supabase Auth by email or ID
       let supabaseUserId = resolvedId;
-      if (!supabaseUserId || !supabaseUserId.includes("-")) {
-        if (resolvedEmail) {
-          const { data: authList } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
-          const matchingAuthUser = authList?.users?.find(
-            (u) => u.email?.toLowerCase().trim() === resolvedEmail
+      try {
+        const { data: authList } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        if (authList?.users) {
+          const matchingAuthUser = authList.users.find(
+            (u) =>
+              (resolvedEmail && u.email?.toLowerCase().trim() === resolvedEmail) ||
+              (resolvedId && u.id === resolvedId)
           );
           if (matchingAuthUser) {
             supabaseUserId = matchingAuthUser.id;
+            recordDeletedUser(matchingAuthUser.email, matchingAuthUser.id);
           }
         }
+      } catch (authListErr) {
+        console.warn("[deleteUserAccount] Erro ao listar usuários de autenticação:", authListErr);
       }
 
       // If still not found, check profiles by email
       if (!supabaseUserId && resolvedEmail) {
-        const { data: prof } = await sb.from("profiles").select("id").eq("email", resolvedEmail).maybeSingle();
-        if (prof?.id) {
-          supabaseUserId = prof.id;
-        }
+        try {
+          const { data: prof } = await sb.from("profiles").select("id").eq("email", resolvedEmail).maybeSingle();
+          if (prof?.id) {
+            supabaseUserId = prof.id;
+            recordDeletedUser(resolvedEmail, prof.id);
+          }
+        } catch {}
       }
 
-      if (supabaseUserId) {
+      const idsToDelete = Array.from(new Set([supabaseUserId, resolvedId].filter(Boolean))) as string[];
+
+      for (const uid of idsToDelete) {
         // Delete dependent records first to avoid foreign key issues
         try {
-          await sb.from("transcriptions").delete().eq("user_id", supabaseUserId);
+          await sb.from("transcriptions").delete().eq("user_id", uid);
         } catch (e) {
           console.warn("[deleteUserAccount] transcriptions delete error:", e);
         }
 
         try {
-          await sb.from("credit_transactions").delete().eq("user_id", supabaseUserId);
+          await sb.from("credit_transactions").delete().eq("user_id", uid);
         } catch (e) {
           console.warn("[deleteUserAccount] credit_transactions delete error:", e);
         }
 
         try {
-          await sb.from("referrals").delete().or(`user_id.eq.${supabaseUserId},referred_user_id.eq.${supabaseUserId}`);
-        } catch (e) {
-          console.warn("[deleteUserAccount] referrals delete error:", e);
-        }
-
-        try {
-          await sb.from("profiles").delete().eq("id", supabaseUserId);
+          await sb.from("profiles").delete().eq("id", uid);
         } catch (e) {
           console.warn("[deleteUserAccount] profiles delete by id error:", e);
         }
 
         // Delete from Supabase Auth
         try {
-          await sb.auth.admin.deleteUser(supabaseUserId);
+          const { error: delErr } = await sb.auth.admin.deleteUser(uid);
+          if (delErr) {
+            console.warn(`[deleteUserAccount] auth deleteUser error for ${uid}:`, delErr);
+          }
         } catch (authDelErr) {
-          console.warn("[deleteUserAccount] auth deleteUser error:", authDelErr);
+          console.warn(`[deleteUserAccount] auth deleteUser exception for ${uid}:`, authDelErr);
         }
       }
 
@@ -443,7 +523,9 @@ export async function deleteUserAccount(query: { email?: string; id?: string }):
       if (resolvedEmail) {
         try {
           await sb.from("profiles").delete().eq("email", resolvedEmail);
-        } catch {}
+        } catch (e) {
+          console.warn("[deleteUserAccount] profiles delete by email error:", e);
+        }
       }
     } catch (sbError) {
       console.error("[deleteUserAccount] Erro Supabase:", sbError);
