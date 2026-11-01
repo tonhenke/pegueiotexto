@@ -275,8 +275,7 @@ export async function POST(req: NextRequest) {
                     label: `MP4 ${qLabel}`,
                     quality: qLabel,
                     ext: v.container || "mp4",
-                    url: `/api/download/video?url=${encodeURIComponent(rawUrl)}&itag=${v.itag}&title=${encodeURIComponent(oembedTitle)}`,
-                    directUrl: v.url,
+                    url: v.url,
                   });
                 }
                 if (formats.length >= 5) break;
@@ -299,7 +298,6 @@ export async function POST(req: NextRequest) {
       }
 
       const mp3DownloadUrl = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
-      const videoStreamUrl = `/api/download/video?url=${encodeURIComponent(rawUrl)}&title=${encodeURIComponent(oembedTitle)}`;
 
       if (!formats.length) {
         formats = [
@@ -308,7 +306,7 @@ export async function POST(req: NextRequest) {
             label: "MP4 HD (Download Rápido)",
             ext: "mp4",
             quality: "HD",
-            url: videoStreamUrl,
+            url: videoUrl,
           },
           {
             id: "mp3-audio",
@@ -328,8 +326,8 @@ export async function POST(req: NextRequest) {
           uploader: oembedAuthor,
           platform: "YouTube",
           duration: 0,
-          video_url: videoStreamUrl,
-          video_hd_url: videoStreamUrl,
+          video_url: videoUrl,
+          video_hd_url: videoUrl,
           audio_url: mp3DownloadUrl,
           formats,
         },
