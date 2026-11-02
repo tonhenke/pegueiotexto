@@ -576,3 +576,100 @@ export async function sendSuggestionUserConfirmationEmail({
     return false;
   }
 }
+
+/**
+ * 7. E-mail de Código OTP de 6 dígitos para Confirmação de Cadastro
+ */
+export async function sendOtpEmail({
+  to,
+  name,
+  code,
+}: {
+  to: string;
+  name?: string;
+  code: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("[Email] SMTP não configurado. Código OTP ignorado para:", to);
+    return false;
+  }
+
+  const cleanName = name && name.trim() ? name.trim() : to.split("@")[0];
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Seu Código de Confirmação</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0b0a16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
+      <div style="max-width: 540px; margin: 0 auto; padding: 32px 20px;">
+        
+        <!-- HEADER LOGO -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="https://pegueiotexto.com.br" style="text-decoration: none;">
+            <img src="https://pegueiotexto.com.br/logo.png" alt="Peguei o Texto" width="160" style="height: auto; max-height: 46px; object-fit: contain;" />
+          </a>
+        </div>
+
+        <!-- MAIN CARD -->
+        <div style="background: #14122a; border: 1px solid rgba(124, 58, 237, 0.35); border-radius: 16px; padding: 32px 26px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); text-align: center;">
+          
+          <!-- BADGE -->
+          <div style="display: inline-block; background: rgba(124, 58, 237, 0.18); border: 1px solid rgba(124, 58, 237, 0.5); color: #C4B5FD; padding: 5px 14px; border-radius: 9999px; font-size: 13px; font-weight: 700; margin-bottom: 18px;">
+            🔒 Confirmação de Cadastro
+          </div>
+
+          <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 12px; color: #ffffff;">
+            Olá, ${cleanName}!
+          </h1>
+
+          <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 24px;">
+            Para validar seu e-mail e <strong>liberar seus 5 minutos grátis</strong> de transcrição no Peguei o Texto, insira o código de segurança abaixo:
+          </p>
+
+          <!-- OTP CODE BOX -->
+          <div style="background: rgba(124, 58, 237, 0.12); border: 2px dashed #7C3AED; border-radius: 14px; padding: 20px 16px; margin-bottom: 24px;">
+            <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 36px; font-weight: 900; letter-spacing: 10px; color: #A78BFA; text-shadow: 0 0 20px rgba(139, 92, 246, 0.4); text-indent: 10px;">
+              ${code}
+            </div>
+          </div>
+
+          <p style="font-size: 13px; color: #94a3b8; margin: 0 0 8px;">
+            ⏱️ Este código é válido por <strong>10 minutos</strong>.
+          </p>
+          <p style="font-size: 12px; color: #64748b; margin: 0;">
+            Se você não tentou criar uma conta no Peguei o Texto, ignore este e-mail.
+          </p>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #64748b;">
+          Peguei o Texto • Transcrição inteligente com IA<br>
+          <span style="font-size: 11px; color: #475569;">@pegueiotexto.com.br #${code}</span>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject: `🔒 Seu código de confirmação: ${code} - Peguei o Texto`,
+      text: `Olá, ${cleanName}!\n\nSeu código de confirmação no Peguei o Texto é: ${code}\n\nEste código expira em 10 minutos.\n\n@pegueiotexto.com.br #${code}`,
+      html,
+    });
+    return true;
+  } catch (err: any) {
+    console.error("[Email] Falha ao enviar código OTP:", err.message);
+    return false;
+  }
+}
+
