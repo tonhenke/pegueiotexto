@@ -203,7 +203,7 @@ export function getCleanPlanName(planId: string): string {
 // USERS STORE
 // ==========================================
 
-function getSupabaseServiceKey(): string | undefined {
+export function getSupabaseServiceKey(): string | undefined {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return process.env.SUPABASE_SERVICE_ROLE_KEY;
   }

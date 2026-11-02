@@ -22,8 +22,14 @@ function LoginForm() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (refParam) {
-        localStorage.setItem("pegueiotexto_ref", refParam);
+      let ref = refParam;
+      if (!ref) {
+        const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
+        if (match) ref = decodeURIComponent(match[1]);
+      }
+      if (ref) {
+        localStorage.setItem("pegueiotexto_ref", ref);
+        document.cookie = `pegueiotexto_ref=${encodeURIComponent(ref)};path=/;max-age=${60 * 24 * 60 * 60}`;
         setHasReferral(true);
         setIsLogin(false);
       } else {
@@ -47,7 +53,13 @@ function LoginForm() {
     setErrorMsg("");
     setLoading(true);
     try {
-      const target = `${window.location.origin}/dashboard?auto_transcribe=true`;
+      let refToPass = refParam || (typeof window !== "undefined" ? localStorage.getItem("pegueiotexto_ref") : null);
+      if (!refToPass && typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
+        if (match) refToPass = decodeURIComponent(match[1]);
+      }
+      const refQuery = refToPass ? `&ref=${encodeURIComponent(refToPass)}` : "";
+      const target = `${window.location.origin}/dashboard?auto_transcribe=true${refQuery}`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -120,13 +132,43 @@ function LoginForm() {
 
         if (error) throw error;
 
-        // Record new account in admin dashboard
+        // Record new account in admin dashboard & claim referral bonus immediately
         try {
-          const refSource =
+          let effectiveRef =
             (typeof window !== "undefined" &&
-              (localStorage.getItem("pending_referral_code") ||
+              (localStorage.getItem("pegueiotexto_ref") ||
+                localStorage.getItem("pending_referral_code") ||
                 localStorage.getItem("peguei_affiliate_click_code"))) ||
-            "organico";
+            "";
+
+          if (!effectiveRef && typeof document !== "undefined") {
+            const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
+            if (match) effectiveRef = decodeURIComponent(match[1]);
+          }
+
+          const refSource = effectiveRef ? `convite_${effectiveRef}` : "organico";
+
+          // Claim referral immediately if there is a referral code and a created user
+          if (data.user?.id && effectiveRef) {
+            fetch("/api/referral", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ref_code: effectiveRef,
+                new_user_id: data.user.id,
+                new_user_email: email.trim(),
+              }),
+            })
+              .then((res) => res.json())
+              .then((refRes) => {
+                if (refRes.success) {
+                  localStorage.removeItem("pegueiotexto_ref");
+                  localStorage.removeItem("pending_referral_code");
+                  document.cookie = "pegueiotexto_ref=;path=/;max-age=0";
+                }
+              })
+              .catch(() => {});
+          }
 
           fetch("/api/admin/users?action=record_user", {
             method: "POST",

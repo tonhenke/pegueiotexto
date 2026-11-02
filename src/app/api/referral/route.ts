@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import fs from "fs";
 import path from "path";
+import {
+  readStoreJSON,
+  writeStoreJSON,
+  getSupabaseServiceKey,
+  upsertUser,
+} from "@/lib/admin-store";
 
-// Persistent file storage fallback for referrals
-const DATA_DIR = path.join(process.cwd(), "data");
-const REFERRALS_FILE = path.join(DATA_DIR, "referrals.json");
-
-interface ReferralRecord {
+export interface ReferralRecord {
   id: string;
   referrer_id: string;
+  referrer_email?: string;
   referred_user_id: string;
   referred_email?: string;
   minutes_awarded_referrer: number;
@@ -17,41 +19,23 @@ interface ReferralRecord {
   created_at: string;
 }
 
-function getStoredReferrals(): ReferralRecord[] {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(REFERRALS_FILE)) {
-      fs.writeFileSync(REFERRALS_FILE, JSON.stringify([]), "utf-8");
-      return [];
-    }
-    const raw = fs.readFileSync(REFERRALS_FILE, "utf-8");
-    return JSON.parse(raw) || [];
-  } catch (err) {
-    console.error("[Referral] Erro ao ler referrals.json:", err);
-    return [];
-  }
+const REFERRALS_FILE = path.join(process.cwd(), "data", "referrals.json");
+
+export function getStoredReferrals(): ReferralRecord[] {
+  return readStoreJSON<ReferralRecord>(REFERRALS_FILE);
 }
 
-function saveStoredReferrals(records: ReferralRecord[]) {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(REFERRALS_FILE, JSON.stringify(records, null, 2), "utf-8");
-  } catch (err) {
-    console.error("[Referral] Erro ao salvar referrals.json:", err);
-  }
+export function saveStoredReferrals(records: ReferralRecord[]) {
+  writeStoreJSON(REFERRALS_FILE, records);
 }
 
-function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cufpliitnvavlygsrrzu.supabase.co";
-  const supabaseKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "sb_publishable_VYRSuA8NTBM_cqQSUdtwRA_Spnnao2Y";
-  return createClient(supabaseUrl, supabaseKey);
+function getPrivilegedSupabaseClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cufpliitnvavlygsrrzu.supabase.co";
+  const serviceKey = getSupabaseServiceKey() || "";
+  return createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 // GET: Returns referral stats for a user
@@ -63,13 +47,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ detail: "user_id é obrigatório." }, { status: 400 });
   }
 
-  const referralCode = userId.slice(0, 8);
+  const referralCode = userId.slice(0, 8).toLowerCase();
   const referrals = getStoredReferrals();
-  const userReferrals = referrals.filter((r) => r.referrer_id === userId);
+  const userReferrals = referrals.filter(
+    (r) =>
+      r.referrer_id === userId ||
+      (r.referrer_id && r.referrer_id.toLowerCase().startsWith(referralCode))
+  );
   const wasReferred = referrals.some((r) => r.referred_user_id === userId);
 
   const totalInvites = userReferrals.length;
-  const totalMinutesEarned = userReferrals.reduce((acc, r) => acc + (r.minutes_awarded_referrer || 10), 0);
+  const totalMinutesEarned = userReferrals.reduce(
+    (acc, r) => acc + (r.minutes_awarded_referrer || 10),
+    0
+  );
 
   return NextResponse.json({
     referral_code: referralCode,
@@ -79,6 +70,9 @@ export async function GET(request: Request) {
     history: userReferrals.map((r) => ({
       created_at: r.created_at,
       minutes: r.minutes_awarded_referrer,
+      referred_email: r.referred_email
+        ? r.referred_email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+        : undefined,
     })),
   });
 }
@@ -90,22 +84,34 @@ export async function POST(request: Request) {
     const { ref_code, new_user_id, new_user_email } = body;
 
     if (!ref_code || !new_user_id) {
-      return NextResponse.json({ detail: "ref_code e new_user_id são obrigatórios." }, { status: 400 });
+      return NextResponse.json(
+        { detail: "ref_code e new_user_id são obrigatórios." },
+        { status: 400 }
+      );
     }
 
     const cleanRef = String(ref_code).trim().toLowerCase();
 
     // 1. Prevent self-referral
     if (new_user_id.toLowerCase().startsWith(cleanRef)) {
-      return NextResponse.json({
-        success: false,
-        message: "Não é permitido utilizar o próprio link de convite.",
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Não é permitido utilizar o próprio link de convite.",
+        },
+        { status: 400 }
+      );
     }
 
     // 2. Check if this new user has already claimed a referral bonus
     const referrals = getStoredReferrals();
-    const alreadyClaimed = referrals.some((r) => r.referred_user_id === new_user_id);
+    const alreadyClaimed = referrals.some(
+      (r) =>
+        r.referred_user_id === new_user_id ||
+        (new_user_email &&
+          r.referred_email &&
+          r.referred_email.toLowerCase() === new_user_email.toLowerCase())
+    );
 
     if (alreadyClaimed) {
       return NextResponse.json({
@@ -115,43 +121,74 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Find the referrer user in Supabase profiles
-    const sb = getSupabaseClient();
-    const { data: allProfiles, error: profErr } = await sb
+    // 3. Find the referrer user in Supabase profiles (using privileged client to bypass RLS)
+    const sb = getPrivilegedSupabaseClient();
+    const { data: allProfiles } = await sb
       .from("profiles")
       .select("id, name, email, credits_minutes");
 
-    let referrer = null;
+    let referrer: any = null;
     if (allProfiles && allProfiles.length > 0) {
-      referrer = allProfiles.find((p) => p.id.toLowerCase().startsWith(cleanRef));
+      referrer = allProfiles.find(
+        (p) =>
+          p.id.toLowerCase().startsWith(cleanRef) ||
+          p.id.replace(/-/g, "").toLowerCase().startsWith(cleanRef) ||
+          (p.email && p.email.toLowerCase() === cleanRef) ||
+          (p.email && p.email.toLowerCase().split("@")[0] === cleanRef)
+      );
     }
 
-    // If referrer profile not found via prefix search
+    // Fallback: search in Supabase Auth users
     if (!referrer) {
-      // Try exact ID match
-      const { data: exactUser } = await sb
-        .from("profiles")
-        .select("id, name, email, credits_minutes")
-        .eq("id", cleanRef)
-        .single();
-      if (exactUser) {
-        referrer = exactUser;
+      try {
+        const { data: authData } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        if (authData?.users) {
+          const matchedAuth = authData.users.find(
+            (u) =>
+              u.id.toLowerCase().startsWith(cleanRef) ||
+              (u.email && u.email.toLowerCase() === cleanRef) ||
+              (u.email && u.email.toLowerCase().split("@")[0] === cleanRef)
+          );
+          if (matchedAuth) {
+            referrer = {
+              id: matchedAuth.id,
+              name:
+                matchedAuth.user_metadata?.full_name ||
+                matchedAuth.email?.split("@")[0] ||
+                "Usuário",
+              email: matchedAuth.email || "",
+              credits_minutes: 5,
+            };
+          }
+        }
+      } catch (authErr) {
+        console.warn("[Referral] Fallback auth listUsers error:", authErr);
       }
     }
 
-    // If referrer cannot be determined
     if (!referrer) {
-      return NextResponse.json({
-        success: false,
-        message: "Código de convite inválido ou usuário que indicou não encontrado.",
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Código de convite inválido ou usuário que indicou não encontrado.",
+        },
+        { status: 404 }
+      );
     }
 
-    if (referrer.id === new_user_id) {
-      return NextResponse.json({
-        success: false,
-        message: "Não é permitido utilizar o próprio convite.",
-      }, { status: 400 });
+    if (
+      referrer.id === new_user_id ||
+      (new_user_email &&
+        referrer.email &&
+        referrer.email.toLowerCase() === new_user_email.toLowerCase())
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Não é permitido utilizar o próprio convite.",
+        },
+        { status: 400 }
+      );
     }
 
     // 4. Award credits:
@@ -166,11 +203,21 @@ export async function POST(request: Request) {
       })
       .eq("id", referrer.id);
 
+    // Sync referrer with admin-store
+    try {
+      upsertUser({
+        id: referrer.id,
+        email: referrer.email,
+        name: referrer.name,
+        credits_minutes: referrerNewCredits,
+      });
+    } catch {}
+
     // +10 minutes to the new invited user
     let newBalance = 15; // default 5 free + 10 referral bonus
     const { data: invitedProfile } = await sb
       .from("profiles")
-      .select("id, credits_minutes")
+      .select("id, credits_minutes, email, name")
       .eq("id", new_user_id)
       .single();
 
@@ -194,10 +241,33 @@ export async function POST(request: Request) {
       });
     }
 
+    // Sync new user with admin-store
+    try {
+      upsertUser({
+        id: new_user_id,
+        email: new_user_email || invitedProfile?.email || "",
+        name: invitedProfile?.name,
+        credits_minutes: newBalance,
+        referral_source: `convite_${cleanRef}`,
+      });
+    } catch {}
+
+    // Persist metadata in Supabase Auth user for audit/recovery
+    try {
+      await sb.auth.admin.updateUserById(new_user_id, {
+        user_metadata: {
+          referred_by_id: referrer.id,
+          referral_code_used: cleanRef,
+          referral_claimed_at: new Date().toISOString(),
+        },
+      });
+    } catch {}
+
     // 5. Save referral record persistently
     const newRecord: ReferralRecord = {
       id: `ref_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       referrer_id: referrer.id,
+      referrer_email: referrer.email,
       referred_user_id: new_user_id,
       referred_email: new_user_email,
       minutes_awarded_referrer: 10,
@@ -217,9 +287,12 @@ export async function POST(request: Request) {
     });
   } catch (err: any) {
     console.error("[Referral Claim] Erro no processamento:", err);
-    return NextResponse.json({
-      success: false,
-      detail: err.message || "Erro interno ao processar indicação.",
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        detail: err.message || "Erro interno ao processar indicação.",
+      },
+      { status: 500 }
+    );
   }
 }

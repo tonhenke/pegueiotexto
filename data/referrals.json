@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ref_1793649813458_u280a",
+    "referrer_id": "a625ae45-540a-4d47-b9cd-f012f6ad6abd",
+    "referrer_email": "katidemori@gmail.com",
+    "referred_user_id": "ab7ee552-d2a4-48f9-bf1f-ed6c22a86066",
+    "referred_email": "tainalf.mkt@gmail.com",
+    "minutes_awarded_referrer": 10,
+    "minutes_awarded_referred": 10,
+    "created_at": "2026-11-02T20:03:33.458Z"
+  },
+  {
+    "id": "ref_1793649815078_h9a1i",
+    "referrer_id": "a625ae45-540a-4d47-b9cd-f012f6ad6abd",
+    "referrer_email": "katidemori@gmail.com",
+    "referred_user_id": "7f9804fa-1bec-45d1-9bda-42287f980d47",
+    "referred_email": "nana_laydner@hotmail.com",
+    "minutes_awarded_referrer": 10,
+    "minutes_awarded_referred": 10,
+    "created_at": "2026-11-02T20:03:35.078Z"
+  },
+  {
+    "id": "ref_1793649815993_8xqfc",
+    "referrer_id": "a625ae45-540a-4d47-b9cd-f012f6ad6abd",
+    "referrer_email": "katidemori@gmail.com",
+    "referred_user_id": "e900897f-5dbc-40df-bbcb-4c8ec809f460",
+    "referred_email": "nicolepanata@hotmail.com",
+    "minutes_awarded_referrer": 10,
+    "minutes_awarded_referred": 10,
+    "created_at": "2026-11-02T20:03:35.993Z"
+  },
+  {
+    "id": "ref_1793649816920_qvg6c",
+    "referrer_id": "a625ae45-540a-4d47-b9cd-f012f6ad6abd",
+    "referrer_email": "katidemori@gmail.com",
+    "referred_user_id": "0e4feb74-05e4-4537-8495-f6eb16249b35",
+    "referred_email": "faculdadealice57@gmail.com",
+    "minutes_awarded_referrer": 10,
+    "minutes_awarded_referred": 10,
+    "created_at": "2026-11-02T20:03:36.920Z"
+  }
+]

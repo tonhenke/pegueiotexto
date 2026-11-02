@@ -233,7 +233,20 @@ export default function DashboardPage() {
 
         // 4. Check & Claim pending referral bonus if present
         if (typeof window !== "undefined") {
-          const pendingRef = localStorage.getItem("pegueiotexto_ref");
+          let pendingRef =
+            localStorage.getItem("pegueiotexto_ref") ||
+            localStorage.getItem("pending_referral_code");
+
+          if (!pendingRef && typeof document !== "undefined") {
+            const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
+            if (match) pendingRef = decodeURIComponent(match[1]);
+          }
+
+          if (!pendingRef) {
+            const urlParams = new URLSearchParams(window.location.search);
+            pendingRef = urlParams.get("ref");
+          }
+
           if (pendingRef) {
             try {
               const refRes = await fetch("/api/referral", {
@@ -255,8 +268,12 @@ export default function DashboardPage() {
                   `🎉 Parabéns! Você recebeu +${refData.minutes_awarded} minutos bônus de boas-vindas pelo convite de ${refData.referrer_name}! Seu saldo agora é de ${refData.new_balance} minutos.`
                 );
                 localStorage.removeItem("pegueiotexto_ref");
+                localStorage.removeItem("pending_referral_code");
+                document.cookie = "pegueiotexto_ref=;path=/;max-age=0";
               } else if (refData.already_claimed) {
                 localStorage.removeItem("pegueiotexto_ref");
+                localStorage.removeItem("pending_referral_code");
+                document.cookie = "pegueiotexto_ref=;path=/;max-age=0";
               }
             } catch (refErr) {
               console.error("Erro ao resgatar indicação:", refErr);
