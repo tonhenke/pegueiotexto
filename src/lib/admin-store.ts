@@ -246,6 +246,10 @@ export async function getUsersList(): Promise<UserRecord[]> {
 
           const existing = userMap.get(email);
           const metaName = su.user_metadata?.full_name || su.user_metadata?.name || email.split("@")[0];
+          const referralCodeUsed = su.user_metadata?.referral_code_used;
+          const authSource = referralCodeUsed
+            ? `convite_${referralCodeUsed}`
+            : (su.app_metadata?.provider === "google" ? "google_oauth" : "organico");
 
           if (!existing) {
             userMap.set(email, {
@@ -255,7 +259,7 @@ export async function getUsersList(): Promise<UserRecord[]> {
               plan: "gratuito",
               plan_name: "Gratuito",
               credits_minutes: 5,
-              referral_source: "organico",
+              referral_source: authSource,
               created_at: su.created_at || new Date().toISOString(),
               last_active_at: su.last_sign_in_at || su.created_at || new Date().toISOString(),
             });
@@ -271,9 +275,32 @@ export async function getUsersList(): Promise<UserRecord[]> {
             if (su.last_sign_in_at) {
               existing.last_active_at = su.last_sign_in_at;
             }
+            // If user has a confirmed referral in metadata, ensure referral_source is set
+            if (referralCodeUsed && (!existing.referral_source || existing.referral_source === "organico" || existing.referral_source === "google_oauth")) {
+              existing.referral_source = `convite_${referralCodeUsed}`;
+            }
           }
         }
       }
+
+      // 1.5 Reconcile with referrals.json so all invited users receive the convite tag
+      try {
+        const REFERRALS_FILE = path.join(DATA_DIR, "referrals.json");
+        const referrals = readStoreJSON<any>(REFERRALS_FILE);
+        for (const r of referrals) {
+          const refCode = r.referrer_id ? r.referrer_id.slice(0, 8) : "";
+          if (!refCode) continue;
+          const refTag = `convite_${refCode}`;
+          const targetUser = Array.from(userMap.values()).find(
+            (u) =>
+              (r.referred_user_id && u.id === r.referred_user_id) ||
+              (r.referred_email && u.email.toLowerCase().trim() === r.referred_email.toLowerCase().trim())
+          );
+          if (targetUser && (!targetUser.referral_source || targetUser.referral_source === "organico" || targetUser.referral_source === "google_oauth")) {
+            targetUser.referral_source = refTag;
+          }
+        }
+      } catch {}
 
       // 2. Fetch Profiles table to update plan, credits, and capture any profile-only records
       const { data: profiles } = await sb.from("profiles").select("*");
@@ -386,9 +413,19 @@ export function upsertUser(data: Partial<UserRecord> & { email: string }): UserR
   let userRecord: UserRecord;
 
   if (existingIdx >= 0) {
+    const prevSource = users[existingIdx].referral_source;
+    let effectiveSource = data.referral_source;
+    // Never overwrite an existing referral or affiliate tag with "organico" or empty
+    if (!effectiveSource || effectiveSource === "organico" || effectiveSource === "google_oauth") {
+      if (prevSource && prevSource !== "organico" && prevSource !== "google_oauth") {
+        effectiveSource = prevSource;
+      }
+    }
+
     userRecord = {
       ...users[existingIdx],
       ...data,
+      referral_source: effectiveSource || prevSource || "organico",
       email: cleanEmail,
       plan: planId,
       plan_name: planName,

@@ -68,11 +68,17 @@ export default function DashboardPage() {
         }
 
         if (user.email) {
+          const userMetaRef = user.user_metadata?.referral_code_used;
           const refSource =
+            (userMetaRef ? `convite_${userMetaRef}` : "") ||
             (typeof window !== "undefined" &&
-              (localStorage.getItem("pending_referral_code") ||
-                localStorage.getItem("peguei_affiliate_click_code") ||
-                localStorage.getItem("pegueiotexto_ref"))) ||
+              (localStorage.getItem("pegueiotexto_ref")
+                ? `convite_${localStorage.getItem("pegueiotexto_ref")}`
+                : localStorage.getItem("pending_referral_code")
+                ? `convite_${localStorage.getItem("pending_referral_code")}`
+                : localStorage.getItem("peguei_affiliate_click_code")
+                ? `afiliado_${localStorage.getItem("peguei_affiliate_click_code")}`
+                : null)) ||
             (user.app_metadata?.provider === "google" ? "google_oauth" : "organico");
 
           fetch("/api/admin/users?action=record_user", {
