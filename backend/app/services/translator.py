@@ -67,25 +67,43 @@ def translate_transcription(
 
         user_content = f"Texto a ser traduzido para {lang_name}:\n\n{prompt_text}"
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_content}
-            ],
-            temperature=0.3,
-            max_tokens=3500
-        )
+        candidate_models = [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "llama3-70b-8192",
+            "llama3-8b-8192"
+        ]
 
-        translated_result = response.choices[0].message.content.strip()
+        last_error = None
+        for model_name in candidate_models:
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.3,
+                    max_tokens=3500
+                )
 
-        return {
-            "success": True,
-            "translated_text": translated_result,
-            "target_language": lang_code,
-            "target_language_name": lang_name,
-            "engine": "Llama 3.3 70B (Groq)"
-        }
+                translated_result = response.choices[0].message.content.strip()
+                if translated_result:
+                    return {
+                        "success": True,
+                        "translated_text": translated_result,
+                        "target_language": lang_code,
+                        "target_language_name": lang_name,
+                        "engine": f"{model_name} (Groq)"
+                    }
+            except Exception as model_err:
+                err_msg = str(model_err)
+                print(f"[Translator] Modelo {model_name} indisponível ou com erro: {err_msg}")
+                last_error = err_msg
+                continue
+
+        if last_error:
+            raise Exception(last_error)
     except Exception as e:
         print(f"[Translator] Erro ao chamar Groq LLM para tradução: {e}")
         return {

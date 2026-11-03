@@ -46,26 +46,43 @@ def summarize_transcription(text: str, title: str = "") -> Dict[str, Any]:
 
         user_content = f"Título do conteúdo: {title or 'Conteúdo em Áudio'}\n\nTranscrição:\n{prompt_text}"
 
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_instruction},
-                {"role": "user", "content": user_content}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.3,
-            max_tokens=1000
-        )
+        candidate_models = [
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-versatile",
+            "llama3-70b-8192",
+            "llama3-8b-8192"
+        ]
 
-        result_raw = response.choices[0].message.content
-        data = json.loads(result_raw)
+        last_error = None
+        for model_name in candidate_models:
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_instruction},
+                        {"role": "user", "content": user_content}
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.3,
+                    max_tokens=1000
+                )
 
-        return {
-            "success": True,
-            "executive_summary": data.get("executive_summary", "Resumo processado com sucesso."),
-            "key_points": data.get("key_points", []),
-            "takeaway": data.get("takeaway", "")
-        }
+                result_raw = response.choices[0].message.content
+                data = json.loads(result_raw)
+
+                return {
+                    "success": True,
+                    "executive_summary": data.get("executive_summary", "Resumo processado com sucesso."),
+                    "key_points": data.get("key_points", []),
+                    "takeaway": data.get("takeaway", ""),
+                    "engine": f"{model_name} (Groq)"
+                }
+            except Exception as model_err:
+                last_error = model_err
+                continue
+
+        if last_error:
+            raise last_error
     except Exception as e:
         print(f"[Summarizer] Erro ao chamar Groq LLM: {e}")
         # Graceful fallback: produce structured summary from the text rather than crashing
