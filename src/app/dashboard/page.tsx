@@ -691,12 +691,12 @@ export default function DashboardPage() {
                 border: activePlanCfg.border
               },
               {
-                icon: <CreditCard size={20} color="#6EE7B7" />,
+                icon: <CreditCard size={20} color={currentPlan === "gratuito" && credits <= 1 ? "#F59E0B" : "#6EE7B7"} />,
                 label: "Saldo Disponível",
                 value: `${credits} min`,
-                subtext: "Liberado para uso",
-                bg: "rgba(16,185,129,0.08)",
-                border: "rgba(16,185,129,0.25)"
+                subtext: currentPlan === "gratuito" && credits <= 1 ? "⚠️ Quase esgotado" : "Liberado para uso",
+                bg: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.08)",
+                border: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.35)" : "rgba(16,185,129,0.25)"
               },
               {
                 icon: <FileText size={20} color="#A78BFA" />,

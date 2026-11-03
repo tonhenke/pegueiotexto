@@ -105,6 +105,8 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const [isExportingTranslatedDocx, setIsExportingTranslatedDocx] = useState<boolean>(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [userCredits, setUserCredits] = useState<number | null>(null);
+  const [isDismissedWarning, setIsDismissedWarning] = useState<boolean>(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const checkUserPlan = async () => {
@@ -114,6 +116,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
       if (!session) {
         setIsPaidUser(false);
         setUserPlan("gratuito");
+        setUserCredits(null);
         return;
       }
       const userEmail = session.user.email?.toLowerCase().trim() || "";
@@ -134,12 +137,18 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         const paid = isTon || Boolean(data.is_paid) || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(planStr);
         setIsPaidUser(paid);
         setUserPlan(data.plan || (isTon ? "ilimitado" : "gratuito"));
+        if (typeof data.credits_minutes === "number") {
+          setUserCredits(data.credits_minutes);
+        }
       } else {
-        const { data: profile } = await supabase.from("profiles").select("plan, email").eq("id", session.user.id).single();
+        const { data: profile } = await supabase.from("profiles").select("plan, email, credits_minutes").eq("id", session.user.id).single();
         const plan = String(profile?.plan || "").toLowerCase();
         const paid = isTon || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(plan) || profile?.email === "tonhenke@gmail.com";
         setIsPaidUser(paid);
         setUserPlan(plan || (isTon ? "ilimitado" : "gratuito"));
+        if (typeof profile?.credits_minutes === "number") {
+          setUserCredits(profile.credits_minutes);
+        }
       }
     } catch (e) {
       console.error("Erro ao verificar plano:", e);
@@ -168,6 +177,18 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           }
         });
       }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleCreditsUpdate = (e: any) => {
+      if (typeof e.detail?.credits_remaining === "number") {
+        setUserCredits(e.detail.credits_remaining);
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("credits_updated", handleCreditsUpdate);
+      return () => window.removeEventListener("credits_updated", handleCreditsUpdate);
     }
   }, []);
 
@@ -509,6 +530,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   };
 
   const canSubmit = mode === "url" ? url.trim().length > 5 : !!file;
+  const showLowCreditsWarning = !isPaidUser && !isDismissedWarning && userCredits !== null && userCredits <= 1;
 
   const progressLabel = isEnglish
     ? progress < 25
@@ -567,6 +589,80 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* LOW CREDITS WARNING (Option 3 - Compact Inline Bar) */}
+      {showLowCreditsWarning && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            background: "linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(234, 88, 12, 0.08) 100%)",
+            border: "1px solid rgba(245, 158, 11, 0.35)",
+            borderRadius: "12px",
+            padding: "10px 16px",
+            marginBottom: "20px",
+            fontSize: "13px",
+            color: "#FDE68A",
+            boxShadow: "0 4px 20px rgba(245, 158, 11, 0.08)",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", flex: 1, minWidth: 260 }}>
+            <span style={{ fontSize: "16px", flexShrink: 0 }}>⏳</span>
+            <span>
+              {isEnglish ? (
+                <>
+                  <strong>Notice:</strong> Less than 1 free minute remaining.{" "}
+                  <span style={{ color: "#FBBF24", fontWeight: 600 }}>Refill from R$ 4,90</span> to transcribe longer media.
+                </>
+              ) : (
+                <>
+                  <strong>Atenção:</strong> Resta menos de 1 minuto no seu saldo gratuito.{" "}
+                  <span style={{ color: "#FBBF24", fontWeight: 600 }}>Recarregue minutos a partir de R$ 4,90</span> para transcrever vídeos maiores.
+                </>
+              )}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            <Link
+              href={isEnglish ? "/en/pricing" : "/precos"}
+              style={{
+                background: "linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)",
+                color: "#FFFFFF",
+                fontSize: "12px",
+                fontWeight: 700,
+                padding: "6px 14px",
+                borderRadius: "8px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                boxShadow: "0 2px 10px rgba(245, 158, 11, 0.3)",
+              }}
+            >
+              <Zap size={13} fill="currentColor" /> {isEnglish ? "View Plans ↗" : "Ver Planos ↗"}
+            </Link>
+            <button
+              onClick={() => setIsDismissedWarning(true)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(253, 230, 138, 0.6)",
+                cursor: "pointer",
+                fontSize: "18px",
+                lineHeight: 1,
+                padding: "2px 4px",
+              }}
+              title={isEnglish ? "Dismiss" : "Fechar aviso"}
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 
