@@ -11,12 +11,25 @@ import {
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
   FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
-  Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu 
+  Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu, 
+  Languages, Globe, RotateCcw
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
 import AccountSidebarDrawer from "@/components/AccountSidebarDrawer";
 import DashboardPromoBanner from "@/components/DashboardPromoBanner";
+
+const TRANSLATION_LANGUAGES = [
+  { code: "pt", name: "Português", flag: "🇧🇷" },
+  { code: "en", name: "Inglês (English)", flag: "🇺🇸" },
+  { code: "es", name: "Espanhol (Español)", flag: "🇪🇸" },
+  { code: "fr", name: "Francês (Français)", flag: "🇫🇷" },
+  { code: "de", name: "Alemão (Deutsch)", flag: "🇩🇪" },
+  { code: "it", name: "Italiano", flag: "🇮🇹" },
+  { code: "ja", name: "Japonês (日本語)", flag: "🇯🇵" },
+  { code: "zh", name: "Chinês (中文)", flag: "🇨🇳" },
+  { code: "ru", name: "Russo (Русский)", flag: "🇷🇺" },
+];
 
 export default function DashboardPage() {
   const supabase = createClient();
@@ -324,6 +337,31 @@ export default function DashboardPage() {
   const [exportingDocxId, setExportingDocxId] = useState<string | null>(null);
   const [exportingPdfId, setExportingPdfId] = useState<string | null>(null);
 
+  // Translation states for history items
+  const [translationsByItem, setTranslationsByItem] = useState<Record<string, {
+    text: string;
+    langCode: string;
+    langName: string;
+  }>>({});
+  const [targetLangByItem, setTargetLangByItem] = useState<Record<string, string>>({});
+  const [loadingTranslationId, setLoadingTranslationId] = useState<string | null>(null);
+  const [openTranslateItemId, setOpenTranslateItemId] = useState<string | null>(null);
+  const [exportingTransDocxId, setExportingTransDocxId] = useState<string | null>(null);
+  const [proUpgradeModalOpen, setProUpgradeModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("peguei_translations_cache");
+        if (cached) {
+          setTranslationsByItem(JSON.parse(cached));
+        }
+      } catch (e) {
+        console.warn("Error loading cached translations:", e);
+      }
+    }
+  }, []);
+
   const getItemSummaryText = (itemId: string) => {
     const s = summariesByItem[itemId];
     if (!s) return "";
@@ -511,7 +549,85 @@ export default function DashboardPage() {
   };
 
   const isUnlimited = currentPlan === "ilimitado" || currentPlan === "unlimited" || credits >= 900000;
+  const isTon = user?.email?.toLowerCase().trim() === "tonhenke@gmail.com";
+  const isPaidUser = isTon || isUnlimited || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual"].includes(String(currentPlan || "").toLowerCase());
   const activePlanCfg = planConfigs[currentPlan] || (isUnlimited ? planConfigs.ilimitado : planConfigs.gratuito);
+
+  const handleTranslateHistoryItem = async (item: any, langCode?: string) => {
+    if (!isPaidUser) {
+      setProUpgradeModalOpen(true);
+      return;
+    }
+    const target = langCode || targetLangByItem[item.id] || "en";
+    setLoadingTranslationId(item.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {};
+
+      const res = await fetch("/api/transcribe/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          text: item.text_content,
+          target_language: target,
+          title: item.title || "Transcrição",
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTranslationsByItem((prev) => {
+          const updated = {
+            ...prev,
+            [item.id]: {
+              text: data.translated_text,
+              langCode: target,
+              langName: data.target_language_name || target.toUpperCase(),
+            },
+          };
+          try {
+            localStorage.setItem("peguei_translations_cache", JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+        setOpenTranslateItemId(item.id);
+      } else {
+        const errMsg = typeof data?.detail === "string" && data.detail !== "Not Found"
+          ? data.detail
+          : "Não foi possível realizar a tradução neste momento.";
+        alert(errMsg);
+      }
+    } catch (err) {
+      console.error("Erro ao traduzir no histórico:", err);
+      alert("Falha de conexão com o servidor ao traduzir.");
+    } finally {
+      setLoadingTranslationId(null);
+    }
+  };
+
+  const handleExportTranslatedDocx = async (item: any) => {
+    const trans = translationsByItem[item.id];
+    if (!trans) return;
+    setExportingTransDocxId(item.id);
+    try {
+      const docTitle = `${item.title || "Transcrição"} (${trans.langName})`;
+      await exportToDocx(trans.text, docTitle, {
+        duration: item.duration_seconds,
+        platform: item.platform,
+        engine: "Peguei o Texto IA - Tradução",
+      });
+    } catch (err) {
+      console.error("Erro ao exportar Word traduzido:", err);
+      alert("Erro ao exportar arquivo Word (.docx).");
+    } finally {
+      setExportingTransDocxId(null);
+    }
+  };
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
@@ -1095,6 +1211,51 @@ export default function DashboardPage() {
                             </button>
 
                             <button
+                              onClick={() => {
+                                if (!isPaidUser) {
+                                  setProUpgradeModalOpen(true);
+                                  return;
+                                }
+                                setOpenTranslateItemId(openTranslateItemId === item.id ? null : item.id);
+                              }}
+                              style={{
+                                fontSize: "12px",
+                                padding: "6px 14px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                borderRadius: "8px",
+                                background: openTranslateItemId === item.id
+                                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(147, 51, 234, 0.35) 100%)"
+                                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)",
+                                border: openTranslateItemId === item.id
+                                  ? "1px solid rgba(147, 51, 234, 0.6)"
+                                  : "1px solid rgba(59, 130, 246, 0.4)",
+                                color: "#E0E7FF",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                                transition: "all 0.2s ease",
+                              }}
+                              title="Traduzir transcrição para outros idiomas com Inteligência Artificial"
+                            >
+                              <Languages size={13} color="#93C5FD" />
+                              <span>{translationsByItem[item.id] ? "Ver Tradução" : "Traduzir com IA"}</span>
+                              {!isPaidUser && (
+                                <span style={{
+                                  fontSize: "9px",
+                                  fontWeight: 800,
+                                  padding: "2px 5px",
+                                  borderRadius: "4px",
+                                  background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                                  color: "#000",
+                                  letterSpacing: "0.04em",
+                                }}>
+                                  👑 PRO
+                                </span>
+                              )}
+                            </button>
+
+                            <button
                               onClick={() => handleCopyText(item.text_content, `inner-${item.id}`)}
                               className="btn-ghost"
                               style={{
@@ -1229,6 +1390,277 @@ export default function DashboardPage() {
                           </div>
                         )}
 
+                        {/* AI Translation Section */}
+                        {openTranslateItemId === item.id && (
+                          <div style={{
+                            padding: "18px 20px",
+                            marginBottom: "20px",
+                            background: "linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(10, 10, 22, 0.6) 100%)",
+                            borderRadius: "14px",
+                            border: "1px solid rgba(59, 130, 246, 0.35)",
+                            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)"
+                          }}>
+                            {/* Translation Header & Controls */}
+                            <div style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                              marginBottom: "16px",
+                              paddingBottom: "14px",
+                              borderBottom: "1px solid rgba(255, 255, 255, 0.08)"
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <div style={{
+                                  width: 32, height: 32,
+                                  borderRadius: "8px",
+                                  background: "rgba(59, 130, 246, 0.2)",
+                                  display: "flex", alignItems: "center", justifyContent: "center"
+                                }}>
+                                  <Languages size={18} color="#93C5FD" />
+                                </div>
+                                <div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#F1F5F9", margin: 0 }}>
+                                      Tradução com Inteligência Artificial
+                                    </h4>
+                                    <span style={{
+                                      fontSize: "10px",
+                                      fontWeight: 700,
+                                      padding: "2px 6px",
+                                      borderRadius: "4px",
+                                      background: "rgba(16, 185, 129, 0.15)",
+                                      color: "#6EE7B7",
+                                      border: "1px solid rgba(16, 185, 129, 0.3)"
+                                    }}>
+                                      ✓ Plano Pro Ativo
+                                    </span>
+                                  </div>
+                                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+                                    Traduza o texto mantendo o sentido natural, termos técnicos e pontuação.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                                {/* Language selector */}
+                                <select
+                                  value={targetLangByItem[item.id] || "en"}
+                                  onChange={(e) => setTargetLangByItem((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                  disabled={loadingTranslationId === item.id}
+                                  style={{
+                                    padding: "8px 12px",
+                                    background: "rgba(15, 23, 42, 0.8)",
+                                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                                    borderRadius: "8px",
+                                    color: "var(--text-primary)",
+                                    fontSize: "13px",
+                                    outline: "none",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  {TRANSLATION_LANGUAGES.map((lang) => (
+                                    <option key={lang.code} value={lang.code} style={{ background: "#0F172A", color: "#F1F5F9" }}>
+                                      {lang.flag} {lang.name}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {/* Translate action button */}
+                                <button
+                                  onClick={() => handleTranslateHistoryItem(item)}
+                                  disabled={loadingTranslationId === item.id}
+                                  style={{
+                                    fontSize: "13px",
+                                    padding: "8px 16px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    borderRadius: "8px",
+                                    background: "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)",
+                                    color: "#FFF",
+                                    border: "none",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.3)"
+                                  }}
+                                >
+                                  {loadingTranslationId === item.id ? (
+                                    <>
+                                      <Loader2 size={14} className="spin" /> Traduzindo...
+                                    </>
+                                  ) : translationsByItem[item.id] ? (
+                                    <>
+                                      <RotateCcw size={14} /> Traduzir Novamente
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Languages size={14} /> Traduzir Agora
+                                    </>
+                                  )}
+                                </button>
+
+                                <button
+                                  onClick={() => setOpenTranslateItemId(null)}
+                                  className="btn-ghost"
+                                  style={{ padding: "6px 8px", fontSize: "12px" }}
+                                  title="Fechar painel de tradução"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Loading State */}
+                            {loadingTranslationId === item.id && (
+                              <div style={{
+                                padding: "24px",
+                                background: "rgba(59, 130, 246, 0.08)",
+                                borderRadius: "10px",
+                                border: "1px dashed rgba(59, 130, 246, 0.4)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "14px"
+                              }}>
+                                <Loader2 size={24} className="spin" color="#93C5FD" />
+                                <div>
+                                  <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                                    Traduzindo transcrição com Inteligência Artificial...
+                                  </p>
+                                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "3px 0 0" }}>
+                                    Convertendo o áudio transcrito para o idioma selecionado com máxima fidelidade.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Translated Content */}
+                            {!loadingTranslationId && translationsByItem[item.id] && (
+                              <div>
+                                <div style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  marginBottom: "12px",
+                                  flexWrap: "wrap",
+                                  gap: "8px"
+                                }}>
+                                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#93C5FD" }}>
+                                    Texto Traduzido ({translationsByItem[item.id].langName}):
+                                  </span>
+
+                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <button
+                                      onClick={() => handleCopyText(translationsByItem[item.id].text, `trans-${item.id}`)}
+                                      className="btn-ghost"
+                                      style={{
+                                        fontSize: "12px",
+                                        padding: "6px 12px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px",
+                                        borderRadius: "6px",
+                                        background: copiedId === `trans-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                                        color: copiedId === `trans-${item.id}` ? "#6EE7B7" : "var(--text-secondary)"
+                                      }}
+                                    >
+                                      {copiedId === `trans-${item.id}` ? (
+                                        <>
+                                          <Check size={13} color="#6EE7B7" /> Copiado!
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy size={13} /> Copiar Tradução
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <button
+                                      onClick={() => exportToTxt(translationsByItem[item.id].text, `${item.title || "transcricao"}_${translationsByItem[item.id].langCode}`)}
+                                      className="btn-ghost"
+                                      style={{
+                                        fontSize: "12px",
+                                        padding: "6px 12px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px",
+                                        borderRadius: "6px",
+                                        color: "var(--text-secondary)"
+                                      }}
+                                    >
+                                      <FileText size={13} /> Baixar .TXT
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleExportTranslatedDocx(item)}
+                                      disabled={exportingTransDocxId === item.id}
+                                      className="btn-ghost"
+                                      style={{
+                                        fontSize: "12px",
+                                        padding: "6px 12px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "5px",
+                                        borderRadius: "6px",
+                                        background: "rgba(59, 130, 246, 0.1)",
+                                        borderColor: "rgba(59, 130, 246, 0.35)",
+                                        color: "#93C5FD"
+                                      }}
+                                    >
+                                      {exportingTransDocxId === item.id ? (
+                                        <>
+                                          <Loader2 size={13} className="spin" /> Gerando Word...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <FileDown size={13} /> Baixar Word (.DOCX)
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div style={{
+                                  maxHeight: "340px",
+                                  overflowY: "auto",
+                                  padding: "16px",
+                                  background: "rgba(0, 0, 0, 0.35)",
+                                  borderRadius: "10px",
+                                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                                  fontSize: "14px",
+                                  lineHeight: 1.7,
+                                  color: "var(--text-primary)",
+                                  whiteSpace: "pre-wrap"
+                                }}>
+                                  {translationsByItem[item.id].text}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Empty State when opened but not translated yet */}
+                            {!loadingTranslationId && !translationsByItem[item.id] && (
+                              <div style={{ textAlign: "center", padding: "24px 16px" }}>
+                                <div style={{
+                                  width: 44, height: 44,
+                                  background: "rgba(59, 130, 246, 0.12)",
+                                  borderRadius: "12px",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  margin: "0 auto 12px"
+                                }}>
+                                  <Globe size={22} color="#93C5FD" />
+                                </div>
+                                <p style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, margin: "0 0 4px" }}>
+                                  Pronto para traduzir este texto
+                                </p>
+                                <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
+                                  Selecione o idioma de destino no seletor acima e clique em <strong>Traduzir Agora</strong> para converter este texto com IA em segundos.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {/* Full transcript viewer with clickable timestamps & search highlighting */}
                         <div>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
@@ -1275,6 +1707,74 @@ export default function DashboardPage() {
         onLogout={handleLogout}
         initialSection={sidebarInitialSection}
       />
+
+      {/* Pro Upgrade Modal for Free Users trying Translation */}
+      {proUpgradeModalOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "16px"
+        }} onClick={() => setProUpgradeModalOpen(false)}>
+          <div style={{
+            maxWidth: 480,
+            width: "100%",
+            background: "linear-gradient(180deg, #181829 0%, #0F0F1A 100%)",
+            borderRadius: "20px",
+            border: "1px solid rgba(124, 58, 237, 0.4)",
+            padding: "32px 28px",
+            boxShadow: "0 24px 60px rgba(0, 0, 0, 0.6)",
+            textAlign: "center"
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              width: 60, height: 60,
+              borderRadius: "18px",
+              background: "linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)",
+              border: "1px solid rgba(245, 158, 11, 0.4)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 18px",
+              fontSize: "28px"
+            }}>
+              👑
+            </div>
+            <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFF", marginBottom: "8px" }}>
+              Recurso Exclusivo do Plano Pro
+            </h3>
+            <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "24px" }}>
+              A tradução automática para 9 idiomas com Inteligência Artificial (Inglês, Espanhol, Francês, Alemão e mais) é um recurso exclusivo para assinantes dos planos Pro e Business.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Link
+                href="/precos"
+                className="btn-primary"
+                style={{
+                  padding: "12px 24px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  textAlign: "center",
+                  display: "block",
+                  borderRadius: "10px",
+                  textDecoration: "none"
+                }}
+              >
+                Ver Planos com 25% OFF
+              </Link>
+              <button
+                onClick={() => setProUpgradeModalOpen(false)}
+                className="btn-ghost"
+                style={{ padding: "10px 20px", fontSize: "13px" }}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>
