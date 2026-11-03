@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
   Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight,
-  Sparkles, Check, FileDown, Share2, ExternalLink
+  Sparkles, Check, FileDown, Share2, ExternalLink, Languages, Crown, Lock, Globe
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToSrt, exportToVtt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
@@ -46,6 +46,18 @@ const platforms = [
   { name: "Twitch", color: "#9146FF", emoji: "🎮" },
 ];
 
+const TRANSLATION_LANGUAGES = [
+  { code: "en", name: "Inglês (English)", flag: "🇺🇸" },
+  { code: "es", name: "Espanhol (Español)", flag: "🇪🇸" },
+  { code: "pt", name: "Português (Português)", flag: "🇧🇷" },
+  { code: "fr", name: "Francês (Français)", flag: "🇫🇷" },
+  { code: "de", name: "Alemão (Deutsch)", flag: "🇩🇪" },
+  { code: "it", name: "Italiano (Italiano)", flag: "🇮🇹" },
+  { code: "zh", name: "Mandarim (中文)", flag: "🇨🇳" },
+  { code: "ja", name: "Japonês (日本語)", flag: "🇯🇵" },
+  { code: "ru", name: "Russo (Русский)", flag: "🇷🇺" },
+];
+
 interface TranscribeFormProps {
   initialPlaceholder?: string;
   defaultUrl?: string;
@@ -75,7 +87,7 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const [dragOver, setDragOver] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
-  const [resultTab, setResultTab] = useState<"transcript" | "summary" | "srt">("transcript");
+  const [resultTab, setResultTab] = useState<"transcript" | "summary" | "srt" | "translate">("transcript");
   const [summaryData, setSummaryData] = useState<{
     executive_summary?: string;
     key_points?: string[];
@@ -83,11 +95,55 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   } | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryCopied, setSummaryCopied] = useState(false);
+  const [isPaidUser, setIsPaidUser] = useState<boolean>(false);
+  const [userPlan, setUserPlan] = useState<string>("gratuito");
+  const [targetLanguage, setTargetLanguage] = useState<string>("en");
+  const [translatedText, setTranslatedText] = useState<string>("");
+  const [translatedLangName, setTranslatedLangName] = useState<string>("");
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translateCopied, setTranslateCopied] = useState<boolean>(false);
+  const [isExportingTranslatedDocx, setIsExportingTranslatedDocx] = useState<boolean>(false);
   const [isExportingDocx, setIsExportingDocx] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const checkUserPlan = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsPaidUser(false);
+        setUserPlan("gratuito");
+        return;
+      }
+      const token = session.access_token;
+      const res = await fetch("/api/checkout/sync-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const paid = Boolean(data.is_paid) || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(String(data.plan || "").toLowerCase());
+        setIsPaidUser(paid);
+        setUserPlan(data.plan || "gratuito");
+      } else {
+        const { data: profile } = await supabase.from("profiles").select("plan, email").eq("id", session.user.id).single();
+        const plan = String(profile?.plan || "").toLowerCase();
+        const paid = ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(plan) || profile?.email === "tonhenke@gmail.com";
+        setIsPaidUser(paid);
+        setUserPlan(plan || "gratuito");
+      }
+    } catch (e) {
+      console.error("Erro ao verificar plano:", e);
+    }
+  };
+
   useEffect(() => {
+    checkUserPlan();
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       const queryUrl = searchParams.get("url");
@@ -192,6 +248,8 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("credits_updated", { detail: data }));
       }
+
+      checkUserPlan();
 
       setTimeout(() => {
         setStatus("done");
@@ -316,6 +374,84 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     }
   };
 
+  const handleTranslate = async (overrideLang?: string) => {
+    if (!transcript) return;
+    const langToUse = overrideLang || targetLanguage;
+    setIsTranslating(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders: Record<string, string> = session?.access_token
+        ? { Authorization: `Bearer ${session.access_token}` }
+        : {};
+
+      const res = await fetch("/api/transcribe/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders,
+        },
+        body: JSON.stringify({
+          text: transcript,
+          target_language: langToUse,
+          title: resultTitle || "Transcrição",
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTranslatedText(data.translated_text);
+        setTranslatedLangName(data.target_language_name || langToUse);
+        setResultTab("translate");
+      } else {
+        if (res.status === 403) {
+          setIsPaidUser(false);
+        }
+        const errMsg = typeof data?.detail === "string" && data.detail !== "Not Found"
+          ? data.detail
+          : "Não foi possível realizar a tradução neste momento.";
+        alert(errMsg);
+      }
+    } catch (err) {
+      console.error("Erro ao traduzir:", err);
+      alert("Falha de conexão com o servidor ao traduzir.");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  const handleCopyTranslated = () => {
+    if (translatedText) {
+      navigator.clipboard.writeText(translatedText);
+      setTranslateCopied(true);
+      setTimeout(() => setTranslateCopied(false), 2000);
+    }
+  };
+
+  const handleDownloadTranslatedTxt = () => {
+    if (translatedText) {
+      exportToTxt(translatedText, `${resultTitle || "transcricao"}_${targetLanguage}`);
+    }
+  };
+
+  const handleDownloadTranslatedDocx = async () => {
+    if (!translatedText) return;
+    setIsExportingTranslatedDocx(true);
+    try {
+      await exportToDocx(translatedText, {
+        title: `${resultTitle || "Transcrição"} (${translatedLangName || targetLanguage.toUpperCase()})`,
+        duration: resultDuration || undefined,
+        platform: mode === "url" ? "Web" : "Upload",
+        engine: "Peguei o Texto IA - Tradução",
+      });
+    } catch (err) {
+      console.error("Erro ao gerar Word traduzido:", err);
+      alert("Erro ao gerar arquivo Word. Tente novamente.");
+    } finally {
+      setIsExportingTranslatedDocx(false);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -361,6 +497,10 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     setErrorMsg("");
     setInsufficientMsg("");
     setSummaryData(null);
+    setTranslatedText("");
+    setTranslatedLangName("");
+    setIsTranslating(false);
+    setTranslateCopied(false);
     setResultTab("transcript");
   };
 
@@ -866,6 +1006,45 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             >
               <FileCode size={15} /> {isEnglish ? "Subtitles (.SRT)" : "Legendas (.SRT)"}
             </button>
+
+            <button
+              onClick={() => setResultTab("translate")}
+              style={{
+                background: resultTab === "translate" ? "rgba(124, 58, 237, 0.15)" : "rgba(255, 255, 255, 0.03)",
+                color: resultTab === "translate" ? "#C4B5FD" : "var(--text-secondary)",
+                border: resultTab === "translate" ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid var(--border-subtle)",
+                padding: "8px 16px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s",
+                position: "relative"
+              }}
+            >
+              <Languages size={15} color="#A78BFA" />
+              <span>{isEnglish ? "Translate" : "Traduzir"}</span>
+              {!isPaidUser ? (
+                <span style={{
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  background: "linear-gradient(135deg, #F59E0B, #D97706)",
+                  color: "#000",
+                  padding: "2px 6px",
+                  borderRadius: "6px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "3px"
+                }}>
+                  <Crown size={10} /> PRO
+                </span>
+              ) : translatedText ? (
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
+              ) : null}
+            </button>
           </div>
 
           {/* TAB CONTENT: 1. FULL TRANSCRIPT */}
@@ -1087,6 +1266,282 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
               <div className="result-box" style={{ borderRadius: "0 0 16px 16px", border: "none", margin: 0, maxHeight: 380, overflowY: "auto", fontFamily: "monospace", fontSize: "13px", lineHeight: 1.6 }}>
                 {resultSrt || transcript}
               </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: 4. TRANSLATION (PAID PLAN EXCLUSIVE) */}
+          {resultTab === "translate" && (
+            <div className="glass-card" style={{ padding: "24px" }}>
+              {!isPaidUser ? (
+                <div style={{ textAlign: "center", maxWidth: 540, margin: "0 auto", padding: "16px 8px" }}>
+                  <div style={{
+                    width: 58, height: 58,
+                    background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(124, 58, 237, 0.2))",
+                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    borderRadius: "18px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    margin: "0 auto 16px",
+                    boxShadow: "0 8px 24px rgba(245, 158, 11, 0.15)"
+                  }}>
+                    <Crown size={28} color="#F59E0B" />
+                  </div>
+
+                  <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 12px",
+                    borderRadius: "100px",
+                    background: "rgba(245, 158, 11, 0.12)",
+                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                    color: "#FBBF24",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginBottom: "12px"
+                  }}>
+                    <Lock size={12} /> {isEnglish ? "Exclusive Paid Plan Feature" : "Recurso Exclusivo dos Planos Pagos"}
+                  </div>
+
+                  <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "8px" }}>
+                    {isEnglish ? "AI Transcription Translation" : "Tradução de Transcrições com Inteligência Artificial"}
+                  </h3>
+
+                  <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6, marginBottom: "20px" }}>
+                    {isEnglish
+                      ? "Translate your entire transcription to English, Spanish, French, German, Mandarin, and more in seconds with contextual fluency and natural punctuation."
+                      : "Traduza transcrições inteiras para inglês, espanhol, francês, alemão, mandarim e mais idiomas em segundos com altíssima precisão e fluência contextual."}
+                  </p>
+
+                  <div style={{
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "12px",
+                    padding: "16px 20px",
+                    marginBottom: "24px",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                      <Globe size={16} color="#67E8F9" style={{ flexShrink: 0 }} />
+                      <span>{isEnglish ? "Direct translation into +9 world languages" : "Tradução direta para mais de 9 idiomas mundiais"}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                      <Sparkles size={16} color="#A78BFA" style={{ flexShrink: 0 }} />
+                      <span>{isEnglish ? "Ultra-fast Llama 3.3 70B AI engine" : "Processamento ultrarrápido com Llama 3.3 70B"}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13px", color: "var(--text-secondary)" }}>
+                      <FileDown size={16} color="#10B981" style={{ flexShrink: 0 }} />
+                      <span>{isEnglish ? "Export translated .TXT and formatted Word (.DOCX)" : "Exporte arquivos traduzidos em .TXT e Word (.DOCX)"}</span>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={isEnglish ? "/en/pricing" : "/precos"}
+                    className="btn-primary"
+                    style={{
+                      padding: "14px 28px",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
+                      boxShadow: "0 8px 25px rgba(124, 58, 237, 0.35)"
+                    }}
+                  >
+                    <Crown size={16} /> {isEnglish ? "Upgrade to Unlock Translation ↗" : "Fazer Upgrade e Liberar Tradução ↗"}
+                  </Link>
+                  <p style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "12px" }}>
+                    {isEnglish ? "Plans from R$ 4,90. Instant access." : "Planos a partir de R$ 4,90. Acesso instantâneo."}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  {/* Top Bar for Paid Users */}
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: "1px solid var(--border-subtle)",
+                    paddingBottom: "14px",
+                    flexWrap: "wrap",
+                    gap: "12px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Languages size={18} color="#A78BFA" />
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)" }}>
+                            {translatedText
+                              ? (isEnglish ? `Translated to ${translatedLangName}` : `Traduzido para ${translatedLangName}`)
+                              : (isEnglish ? "AI Translation" : "Tradução com Inteligência Artificial")}
+                          </span>
+                          <span style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: "#10B981",
+                            background: "rgba(16, 185, 129, 0.12)",
+                            border: "1px solid rgba(16, 185, 129, 0.3)",
+                            padding: "2px 8px",
+                            borderRadius: "100px"
+                          }}>
+                            ✓ {isEnglish ? "Paid Plan Active" : "Plano Pago Ativo"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Language Selector + Action Button */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <select
+                        value={targetLanguage}
+                        onChange={(e) => setTargetLanguage(e.target.value)}
+                        style={{
+                          background: "rgba(255, 255, 255, 0.06)",
+                          border: "1px solid var(--border-subtle)",
+                          color: "var(--text-primary)",
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          outline: "none",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {TRANSLATION_LANGUAGES.map((lang) => (
+                          <option key={lang.code} value={lang.code} style={{ background: "#1a1a24", color: "#fff" }}>
+                            {lang.flag} {lang.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        className="btn-primary"
+                        onClick={() => handleTranslate()}
+                        disabled={isTranslating}
+                        style={{
+                          fontSize: "13px",
+                          padding: "8px 16px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}
+                      >
+                        {isTranslating ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" /> {isEnglish ? "Translating..." : "Traduzindo..."}
+                          </>
+                        ) : translatedText ? (
+                          <>
+                            <RotateCcw size={14} /> {isEnglish ? "Translate Again" : "Traduzir Novamente"}
+                          </>
+                        ) : (
+                          <>
+                            <Languages size={14} /> {isEnglish ? "Translate Now" : "Traduzir Agora"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Body Content */}
+                  {!translatedText ? (
+                    <div style={{ textAlign: "center", padding: "32px 16px" }}>
+                      <div style={{
+                        width: 52, height: 52,
+                        background: "rgba(124, 58, 237, 0.15)",
+                        border: "1px solid rgba(124, 58, 237, 0.3)",
+                        borderRadius: "16px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        margin: "0 auto 16px"
+                      }}>
+                        <Globe size={24} color="#A78BFA" />
+                      </div>
+                      <h4 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px" }}>
+                        {isEnglish ? "Ready to translate your transcription" : "Pronto para traduzir sua transcrição"}
+                      </h4>
+                      <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 440, margin: "0 auto 20px" }}>
+                        {isEnglish
+                          ? "Select your preferred target language in the dropdown above and click 'Translate Now'."
+                          : "Selecione o idioma desejado acima e clique em 'Traduzir Agora' para converter o texto em segundos."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Actions toolbar for translated text */}
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+                        <button
+                          className="btn-ghost"
+                          style={{ fontSize: "12px", padding: "6px 12px" }}
+                          onClick={handleCopyTranslated}
+                        >
+                          {translateCopied ? (
+                            <>
+                              <Check size={13} color="#10B981" /> {isEnglish ? "Copied!" : "Copiado!"}
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} /> {isEnglish ? "Copy translation" : "Copiar tradução"}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          style={{ fontSize: "12px", padding: "6px 12px" }}
+                          onClick={handleDownloadTranslatedTxt}
+                        >
+                          <FileText size={13} /> {isEnglish ? "Download .TXT" : "Baixar .TXT"}
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          style={{
+                            fontSize: "12px",
+                            padding: "6px 12px",
+                            borderColor: "rgba(59, 130, 246, 0.35)",
+                            background: "rgba(59, 130, 246, 0.08)",
+                            color: "#93C5FD"
+                          }}
+                          onClick={handleDownloadTranslatedDocx}
+                          disabled={isExportingTranslatedDocx}
+                        >
+                          {isExportingTranslatedDocx ? (
+                            <>
+                              <Loader2 size={13} className="animate-spin" /> {isEnglish ? "Generating Word..." : "Gerando Word..."}
+                            </>
+                          ) : (
+                            <>
+                              <FileDown size={13} /> {isEnglish ? "Download Word (.DOCX)" : "Baixar Word (.DOCX)"}
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Translated text display */}
+                      <div
+                        className="result-box"
+                        style={{
+                          borderRadius: "12px",
+                          border: "1px solid var(--border-subtle)",
+                          margin: 0,
+                          maxHeight: 440,
+                          overflowY: "auto",
+                          padding: "20px",
+                          lineHeight: 1.7,
+                          fontSize: "14px",
+                          color: "var(--text-secondary)",
+                          whiteSpace: "pre-wrap"
+                        }}
+                      >
+                        {translatedText}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

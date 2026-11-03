@@ -56,6 +56,7 @@ def root():
             "transcribe_url": "POST /api/transcribe/url",
             "transcribe_upload": "POST /api/transcribe/upload",
             "transcribe_summarize": "POST /api/transcribe/summarize",
+            "transcribe_translate": "POST /api/transcribe/translate",
             "checkout_plans": "GET /api/checkout/plans",
             "checkout_session": "POST /api/checkout/create-session",
             "checkout_webhook": "POST /api/checkout/webhook",

@@ -7,13 +7,15 @@ from app.config import TEMP_MEDIA_DIR
 from app.services.downloader import download_audio_from_url
 from app.services.transcriber import transcribe_audio_file
 from app.services.summarizer import summarize_transcription
+from app.services.translator import translate_transcription, SUPPORTED_LANGUAGES
 from app.services.cleaner import secure_delete_file
 from app.services.database import (
     verify_token_and_get_user,
     check_and_deduct_credits,
     save_transcription_record,
     get_user_transcription_history,
-    get_user_profile
+    get_user_profile,
+    get_user_active_plan
 )
 
 router = APIRouter(prefix="/api/transcribe", tags=["Transcription"])
@@ -246,6 +248,61 @@ def summarize_endpoint(req: SummarizeRequest):
     if not req.text or len(req.text.strip()) < 10:
         raise HTTPException(status_code=400, detail="Texto muito curto para gerar resumo.")
     res = summarize_transcription(text=req.text, title=req.title or "Transcrição")
+    return res
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_language: str = "en"
+    title: Optional[str] = "Transcrição"
+
+@router.get("/languages")
+def get_supported_languages():
+    """Returns the list of supported translation languages."""
+    return {"languages": SUPPORTED_LANGUAGES}
+
+@router.post("/translate")
+def translate_endpoint(
+    req: TranslateRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Translates a transcription to the specified target language using Groq LLM.
+    STRICTLY RESTRICTED TO PAID PLAN SUBSCRIBERS.
+    """
+    if not req.text or len(req.text.strip()) < 5:
+        raise HTTPException(status_code=400, detail="Texto muito curto para realizar a tradução.")
+
+    # 1. Require user authentication
+    user = verify_token_and_get_user(authorization)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticação necessária. Faça login na sua conta para traduzir suas transcrições."
+        )
+
+    # 2. Strict paid plan check
+    plan_info = get_user_active_plan(user["id"])
+    if not plan_info.get("is_paid"):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "A tradução com Inteligência Artificial é exclusiva para assinantes dos planos pagos. "
+                "Faça um upgrade para liberar traduções ilimitadas em mais de 10 idiomas!"
+            )
+        )
+
+    # 3. Process translation
+    res = translate_transcription(
+        text=req.text,
+        target_language=req.target_language,
+        title=req.title or "Transcrição"
+    )
+    if not res.get("success"):
+        raise HTTPException(
+            status_code=500,
+            detail=res.get("error", "Não foi possível realizar a tradução neste momento.")
+        )
+
     return res
 
 @router.get("/public/{item_id}")
