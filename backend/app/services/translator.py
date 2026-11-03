@@ -15,13 +15,41 @@ SUPPORTED_LANGUAGES: Dict[str, str] = {
     "ru": "Russo (Русский)"
 }
 
+def get_groq_chat_models(client: Groq) -> list:
+    """
+    Dynamically queries Groq API to retrieve active, non-decommissioned chat models.
+    """
+    preferred_order = [
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "qwen/qwen3.8-27b",
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile"
+    ]
+    try:
+        models_data = client.models.list().data
+        active_ids = [
+            m.id for m in models_data
+            if not any(x in m.id.lower() for x in ["whisper", "guard", "orpheus", "tts", "embedding"])
+        ]
+        result = [p for p in preferred_order if p in active_ids]
+        for aid in active_ids:
+            if aid not in result:
+                result.append(aid)
+        if result:
+            return result
+    except Exception as e:
+        print(f"[Translator] Erro ao listar modelos Groq dinamicamente: {e}")
+    return preferred_order
+
 def translate_transcription(
     text: str,
     target_language: str = "en",
     title: str = ""
 ) -> Dict[str, Any]:
     """
-    Translates transcription text to the target language using Groq LLM (llama-3.3-70b-versatile).
+    Translates transcription text to the target language using Groq LLM.
     Feature restricted to paid plans.
     """
     clean_text = (text or "").strip()
@@ -67,12 +95,7 @@ def translate_transcription(
 
         user_content = f"Texto a ser traduzido para {lang_name}:\n\n{prompt_text}"
 
-        candidate_models = [
-            "llama-3.1-8b-instant",
-            "llama-3.3-70b-versatile",
-            "llama3-70b-8192",
-            "llama3-8b-8192"
-        ]
+        candidate_models = get_groq_chat_models(client)
 
         last_error = None
         for model_name in candidate_models:
@@ -98,7 +121,7 @@ def translate_transcription(
                     }
             except Exception as model_err:
                 err_msg = str(model_err)
-                print(f"[Translator] Modelo {model_name} indisponível ou com erro: {err_msg}")
+                print(f"[Translator] Modelo {model_name} falhou: {err_msg}")
                 last_error = err_msg
                 continue
 

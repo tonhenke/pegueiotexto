@@ -2,6 +2,7 @@ import json
 from typing import Dict, Any, List
 from groq import Groq
 from app.config import GROQ_API_KEY
+from app.services.translator import get_groq_chat_models
 
 def summarize_transcription(text: str, title: str = "") -> Dict[str, Any]:
     """
@@ -46,12 +47,7 @@ def summarize_transcription(text: str, title: str = "") -> Dict[str, Any]:
 
         user_content = f"Título do conteúdo: {title or 'Conteúdo em Áudio'}\n\nTranscrição:\n{prompt_text}"
 
-        candidate_models = [
-            "llama-3.1-8b-instant",
-            "llama-3.3-70b-versatile",
-            "llama3-70b-8192",
-            "llama3-8b-8192"
-        ]
+        candidate_models = get_groq_chat_models(client)
 
         last_error = None
         for model_name in candidate_models:
