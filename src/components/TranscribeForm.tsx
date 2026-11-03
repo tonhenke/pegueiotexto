@@ -116,6 +116,9 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         setUserPlan("gratuito");
         return;
       }
+      const userEmail = session.user.email?.toLowerCase().trim() || "";
+      const isTon = userEmail === "tonhenke@gmail.com";
+
       const token = session.access_token;
       const res = await fetch("/api/checkout/sync-status", {
         method: "POST",
@@ -127,15 +130,16 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
       });
       if (res.ok) {
         const data = await res.json();
-        const paid = Boolean(data.is_paid) || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(String(data.plan || "").toLowerCase());
+        const planStr = String(data.plan || "").toLowerCase();
+        const paid = isTon || Boolean(data.is_paid) || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(planStr);
         setIsPaidUser(paid);
-        setUserPlan(data.plan || "gratuito");
+        setUserPlan(data.plan || (isTon ? "ilimitado" : "gratuito"));
       } else {
         const { data: profile } = await supabase.from("profiles").select("plan, email").eq("id", session.user.id).single();
         const plan = String(profile?.plan || "").toLowerCase();
-        const paid = ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(plan) || profile?.email === "tonhenke@gmail.com";
+        const paid = isTon || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"].includes(plan) || profile?.email === "tonhenke@gmail.com";
         setIsPaidUser(paid);
-        setUserPlan(plan || "gratuito");
+        setUserPlan(plan || (isTon ? "ilimitado" : "gratuito"));
       }
     } catch (e) {
       console.error("Erro ao verificar plano:", e);
@@ -438,9 +442,9 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     if (!translatedText) return;
     setIsExportingTranslatedDocx(true);
     try {
-      await exportToDocx(translatedText, {
-        title: `${resultTitle || "Transcrição"} (${translatedLangName || targetLanguage.toUpperCase()})`,
-        duration: resultDuration || undefined,
+      const docTitle = `${resultTitle || "Transcrição"} (${translatedLangName || targetLanguage.toUpperCase()})`;
+      await exportToDocx(translatedText, docTitle, {
+        duration: resultDuration ?? undefined,
         platform: mode === "url" ? "Web" : "Upload",
         engine: "Peguei o Texto IA - Tradução",
       });
