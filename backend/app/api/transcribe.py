@@ -4,7 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
 from pydantic import BaseModel
 from app.config import TEMP_MEDIA_DIR
-from app.services.downloader import download_audio_from_url
+from app.services.downloader import download_audio_from_url, try_extract_youtube_captions
 from app.services.transcriber import transcribe_audio_file
 from app.services.summarizer import summarize_transcription
 from app.services.translator import translate_transcription, SUPPORTED_LANGUAGES
@@ -45,11 +45,32 @@ async def transcribe_from_url(
         )
 
     downloaded_audio = None
+    caption_fallback = None
+
     try:
-        # 2. Extract media metadata and audio stream
-        download_info = download_audio_from_url(req.url)
-        downloaded_audio = download_info["audio_path"]
-        duration_seconds = int(download_info.get("duration") or 60)
+        # 2. Extract media metadata and audio stream, with seamless caption fallback for YouTube
+        try:
+            download_info = download_audio_from_url(req.url)
+            downloaded_audio = download_info["audio_path"]
+            duration_seconds = int(download_info.get("duration") or 60)
+            title = download_info.get("title") or "Vídeo da Internet"
+            platform = download_info.get("platform") or "Web"
+            uploader = download_info.get("uploader")
+        except Exception as dl_err:
+            is_youtube = ("youtube.com" in req.url) or ("youtu.be" in req.url)
+            if is_youtube:
+                try:
+                    caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
+                except Exception:
+                    caption_fallback = None
+            if not caption_fallback:
+                raise dl_err
+
+        if caption_fallback:
+            duration_seconds = int(caption_fallback.get("duration") or 60)
+            title = caption_fallback.get("title") or "Vídeo do YouTube"
+            platform = "YouTube"
+            uploader = caption_fallback.get("uploader")
 
         # 3. Credit verification & deduction
         credit_check = check_and_deduct_credits(user["id"], duration_seconds)
@@ -58,17 +79,23 @@ async def transcribe_from_url(
         credits_remaining = credit_check["credits_remaining"]
         minutes_deducted = credit_check["minutes_deducted"]
 
-        # 4. Transcribe using Whisper
-        transcription = transcribe_audio_file(
-            audio_path=downloaded_audio,
-            language=req.language
-        )
-
-        title = download_info.get("title") or "Vídeo da Internet"
-        platform = download_info.get("platform") or "Web"
-        text = transcription.get("text", "")
-        srt = transcription.get("srt", "")
-        vtt = transcription.get("vtt", "")
+        if caption_fallback:
+            text = caption_fallback.get("text", "")
+            srt = caption_fallback.get("srt", "")
+            vtt = caption_fallback.get("vtt", "")
+            segments = caption_fallback.get("segments", [])
+            engine = caption_fallback.get("engine", "YouTube Transcrição Nativa")
+        else:
+            # 4. Transcribe using Whisper
+            transcription = transcribe_audio_file(
+                audio_path=downloaded_audio,
+                language=req.language
+            )
+            text = transcription.get("text", "")
+            srt = transcription.get("srt", "")
+            vtt = transcription.get("vtt", "")
+            segments = transcription.get("segments")
+            engine = transcription.get("engine")
 
         # 5. Save record in database for logged-in user
         record_id = None
@@ -89,15 +116,15 @@ async def transcribe_from_url(
             "id": record_id,
             "title": title,
             "platform": platform,
-            "uploader": download_info.get("uploader"),
+            "uploader": uploader,
             "duration": duration_seconds,
             "minutes_deducted": minutes_deducted,
             "credits_remaining": credits_remaining,
             "text": text,
-            "segments": transcription.get("segments"),
+            "segments": segments,
             "srt": srt,
             "vtt": vtt,
-            "engine": transcription.get("engine"),
+            "engine": engine,
             "media_deleted": True,
             "privacy_notice": "O arquivo de mídia baixado foi permanentemente excluído dos nossos servidores."
         }

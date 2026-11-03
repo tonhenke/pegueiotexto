@@ -2,13 +2,27 @@ import os
 import re
 import uuid
 import shutil
-from typing import Optional
+from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
 import yt_dlp
 from app.config import TEMP_MEDIA_DIR
 
+try:
+    from yt_dlp.networking.impersonate import ImpersonateTarget
+    HAS_IMPERSONATE = True
+except Exception:
+    HAS_IMPERSONATE = False
+
+try:
+    from curl_cffi import requests as cffi_requests
+    HAS_CURL_CFFI = True
+except Exception:
+    HAS_CURL_CFFI = False
+
+
 def has_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None
+
 
 def get_cookie_file_path() -> Optional[str]:
     """
@@ -25,6 +39,7 @@ def get_cookie_file_path() -> Optional[str]:
         return str(local_cookies)
         
     return None
+
 
 def normalize_video_url(url: str) -> str:
     """
@@ -46,6 +61,7 @@ def normalize_video_url(url: str) -> str:
 
     return url
 
+
 def download_audio_from_url(url: str) -> dict:
     """
     Downloads the audio track of any video URL supported by yt-dlp.
@@ -64,12 +80,26 @@ def download_audio_from_url(url: str) -> dict:
 
     base_opts = {
         "outtmpl": output_template,
-        "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best",
+        "format": "bestaudio/best",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
+        "remote_components": ["ejs:github"],
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
     }
+
+    if shutil.which("node"):
+        base_opts["js_runtimes"] = {"node": {}}
+
+    if HAS_IMPERSONATE:
+        try:
+            base_opts["impersonate"] = ImpersonateTarget.from_str("chrome")
+        except Exception:
+            pass
 
     cookie_file = get_cookie_file_path()
     if cookie_file:
@@ -84,10 +114,11 @@ def download_audio_from_url(url: str) -> dict:
 
     # Progressive extraction strategies across multiple player clients
     strategies = [
-        {"player_client": ["android"]},
-        {"player_client": ["ios", "android"]},
-        {"player_client": ["web", "mweb"]},
         None,
+        {"player_client": ["web_creator"]},
+        {"player_client": ["mweb"]},
+        {"player_client": ["ios"]},
+        {"player_client": ["android"]},
     ]
 
     info = None
@@ -129,6 +160,272 @@ def download_audio_from_url(url: str) -> dict:
     }
 
 
+def parse_json3_captions(data: dict) -> Tuple[str, str, str, List[dict]]:
+    """
+    Parses YouTube json3 format (timedtext pb3/events) into clean text, SRT, VTT, and segments.
+    """
+    events = data.get("events", [])
+    segments = []
+    plain_words = []
+    srt_lines = []
+    vtt_lines = ["WEBVTT\n"]
+    
+    idx = 1
+    last_text = ""
+    for ev in events:
+        segs = ev.get("segs")
+        if not segs:
+            continue
+        text = "".join([s.get("utf8", "") for s in segs]).strip()
+        text = re.sub(r"[\r\n]+", " ", text).strip()
+        if not text or text == last_text:
+            continue
+        last_text = text
+        
+        start_ms = ev.get("tStartMs", 0)
+        dur_ms = ev.get("dDurationMs", 0)
+        end_ms = start_ms + dur_ms
+        
+        def format_ts(ms: int, sep: str = ",") -> str:
+            total_sec = ms // 1000
+            rem_ms = ms % 1000
+            h = total_sec // 3600
+            m = (total_sec % 3600) // 60
+            s = total_sec % 60
+            return f"{h:02d}:{m:02d}:{s:02d}{sep}{rem_ms:03d}"
+            
+        srt_start = format_ts(start_ms, ",")
+        srt_end = format_ts(end_ms, ",")
+        vtt_start = format_ts(start_ms, ".")
+        vtt_end = format_ts(end_ms, ".")
+        
+        srt_lines.append(f"{idx}\n{srt_start} --> {srt_end}\n{text}\n")
+        vtt_lines.append(f"{vtt_start} --> {vtt_end}\n{text}\n")
+        idx += 1
+        
+        segments.append({
+            "start": round(start_ms / 1000.0, 2),
+            "end": round(end_ms / 1000.0, 2),
+            "text": text
+        })
+        plain_words.append(text)
+        
+    plain_text = " ".join(plain_words)
+    srt_content = "\n".join(srt_lines)
+    vtt_content = "\n".join(vtt_lines)
+    return plain_text, srt_content, vtt_content, segments
+
+
+def parse_vtt_captions(vtt_text: str) -> Tuple[str, str, str, List[dict]]:
+    """
+    Parses WEBVTT subtitle text into clean text, SRT, VTT, and segments.
+    """
+    cue_pattern = re.compile(
+        r"(\d{2}:\d{2}:\d{2}[\.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[\.,]\d{3})[^\r\n]*\r?\n(.*?)(?=\r?\n\r?\n|\Z)",
+        re.DOTALL
+    )
+    cues = []
+    plain_lines = []
+    srt_blocks = []
+    idx = 1
+    last_text = ""
+    for m in cue_pattern.finditer(vtt_text):
+        start_raw, end_raw, text_raw = m.groups()
+        clean_text = re.sub(r"<[^>]+>", "", text_raw).strip()
+        if not clean_text:
+            continue
+        lines = [line.strip() for line in clean_text.splitlines() if line.strip()]
+        line_joined = " ".join(lines)
+        if line_joined == last_text:
+            continue
+        last_text = line_joined
+        
+        srt_start = start_raw.replace(".", ",")
+        srt_end = end_raw.replace(".", ",")
+        srt_blocks.append(f"{idx}\n{srt_start} --> {srt_end}\n{clean_text}\n")
+        idx += 1
+        
+        def to_sec(ts: str) -> float:
+            ts = ts.replace(",", ".")
+            p = ts.split(":")
+            return float(p[0]) * 3600 + float(p[1]) * 60 + float(p[2])
+            
+        cues.append({
+            "start": round(to_sec(start_raw), 2),
+            "end": round(to_sec(end_raw), 2),
+            "text": clean_text
+        })
+        plain_lines.append(line_joined)
+        
+    full_text = " ".join(plain_lines)
+    full_srt = "\n".join(srt_blocks)
+    return full_text, full_srt, vtt_text, cues
+
+
+def parse_srt_captions(srt_text: str) -> Tuple[str, str, str, List[dict]]:
+    """
+    Parses SubRip (.srt) subtitle text into clean text, SRT, VTT, and segments.
+    """
+    pattern = re.compile(
+        r"(\d+)\r?\n(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})\r?\n(.*?)(?=\r?\n\r?\n|\Z)",
+        re.DOTALL
+    )
+    segments = []
+    plain_lines = []
+    vtt_blocks = ["WEBVTT\n"]
+    def to_sec(ts: str) -> float:
+        ts = ts.replace(",", ".")
+        parts = ts.split(":")
+        return float(parts[0]) * 3600 + float(parts[1]) * 60 + float(parts[2])
+
+    last_text = ""
+    for m in pattern.finditer(srt_text):
+        _, start_s, end_s, text = m.groups()
+        clean = re.sub(r"<[^>]+>", "", text).strip()
+        if not clean:
+            continue
+        clean_joined = " ".join([l.strip() for l in clean.splitlines() if l.strip()])
+        if clean_joined == last_text:
+            continue
+        last_text = clean_joined
+        vtt_start = start_s.replace(",", ".")
+        vtt_end = end_s.replace(",", ".")
+        vtt_blocks.append(f"{vtt_start} --> {vtt_end}\n{clean_joined}\n")
+        segments.append({
+            "start": round(to_sec(start_s), 2),
+            "end": round(to_sec(end_s), 2),
+            "text": clean_joined
+        })
+        plain_lines.append(clean_joined)
+    return " ".join(plain_lines), srt_text, "\n".join(vtt_blocks), segments
+
+
+def try_extract_youtube_captions(url: str, preferred_language: Optional[str] = None) -> Optional[dict]:
+    """
+    Extracts native YouTube subtitles/captions directly via YouTube's timedtext API
+    using TLS Chrome impersonation. This completely bypasses the googlevideo.com
+    antibot media stream challenge.
+    """
+    opts = {
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": False,
+        "remote_components": ["ejs:github"],
+    }
+    if shutil.which("node"):
+        opts["js_runtimes"] = {"node": {}}
+    if HAS_IMPERSONATE:
+        try:
+            opts["impersonate"] = ImpersonateTarget.from_str("chrome")
+        except Exception:
+            pass
+
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
+
+    info = None
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        try:
+            info = ydl.extract_info(url, download=False)
+        except Exception:
+            return None
+
+    if not info:
+        return None
+
+    title = info.get("title") or "Vídeo do YouTube"
+    duration = int(info.get("duration") or 0)
+    uploader = info.get("uploader") or info.get("channel") or "YouTube"
+
+    subtitles = info.get("subtitles") or {}
+    auto_captions = info.get("automatic_captions") or {}
+
+    lang_candidates = []
+    if preferred_language:
+        lang_candidates.append(preferred_language)
+    lang_candidates.extend(["pt-BR", "pt", "pt-PT", "en", "en-US", "en-orig", "es", "es-419"])
+
+    selected_formats = None
+    # 1. Search manual subtitles first
+    for lang in lang_candidates:
+        if lang in subtitles:
+            selected_formats = subtitles[lang]
+            break
+
+    # 2. Search automatic captions
+    if not selected_formats:
+        for lang in lang_candidates:
+            if lang in auto_captions:
+                selected_formats = auto_captions[lang]
+                break
+
+    # 3. Fallback to any available subtitles
+    if not selected_formats and subtitles:
+        selected_formats = next(iter(subtitles.values()))
+    if not selected_formats and auto_captions:
+        selected_formats = next(iter(auto_captions.values()))
+
+    if not selected_formats:
+        return None
+
+    fmt_map = {f.get("ext"): f.get("url") for f in selected_formats if f.get("url")}
+    # Prefer SRT, then VTT, then json3
+    target_ext = "srt" if "srt" in fmt_map else ("vtt" if "vtt" in fmt_map else ("json3" if "json3" in fmt_map else None))
+    target_url = fmt_map.get(target_ext) if target_ext else selected_formats[0].get("url")
+
+    if not target_url:
+        return None
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    }
+
+    try:
+        if HAS_CURL_CFFI:
+            s = cffi_requests.Session(impersonate="chrome")
+            resp = s.get(target_url, headers=headers, timeout=25)
+        else:
+            import httpx
+            resp = httpx.get(target_url, headers=headers, timeout=25.0)
+            
+        if resp.status_code != 200:
+            return None
+        raw_content = resp.text
+    except Exception:
+        return None
+
+    text, srt, vtt, segments = "", "", "", []
+    if target_ext == "srt" or ("-->" in raw_content and not raw_content.startswith("WEBVTT") and not raw_content.strip().startswith("{")):
+        text, srt, vtt, segments = parse_srt_captions(raw_content)
+    elif target_ext == "vtt" or raw_content.startswith("WEBVTT"):
+        text, srt, vtt, segments = parse_vtt_captions(raw_content)
+    else:
+        try:
+            data = resp.json()
+            if "events" in data:
+                text, srt, vtt, segments = parse_json3_captions(data)
+        except Exception:
+            pass
+
+    if not text.strip():
+        return None
+
+    return {
+        "title": title,
+        "duration": duration,
+        "platform": "YouTube",
+        "uploader": uploader,
+        "text": text,
+        "srt": srt,
+        "vtt": vtt,
+        "segments": segments,
+        "engine": "YouTube Transcrição Nativa"
+    }
+
+
 def extract_video_stream_info(url: str) -> dict:
     """
     Extracts direct CDN stream links and metadata with download=False.
@@ -140,7 +437,16 @@ def extract_video_stream_info(url: str) -> dict:
         "quiet": True,
         "no_warnings": True,
         "extract_flat": False,
+        "remote_components": ["ejs:github"],
     }
+    if shutil.which("node"):
+        base_opts["js_runtimes"] = {"node": {}}
+    if HAS_IMPERSONATE:
+        try:
+            base_opts["impersonate"] = ImpersonateTarget.from_str("chrome")
+        except Exception:
+            pass
+
     cookie_file = get_cookie_file_path()
     if cookie_file:
         base_opts["cookiefile"] = cookie_file
@@ -148,10 +454,11 @@ def extract_video_stream_info(url: str) -> dict:
     info = None
     last_err = None
     strategies = [
-        {"player_client": ["android"]},
-        {"player_client": ["ios", "android"]},
-        {"player_client": ["web", "mweb"]},
         None,
+        {"player_client": ["web_creator"]},
+        {"player_client": ["mweb"]},
+        {"player_client": ["ios"]},
+        {"player_client": ["android"]},
     ]
 
     for strat in strategies:
@@ -250,4 +557,3 @@ def extract_video_stream_info(url: str) -> dict:
         "audio_url": best_audio_url,
         "formats": formatted_options[:4]
     }
-
