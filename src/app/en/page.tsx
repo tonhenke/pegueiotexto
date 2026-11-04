@@ -198,77 +198,66 @@ export default function EnglishHomePage() {
       <Navbar />
 
       {/* ═══════════════════════════ HERO ═══════════════════════════ */}
-      <section className="hero bg-grid" style={{ paddingTop: "100px", paddingBottom: "70px", position: "relative" }}>
+      <section className="hero bg-grid" style={{ paddingTop: "96px", paddingBottom: "60px", position: "relative", width: "100%", overflow: "hidden" }}>
         <div className="glow-orb glow-orb-1" />
         <div className="glow-orb glow-orb-2" />
         <div className="glow-orb glow-orb-3" />
 
-        <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
+        <div className="container" style={{ position: "relative", zIndex: 1, width: "100%" }}>
+          <div style={{ maxWidth: 860, width: "100%", margin: "0 auto", textAlign: "center" }}>
             {/* Pill Badge */}
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "8px",
-                padding: "6px 16px",
+                padding: "6px 14px",
                 borderRadius: "999px",
                 background: "rgba(139, 92, 246, 0.12)",
                 border: "1px solid rgba(139, 92, 246, 0.3)",
                 color: "#c084fc",
-                fontSize: "13px",
+                fontSize: "12px",
                 fontWeight: 600,
-                marginBottom: "24px",
+                marginBottom: "20px",
+                maxWidth: "100%",
+                boxSizing: "border-box",
               }}
             >
-              <Sparkles size={14} color="#c084fc" />
-              <span>Next-Gen AI Video & Audio Transcription</span>
+              <Sparkles size={14} color="#c084fc" style={{ flexShrink: 0 }} />
+              <span>AI Video & Audio Transcription</span>
             </div>
 
             {/* Heading */}
-            <h1 className="hero-title" style={{ marginBottom: "24px", color: "var(--text-primary)" }}>
+            <h1 className="hero-title" style={{ marginBottom: "20px", color: "var(--text-primary)" }}>
               Paste the link.
               <br />
               <span className="text-gradient">Get the text.</span>
             </h1>
 
-            <p className="hero-subtitle" style={{ margin: "0 auto 40px", maxWidth: "680px" }}>
+            <p className="hero-subtitle" style={{ margin: "0 auto 36px", maxWidth: "680px" }}>
               Transcribe any video from <strong>YouTube, TikTok, Instagram Reels, Vimeo</strong> or upload your audio file.
               Get 99.2% accurate text, synced CapCut subtitles (.SRT), and AI summaries in seconds.
             </p>
 
             {/* CTA buttons */}
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap", marginBottom: "50px" }}>
-              <Link href="/dashboard" className="btn-primary" style={{ fontSize: "16px", padding: "14px 32px", textDecoration: "none" }}>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginBottom: "40px", width: "100%" }}>
+              <Link href="/dashboard" className="btn-primary" style={{ fontSize: "15px", padding: "12px 24px", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                 <Mic2 size={18} /> Transcribe with AI Free
               </Link>
-              <Link href="/en/download-video" className="btn-secondary" style={{ fontSize: "16px", padding: "14px 28px", textDecoration: "none" }}>
+              <Link href="/en/download-video" className="btn-secondary" style={{ fontSize: "15px", padding: "12px 22px", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                 <Video size={18} /> Free Video Downloader
                 <ChevronRight size={16} />
               </Link>
             </div>
 
             {/* Stats row */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: "16px",
-                maxWidth: "840px",
-                margin: "0 auto",
-                padding: "24px",
-                borderRadius: "20px",
-                background: "rgba(255, 255, 255, 0.02)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(12px)",
-              }}
-            >
+            <div className="hero-stats-grid">
               {stats.map((s, idx) => (
                 <div key={idx} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "28px", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
+                  <div style={{ fontSize: "26px", fontWeight: 900, color: "#ffffff", letterSpacing: "-0.02em" }}>
                     {s.number}
                   </div>
-                  <div style={{ fontSize: "13px", color: "var(--text-muted, #94a3b8)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted, #94a3b8)", marginTop: "4px", lineHeight: 1.3 }}>
                     {s.label}
                   </div>
                 </div>
@@ -296,10 +285,11 @@ export default function EnglishHomePage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "24px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+              gap: "20px",
               maxWidth: "1060px",
               margin: "0 auto",
+              width: "100%",
             }}
           >
             {steps.map((st, i) => (
@@ -358,10 +348,11 @@ export default function EnglishHomePage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "20px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+              gap: "18px",
               maxWidth: "1060px",
               margin: "0 auto",
+              width: "100%",
             }}
           >
             {features.map((f, i) => (

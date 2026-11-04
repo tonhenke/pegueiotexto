@@ -115,14 +115,14 @@ export default function HomePage() {
       <Navbar />
 
       {/* ═══════════════════════════ HERO ═══════════════════════════ */}
-      <section className="hero bg-grid" style={{ paddingTop: "80px" }}>
+      <section className="hero bg-grid" style={{ paddingTop: "80px", width: "100%", overflow: "hidden" }}>
         {/* Glow orbs */}
         <div className="glow-orb glow-orb-1" />
         <div className="glow-orb glow-orb-2" />
         <div className="glow-orb glow-orb-3" />
 
-        <div className="container" style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
+        <div className="container" style={{ position: "relative", zIndex: 1, width: "100%" }}>
+          <div style={{ maxWidth: 820, width: "100%", margin: "0 auto", textAlign: "center" }}>
 
             {/* Heading */}
             <h1 className="hero-title" style={{ marginBottom: "24px", color: "var(--text-primary)" }}>
