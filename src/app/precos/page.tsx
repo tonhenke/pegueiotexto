@@ -407,23 +407,22 @@ export default function PrecosPage() {
                       top: "-14px",
                       left: "50%",
                       transform: "translateX(-50%)",
-                      background: "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
+                      background: "linear-gradient(90deg, #EC4899, #7C3AED)",
                       color: "#FFFFFF",
                       fontSize: "11px",
                       fontWeight: 800,
-                      padding: "5px 18px",
+                      padding: "5px 16px",
                       borderRadius: "100px",
-                      letterSpacing: "0.06em",
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
-                      boxShadow: "0 4px 16px rgba(124, 58, 237, 0.55)",
+                      boxShadow: "0 4px 14px rgba(236, 72, 153, 0.45)",
                       zIndex: 20,
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "6px",
-                      border: "1px solid rgba(255, 255, 255, 0.3)",
                     }}>
-                      <Sparkles size={11} /> Mais popular
+                      <Star size={11} fill="currentColor" /> Mais escolhido
                     </div>
                   )}
 
@@ -467,7 +466,7 @@ export default function PrecosPage() {
 
                     {/* Price - Monthly Highlighted */}
                     <div style={{ marginBottom: "22px" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "nowrap", whiteSpace: "nowrap" }}>
                         <span
                           className="price-amount"
                           style={{

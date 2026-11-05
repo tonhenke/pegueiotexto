@@ -51,4 +51,7 @@ __pycache__/
 # local data storage (allow json database seeds)
 !/data/*.json
 
+# previews
+preview-*.html
+
 
