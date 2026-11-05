@@ -88,7 +88,7 @@ def download_audio_from_url(url: str) -> dict:
 
     base_opts = {
         "outtmpl": output_template,
-        "format": "bestaudio/best",
+        "format": "bestaudio/best[ext=mp4]/best",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -122,11 +122,11 @@ def download_audio_from_url(url: str) -> dict:
 
     # Progressive extraction strategies across multiple player clients
     strategies = [
+        {"player_client": ["android", "web"]},
         None,
         {"player_client": ["web_creator"]},
         {"player_client": ["mweb"]},
         {"player_client": ["ios"]},
-        {"player_client": ["android"]},
     ]
 
     info = None
@@ -314,11 +314,9 @@ def extract_youtube_video_id(url: str) -> Optional[str]:
     """
     url = (url or "").strip()
     patterns = [
-        r"(?:v=|\/)([0-9A-Za-z_-]{11})(?:[&?]|$)",
-        r"youtu\.be\/([0-9A-Za-z_-]{11})(?:[&?]|$)",
-        r"embed\/([0-9A-Za-z_-]{11})(?:[&?]|$)",
-        r"shorts\/([0-9A-Za-z_-]{11})(?:[&?]|$)",
-        r"live\/([0-9A-Za-z_-]{11})(?:[&?]|$)"
+        r"(?:v=|\/v\/|youtu\.be\/|embed\/)([0-9A-Za-z_-]{11})",
+        r"shorts\/([0-9A-Za-z_-]{11})",
+        r"live\/([0-9A-Za-z_-]{11})"
     ]
     for p in patterns:
         m = re.search(p, url)
@@ -385,6 +383,12 @@ def try_extract_youtube_captions(url: str, preferred_language: Optional[str] = N
                         else:
                             target_transcript = t
                             break
+
+                # If still no target transcript, fallback to the first raw transcript available
+                if not target_transcript and transcript_list:
+                    for t in transcript_list:
+                        target_transcript = t
+                        break
 
                 if target_transcript:
                     transcript_data = target_transcript.fetch()
@@ -472,6 +476,7 @@ def try_extract_youtube_captions(url: str, preferred_language: Optional[str] = N
         "no_warnings": True,
         "extract_flat": False,
         "remote_components": ["ejs:github"],
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
     }
     if shutil.which("node"):
         opts["js_runtimes"] = {"node": {}}

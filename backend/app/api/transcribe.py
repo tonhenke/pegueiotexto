@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
 from pydantic import BaseModel
 from app.config import TEMP_MEDIA_DIR
-from app.services.downloader import download_audio_from_url, try_extract_youtube_captions
+from app.services.downloader import download_audio_from_url, download_video_from_url, try_extract_youtube_captions
 from app.services.transcriber import transcribe_audio_file
 from app.services.summarizer import summarize_transcription
 from app.services.translator import translate_transcription, SUPPORTED_LANGUAGES
@@ -70,10 +70,25 @@ async def transcribe_from_url(
             except Exception as dl_err:
                 if is_youtube and not caption_fallback:
                     try:
-                        caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
-                    except Exception:
-                        pass
-                if not caption_fallback:
+                        # Fallback 1: Try video stream download with Android client (zero bot check)
+                        v_info = download_video_from_url(req.url, max_height=360)
+                        v_path = Path(v_info["video_path"])
+                        if v_path.exists():
+                            downloaded_audio = v_path
+                            duration_seconds = int(v_info.get("duration") or 60)
+                            title = v_info.get("title") or "Vídeo do YouTube"
+                            platform = "YouTube"
+                            uploader = v_info.get("uploader")
+                    except Exception as v_err:
+                        print(f"[YouTube] Fallback video download error: {v_err}")
+
+                    if not downloaded_audio:
+                        try:
+                            caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
+                        except Exception:
+                            pass
+
+                if not downloaded_audio and not caption_fallback:
                     raise dl_err
 
         if caption_fallback:
