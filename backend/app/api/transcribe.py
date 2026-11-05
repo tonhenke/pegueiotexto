@@ -168,8 +168,8 @@ async def transcribe_from_url(
         err_lower = err_str.lower()
         if "sign in to confirm" in err_lower or ("bot" in err_lower and "confirm" in err_lower):
             friendly_err = (
-                "O YouTube solicitou temporariamente uma confirmação antibot para este link. "
-                "Tente novamente em instantes ou faça o upload direto do arquivo pela aba 'Enviar arquivo'."
+                "Este vídeo não possui legendas nativas no YouTube e o YouTube bloqueou temporariamente a extração direta de áudio via servidor. "
+                "Para transcrever este vídeo específico, faça o upload do arquivo pela aba 'Enviar arquivo' ou teste com vídeos que possuem legendas/fala ativas."
             )
             raise HTTPException(status_code=500, detail=friendly_err)
         if "logged-in" in err_lower and "vimeo" in err_lower:
