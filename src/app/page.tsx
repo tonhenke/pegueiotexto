@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect } from "react";
 import "./clint.css";
+import { createClient } from "@/lib/supabase/client";
 
 const CLINT_HTML = `
 
@@ -26,16 +27,16 @@ const CLINT_HTML = `
         <ul class="nav-links">
           <li><a href="#como-funciona" class="nav-link">Como funciona</a></li>
           <li><a href="#recursos" class="nav-link">Recursos</a></li>
-          <li><a href="#baixar-video" class="nav-link" style="color: var(--brand-violet-light); font-weight: 600;">Baixar Vídeo</a></li>
-          <li><a href="#blog" class="nav-link">Blog</a></li>
-          <li><a href="#precos" class="nav-link">Preços</a></li>
+          <li><a href="/baixar-video" class="nav-link" style="color: var(--brand-violet-light); font-weight: 600;">Baixar Vídeo</a></li>
+          <li><a href="/blog" class="nav-link">Blog</a></li>
+          <li><a href="/precos" class="nav-link">Preços</a></li>
           <li><a href="#duvidas" class="nav-link">Dúvidas</a></li>
         </ul>
       </nav>
 
       <div class="nav-actions">
-        <a href="#precos" class="nav-login">Planos</a>
-        <a href="#transcrever" class="btn-primary nav-cta">
+        <a href="/login" class="nav-login" id="navLoginLink">Entrar</a>
+        <a href="/login?signup=true" class="btn-primary nav-cta" id="navCtaLink" onclick="handleStartFree(event)">
           <span>Começar grátis</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
@@ -50,11 +51,12 @@ const CLINT_HTML = `
     <div id="mobileDrawer" style="display: none; padding: 20px 24px; background: rgba(12,8,22,0.98); border-bottom: 1px solid rgba(255,255,255,0.1); flex-direction: column; gap: 14px;">
       <a href="#como-funciona" class="nav-link" onclick="toggleMobileMenu()">Como funciona</a>
       <a href="#recursos" class="nav-link" onclick="toggleMobileMenu()">Recursos</a>
-      <a href="#baixar-video" class="nav-link" onclick="toggleMobileMenu()" style="color: var(--brand-violet-light); font-weight: 600;">Baixar Vídeo</a>
-      <a href="#blog" class="nav-link" onclick="toggleMobileMenu()">Blog</a>
-      <a href="#precos" class="nav-link" onclick="toggleMobileMenu()">Preços</a>
+      <a href="/baixar-video" class="nav-link" onclick="toggleMobileMenu()" style="color: var(--brand-violet-light); font-weight: 600;">Baixar Vídeo</a>
+      <a href="/blog" class="nav-link" onclick="toggleMobileMenu()">Blog</a>
+      <a href="/precos" class="nav-link" onclick="toggleMobileMenu()">Preços</a>
       <a href="#duvidas" class="nav-link" onclick="toggleMobileMenu()">Dúvidas</a>
-      <a href="#transcrever" class="btn-primary" style="margin-top: 8px; width: 100%;" onclick="toggleMobileMenu()">Começar grátis</a>
+      <a href="/login" class="nav-link" id="mobileNavLoginLink" onclick="toggleMobileMenu()">Entrar</a>
+      <a href="/login?signup=true" class="btn-primary" id="mobileNavCtaLink" style="margin-top: 8px; width: 100%;" onclick="toggleMobileMenu(); handleStartFree(event)">Começar grátis</a>
     </div>
   </header>
 
@@ -65,7 +67,7 @@ const CLINT_HTML = `
         
         <!-- Badge Pill estilo Clint -->
         <div style="margin-bottom: 24px;">
-          <a href="#demo" class="badge-pill">
+          <a href="/login?signup=true" class="badge-pill" onclick="handleStartFree(event)">
             <span class="pill-dot"></span>
             <span>✦ IA +rápida e +precisa</span>
             <span style="color: var(--brand-violet-light);">iniciar grátis →</span>
@@ -103,6 +105,7 @@ const CLINT_HTML = `
           </div>
 
           <!-- Linha de Input Principal com Botão 'Começar grátis' -->
+          <input type="file" id="heroFileInput" style="display: none;" accept="audio/*,video/*" onchange="handleHeroFileSelected(this)">
           <div class="transcribe-input-row" id="inputContainer">
             <div class="transcribe-input-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
@@ -113,8 +116,9 @@ const CLINT_HTML = `
               id="heroUrlInput" 
               placeholder="Cole aqui o link do YouTube, Instagram Reels, TikTok, Vimeo ou Twitter..."
               value="https://www.youtube.com/watch?v=leNA0tw7Fzk"
+              onkeydown="if(event.key === 'Enter') handleTranscribeAction()"
             >
-            <button class="btn-primary transcribe-btn" onclick="simulateTranscribe()">
+            <button class="btn-primary transcribe-btn" onclick="handleTranscribeAction()">
               <span>Começar grátis</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
@@ -642,7 +646,7 @@ const CLINT_HTML = `
               </ul>
             </div>
 
-            <a href="#transcrever" class="btn-secondary" style="width:100%; border-color: rgba(16,185,129,0.4); color:#6EE7B7;">
+            <a href="/login?signup=true" class="btn-secondary" style="width:100%; border-color: rgba(16,185,129,0.4); color:#6EE7B7;" onclick="handleStartFree(event)">
               Começar grátis
             </a>
           </div>
@@ -672,7 +676,7 @@ const CLINT_HTML = `
               </ul>
             </div>
 
-            <a href="#transcrever" class="btn-secondary" style="width:100%;">
+            <a href="/precos" class="btn-secondary" style="width:100%;" id="starterCta">
               Assinar Starter Anual
             </a>
           </div>
@@ -712,7 +716,7 @@ const CLINT_HTML = `
               </ul>
             </div>
 
-            <a href="#transcrever" class="btn-primary" style="width:100%; box-shadow: 0 4px 20px rgba(236,72,153,0.5);" id="proCta">
+            <a href="/precos" class="btn-primary" style="width:100%; box-shadow: 0 4px 20px rgba(236,72,153,0.5);" id="proCta">
               Assinar Pro Anual →
             </a>
           </div>
@@ -742,7 +746,7 @@ const CLINT_HTML = `
               </ul>
             </div>
 
-            <a href="#transcrever" class="btn-secondary" style="width:100%;" id="businessCta">
+            <a href="/precos" class="btn-secondary" style="width:100%;" id="businessCta">
               Assinar Business Anual
             </a>
           </div>
@@ -897,12 +901,12 @@ const CLINT_HTML = `
             Junte-se a milhares de criadores, jornalistas, acadêmicos e empresas. Comece com 5 minutos gratuitos hoje mesmo.
           </p>
           <div class="cta-buttons-row">
-            <a href="#transcrever" class="btn-primary" style="padding: 16px 36px; font-size: 16px;">
+            <a href="/login?signup=true" class="btn-primary" style="padding: 16px 36px; font-size: 16px;" onclick="handleStartFree(event)">
               <span>Começar grátis</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
-            <a href="#precos" class="btn-secondary" style="padding: 16px 32px; font-size: 16px;">
-              Ver todos os planos
+            <a href="/precos" class="btn-secondary" style="padding: 16px 32px; font-size: 16px;">
+              Ver todos os planos →
             </a>
           </div>
           <p style="font-size: 12px; color: var(--text-dim); margin-top: 24px;">
@@ -1031,19 +1035,80 @@ export default function HomePage() {
     }
 
     // 3. Abas de Modo de Transcrição
+    let currentTranscribeMode = 'url';
+
     function switchTranscribeTab(mode, btn) {
       document.querySelectorAll('.transcribe-tab').forEach(t => t.classList.remove('active'));
       btn.classList.add('active');
+      currentTranscribeMode = mode;
       const input = document.getElementById('heroUrlInput');
       if (mode === 'url') {
         input.placeholder = 'Cole aqui o link do YouTube, Instagram Reels, TikTok, Vimeo ou Twitter...';
         input.value = 'https://www.youtube.com/watch?v=leNA0tw7Fzk';
       } else if (mode === 'upload') {
-        input.placeholder = 'Arraste ou clique para selecionar arquivo (MP3, MP4, WAV, M4A)...';
-        input.value = 'entrevista_gravada_04-nov.mp3 (24.8 MB)';
+        input.placeholder = 'Clique para selecionar arquivo de áudio ou vídeo (MP3, MP4, WAV, M4A)...';
+        input.value = '';
+        const fileInput = document.getElementById('heroFileInput');
+        if (fileInput) fileInput.click();
       } else {
-        input.placeholder = 'Clique no botão ao lado para iniciar gravação do microfone...';
-        input.value = 'Gravação Direta do Microfone (Pronto para gravar)';
+        input.placeholder = 'Gravação Direta: clique em Começar grátis para gravar no seu painel...';
+        input.value = '';
+      }
+    }
+
+    function handleHeroFileSelected(fileInput) {
+      if (fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const input = document.getElementById('heroUrlInput');
+        if (input) {
+          const mb = (file.size / (1024 * 1024)).toFixed(1);
+          input.value = `📁 ${file.name} (${mb} MB)`;
+        }
+      }
+    }
+
+    async function handleTranscribeAction() {
+      const btn = document.querySelector('.transcribe-btn');
+      const input = document.getElementById('heroUrlInput');
+      const rawValue = input ? input.value.trim() : '';
+
+      if (btn) {
+        btn.innerHTML = '<span>Redirecionando...</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        btn.style.opacity = '0.7';
+      }
+
+      // Se inseriu link de vídeo no modo URL, salva no localStorage para processar no dashboard
+      if (currentTranscribeMode === 'url' && rawValue && !rawValue.startsWith('📁')) {
+        try {
+          localStorage.setItem('pegueiotexto_pending_url', rawValue);
+        } catch (e) {}
+      }
+
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          window.location.href = '/dashboard?auto_transcribe=true';
+        } else {
+          window.location.href = '/login?signup=true&reason=transcribe&redirect=/dashboard?auto_transcribe=true';
+        }
+      } catch (err) {
+        window.location.href = '/login?signup=true&reason=transcribe&redirect=/dashboard?auto_transcribe=true';
+      }
+    }
+
+    async function handleStartFree(e) {
+      if (e) e.preventDefault();
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          window.location.href = '/dashboard';
+        } else {
+          window.location.href = '/login?signup=true';
+        }
+      } catch (err) {
+        window.location.href = '/login?signup=true';
       }
     }
 
@@ -1203,7 +1268,7 @@ export default function HomePage() {
             <div style="padding:14px 18px; border-radius:12px; background:rgba(124,58,237,0.12); border:1px solid rgba(124,58,237,0.25); font-size:13.5px; font-weight:700; color:#C4A4FF; margin-bottom:24px;">
               ⚡ ${d.stats}
             </div>
-            <a href="#transcrever" class="btn-primary" style="padding:12px 24px; font-size:14px;">
+            <a href="/login?signup=true" class="btn-primary" style="padding:12px 24px; font-size:14px;" onclick="handleStartFree(event)">
               Começar grátis neste cenário →
             </a>
           </div>
@@ -1388,8 +1453,11 @@ export default function HomePage() {
       (window as any).initWaveform = initWaveform;
       (window as any).togglePlayAudio = togglePlayAudio;
       (window as any).switchTranscribeTab = switchTranscribeTab;
+      (window as any).handleHeroFileSelected = handleHeroFileSelected;
+      (window as any).handleTranscribeAction = handleTranscribeAction;
+      (window as any).handleStartFree = handleStartFree;
       (window as any).fillSample = fillSample;
-      (window as any).simulateTranscribe = simulateTranscribe;
+      (window as any).simulateTranscribe = handleTranscribeAction;
       (window as any).switchResultTab = switchResultTab;
       (window as any).copyMockText = copyMockText;
       (window as any).switchUseCase = switchUseCase;
@@ -1401,6 +1469,57 @@ export default function HomePage() {
       initWaveform();
       renderUseCase(0);
       setPricingMode('anual');
+
+      // Detect user session and update navbar
+      try {
+        const supabase = createClient();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            const navLogin = document.getElementById('navLoginLink');
+            const navCta = document.getElementById('navCtaLink');
+            if (navLogin) {
+              navLogin.textContent = 'Sair';
+              navLogin.setAttribute('href', '#');
+              navLogin.onclick = async (e) => {
+                e.preventDefault();
+                await supabase.auth.signOut();
+                window.location.reload();
+              };
+            }
+            if (navCta) {
+              navCta.setAttribute('href', '/dashboard');
+              const span = navCta.querySelector('span');
+              if (span) span.textContent = 'Meu Painel';
+            }
+            const mobileLogin = document.getElementById('mobileNavLoginLink');
+            const mobileCta = document.getElementById('mobileNavCtaLink');
+            if (mobileLogin) {
+              mobileLogin.textContent = 'Sair';
+              mobileLogin.setAttribute('href', '#');
+              mobileLogin.onclick = async (e) => {
+                e.preventDefault();
+                await supabase.auth.signOut();
+                window.location.reload();
+              };
+            }
+            if (mobileCta) {
+              mobileCta.setAttribute('href', '/dashboard');
+              mobileCta.textContent = 'Meu Painel';
+            }
+          }
+        });
+      } catch (e) {}
+
+      // Click on input in upload mode opens file selector
+      const heroInput = document.getElementById('heroUrlInput');
+      if (heroInput) {
+        heroInput.addEventListener('click', () => {
+          if (currentTranscribeMode === 'upload') {
+            const fileInput = document.getElementById('heroFileInput');
+            if (fileInput) fileInput.click();
+          }
+        });
+      }
     }
   }, []);
 
