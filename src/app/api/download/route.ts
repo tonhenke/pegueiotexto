@@ -196,127 +196,26 @@ export async function POST(req: NextRequest) {
         console.warn("[Download Route] YouTube oEmbed error:", oeErr);
       }
 
-      // 2. Try backend stream resolution (with Android client)
-      let videoUrl = "";
-      let audioUrl = "";
-      let formats: any[] = [];
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-        const backendRes = await fetch(`${BACKEND_URL}/api/download/info`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: rawUrl }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (backendRes.ok) {
-          const bData = await backendRes.json();
-          if (bData && bData.data?.video_url) {
-            videoUrl = bData.data.video_url;
-            audioUrl = bData.data.audio_url || videoUrl;
-            formats = bData.data.formats || [];
-          }
-        }
-      } catch (bErr) {
-        console.warn("[Download Route] Backend stream error:", bErr);
-      }
-
-      // 3. Fail-safe fallback: Direct @distube/ytdl-core resolution
-      if (!videoUrl) {
-        try {
-          const { Ytdl } = await import("@distube/ytdl-core");
-          const ytdl = new Ytdl();
-          const info = await ytdl.getInfo(rawUrl);
-
-          if (info && info.videoDetails) {
-            if (!oembedTitle || oembedTitle === "Vídeo do YouTube") {
-              oembedTitle = info.videoDetails.title || oembedTitle;
-            }
-            if (!oembedAuthor || oembedAuthor === "YouTube") {
-              oembedAuthor = info.videoDetails.author?.name || oembedAuthor;
-            }
-            if (info.videoDetails.thumbnails?.length) {
-              oembedThumbnail =
-                info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url ||
-                oembedThumbnail;
-            }
-
-            const allVideos = (info.formats || []).filter(
-              (f) => f.hasVideo && f.url
-            );
-
-            // Sort prioritizing mp4 container and height descending
-            allVideos.sort((a, b) => {
-              const aMp4 = a.container === "mp4" ? 1 : 0;
-              const bMp4 = b.container === "mp4" ? 1 : 0;
-              if (aMp4 !== bMp4) return bMp4 - aMp4;
-              return (b.height || 0) - (a.height || 0);
-            });
-
-            const progressive = allVideos.filter((f) => f.hasAudio);
-            const primary = progressive[0] || allVideos[0];
-
-            if (primary && primary.url) {
-              videoUrl = primary.url;
-              const seenQualities = new Set<string>();
-              formats = [];
-
-              for (const v of allVideos) {
-                const qLabel =
-                  v.qualityLabel || (v.height ? `${v.height}p` : "HD");
-                if (!seenQualities.has(qLabel) && v.url) {
-                  seenQualities.add(qLabel);
-                  formats.push({
-                    id: `yt-${v.itag || qLabel}`,
-                    label: `MP4 ${qLabel}`,
-                    quality: qLabel,
-                    ext: v.container || "mp4",
-                    url: v.url,
-                  });
-                }
-                if (formats.length >= 5) break;
-              }
-            }
-          }
-        } catch (ytdlErr: any) {
-          console.warn("[Download Route] ytdl-core fallback error:", ytdlErr?.message || ytdlErr);
-        }
-      }
-
-      if (!videoUrl) {
-        return NextResponse.json(
-          {
-            error:
-              "Não foi possível gerar os links de download direto para este vídeo do YouTube no momento. Verifique se o vídeo é público e tente novamente.",
-          },
-          { status: 422 }
-        );
-      }
-
+      // Safe, rock-solid endpoints routed through our backend (no IP lock, no broken HLS manifests)
+      const videoDownloadUrl = `/api/download/video?url=${encodeURIComponent(rawUrl)}`;
       const mp3DownloadUrl = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
 
-      if (!formats.length) {
-        formats = [
-          {
-            id: "mp4-hd",
-            label: "MP4 HD (Download Rápido)",
-            ext: "mp4",
-            quality: "HD",
-            url: videoUrl,
-          },
-          {
-            id: "mp3-audio",
-            label: "Áudio MP3 (Download)",
-            ext: "mp3",
-            quality: "192k",
-            url: mp3DownloadUrl,
-          },
-        ];
-      }
+      const formats = [
+        {
+          id: "mp4-hd",
+          label: "MP4 HD (Download Rápido)",
+          ext: "mp4",
+          quality: "HD 720p",
+          url: videoDownloadUrl,
+        },
+        {
+          id: "mp3-audio",
+          label: "Áudio MP3 (Download)",
+          ext: "mp3",
+          quality: "192k",
+          url: mp3DownloadUrl,
+        },
+      ];
 
       return NextResponse.json({
         status: "success",
@@ -326,8 +225,8 @@ export async function POST(req: NextRequest) {
           uploader: oembedAuthor,
           platform: "YouTube",
           duration: 0,
-          video_url: videoUrl,
-          video_hd_url: videoUrl,
+          video_url: videoDownloadUrl,
+          video_hd_url: videoDownloadUrl,
           audio_url: mp3DownloadUrl,
           formats,
         },
@@ -352,7 +251,18 @@ export async function POST(req: NextRequest) {
       if (backendRes.ok) {
         const data = await backendRes.json();
         if (data?.data) {
-          data.data.audio_url = `/api/download/mp3?url=${encodeURIComponent(rawUrl)}`;
+          if (
+            !data.data.video_url ||
+            /manifest|\.m3u8/i.test(data.data.video_url)
+          ) {
+            data.data.video_url = `/api/download/video?url=${encodeURIComponent(
+              rawUrl
+            )}`;
+            data.data.video_hd_url = data.data.video_url;
+          }
+          data.data.audio_url = `/api/download/mp3?url=${encodeURIComponent(
+            rawUrl
+          )}`;
         }
         return NextResponse.json(data);
       }

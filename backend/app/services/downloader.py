@@ -4,6 +4,7 @@ import uuid
 import shutil
 from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
+from urllib.parse import quote
 import yt_dlp
 from app.config import TEMP_MEDIA_DIR
 
@@ -581,12 +582,103 @@ def try_extract_youtube_captions(url: str, preferred_language: Optional[str] = N
     }
 
 
-def extract_video_stream_info(url: str) -> dict:
+def download_video_from_url(url: str, max_height: int = 720) -> dict:
     """
-    Extracts direct CDN stream links and metadata with download=False.
-    Consumes ZERO disk space and ZERO media bandwidth on our server.
+    Downloads and merges the best MP4 video (up to max_height, e.g. 720p) and audio track.
+    Returns:
+        {
+            "video_path": Path,
+            "title": str,
+            "duration": int (seconds),
+            "platform": str,
+            "uploader": str
+        }
     """
     url = normalize_video_url(url)
+    file_id = str(uuid.uuid4())
+    output_template = str(TEMP_MEDIA_DIR / f"video_{file_id}.%(ext)s")
+
+    base_opts = {
+        "outtmpl": output_template,
+        "format": f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]/best[ext=mp4]/best",
+        "merge_output_format": "mp4",
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": False,
+        "remote_components": ["ejs:github"],
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+    }
+
+    if shutil.which("node"):
+        base_opts["js_runtimes"] = {"node": {}}
+
+    if HAS_IMPERSONATE:
+        try:
+            base_opts["impersonate"] = ImpersonateTarget.from_str("chrome")
+        except Exception:
+            pass
+
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        base_opts["cookiefile"] = cookie_file
+
+    strategies = [
+        None,
+        {"player_client": ["android", "web"]},
+        {"player_client": ["web_creator"]},
+        {"player_client": ["mweb"]},
+        {"player_client": ["ios"]},
+    ]
+
+    info = None
+    last_err = None
+    for strat in strategies:
+        try:
+            curr_opts = {**base_opts}
+            if strat:
+                curr_opts["extractor_args"] = {"youtube": strat}
+            with yt_dlp.YoutubeDL(curr_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                if info:
+                    break
+        except Exception as e:
+            last_err = e
+            continue
+
+    if not info:
+        raise RuntimeError(f"Não foi possível baixar o vídeo: {last_err or 'Erro desconhecido'}")
+
+    title = info.get("title", "Vídeo da Web")
+    duration = int(info.get("duration") or 0)
+    uploader = info.get("uploader") or info.get("channel") or "Autor Desconhecido"
+    extractor = info.get("extractor_key") or "Web"
+
+    downloaded_files = list(TEMP_MEDIA_DIR.glob(f"video_{file_id}.*"))
+    if not downloaded_files:
+        raise RuntimeError("Arquivo de vídeo não encontrado após o download.")
+
+    video_path = downloaded_files[0]
+    return {
+        "video_path": video_path,
+        "title": title,
+        "duration": duration,
+        "platform": extractor,
+        "uploader": uploader
+    }
+
+
+def extract_video_stream_info(url: str) -> dict:
+    """
+    Extracts stream metadata and direct or proxied stream links.
+    Guarantees no broken HLS manifests and handles IP restrictions.
+    """
+    url = normalize_video_url(url)
+    is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
+
     base_opts = {
         "noplaylist": True,
         "quiet": True,
@@ -610,10 +702,10 @@ def extract_video_stream_info(url: str) -> dict:
     last_err = None
     strategies = [
         None,
+        {"player_client": ["android", "web"]},
         {"player_client": ["web_creator"]},
         {"player_client": ["mweb"]},
         {"player_client": ["ios"]},
-        {"player_client": ["android"]},
     ]
 
     for strat in strategies:
@@ -630,33 +722,67 @@ def extract_video_stream_info(url: str) -> dict:
             continue
 
     if not info:
-        raise RuntimeError(f"Não foi possível obter links diretos do vídeo: {last_err or 'Erro desconhecido'}")
+        raise RuntimeError(f"Não foi possível obter informações do vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Vídeo da Web")
     duration = int(info.get("duration") or 0)
     uploader = info.get("uploader") or info.get("channel") or "Autor Desconhecido"
-    extractor = info.get("extractor_key") or "Web"
+    extractor = info.get("extractor_key") or ("YouTube" if is_youtube else "Web")
     thumbnail = info.get("thumbnail")
 
     formats = info.get("formats", [])
     direct_url = info.get("url")
 
-    # Filter progressive mp4 (contains both video and audio)
+    # If YouTube, googlevideo.com URLs are IP-bound to the server IP and will 403 on client browsers.
+    # Therefore, we provide our rock-solid server streaming/download endpoint.
+    if is_youtube or "youtube" in extractor.lower():
+        video_proxy_url = f"/api/download/video?url={quote(url)}"
+        audio_proxy_url = f"/api/download/mp3?url={quote(url)}"
+        return {
+            "title": title,
+            "duration": duration,
+            "uploader": uploader,
+            "platform": "YouTube",
+            "thumbnail": thumbnail,
+            "video_url": video_proxy_url,
+            "video_hd_url": video_proxy_url,
+            "audio_url": audio_proxy_url,
+            "formats": [
+                {
+                    "format_id": "mp4-hd",
+                    "label": "MP4 HD (Download Rápido)",
+                    "quality": "HD 720p",
+                    "ext": "mp4",
+                    "url": video_proxy_url
+                },
+                {
+                    "format_id": "mp3-audio",
+                    "label": "Áudio MP3 (Download)",
+                    "quality": "192k",
+                    "ext": "mp3",
+                    "url": audio_proxy_url
+                }
+            ]
+        }
+
+    # For other platforms, exclude broken HLS manifests and filter valid MP4s
+    valid_formats = [
+        f for f in formats 
+        if f.get("url") 
+        and not f.get("protocol", "").startswith("m3u8")
+        and f.get("protocol") != "http_dash_segments"
+        and "manifest" not in f.get("url", "")
+        and ".m3u8" not in f.get("url", "")
+    ]
+
     progressive_mp4s = [
-        f for f in formats 
-        if f.get("url") and f.get("ext") == "mp4" and f.get("vcodec") != "none" and f.get("acodec") != "none"
+        f for f in valid_formats 
+        if f.get("ext") == "mp4" and f.get("vcodec") != "none" and f.get("acodec") != "none"
     ]
 
-    # Or best video format if progressive isn't available
     all_videos = [
-        f for f in formats 
-        if f.get("url") and f.get("vcodec") != "none"
-    ]
-
-    # Best audio format
-    all_audios = [
-        f for f in formats 
-        if f.get("url") and f.get("vcodec") == "none" and (f.get("acodec") != "none" or f.get("ext") in ("mp3", "m4a", "webm"))
+        f for f in valid_formats 
+        if f.get("vcodec") != "none"
     ]
 
     best_video_url = None
@@ -666,17 +792,22 @@ def extract_video_stream_info(url: str) -> dict:
     elif all_videos:
         all_videos.sort(key=lambda x: (x.get("height") or 0, x.get("tbr") or 0), reverse=True)
         best_video_url = all_videos[0].get("url")
-    elif direct_url:
+    elif direct_url and "manifest" not in direct_url and ".m3u8" not in direct_url:
         best_video_url = direct_url
+    else:
+        best_video_url = f"/api/download/video?url={quote(url)}"
 
+    # Best audio format
+    all_audios = [
+        f for f in valid_formats 
+        if f.get("vcodec") == "none" and (f.get("acodec") != "none" or f.get("ext") in ("mp3", "m4a", "webm"))
+    ]
     best_audio_url = None
     if all_audios:
         all_audios.sort(key=lambda x: (x.get("abr") or 0), reverse=True)
         best_audio_url = all_audios[0].get("url")
-    elif best_video_url:
-        best_audio_url = best_video_url
-    elif direct_url:
-        best_audio_url = direct_url
+    else:
+        best_audio_url = f"/api/download/mp3?url={quote(url)}"
 
     # Format options for the frontend selector
     formatted_options = []
@@ -693,13 +824,13 @@ def extract_video_stream_info(url: str) -> dict:
                 "url": f.get("url")
             })
 
-    if not formatted_options and direct_url:
+    if not formatted_options:
         formatted_options.append({
-            "format_id": "mp4-direct",
-            "label": "MP4 HD (Vídeo + Áudio)",
+            "format_id": "mp4-hd",
+            "label": "MP4 HD",
             "quality": "HD",
             "ext": "mp4",
-            "url": direct_url
+            "url": best_video_url
         })
 
     return {

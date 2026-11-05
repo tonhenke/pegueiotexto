@@ -688,7 +688,15 @@ export default function VideoDownloader({
                         href={fmt.url}
                         target="_blank"
                         rel="noreferrer"
-                        onClick={(e) => handleDownloadClick(e, fmt.url, "mp4")}
+                        onClick={(e) =>
+                          handleDownloadClick(
+                            e,
+                            fmt.url,
+                            fmt.ext === "mp3" || fmt.id?.includes("mp3")
+                              ? "mp3"
+                              : "mp4"
+                          )
+                        }
                         style={{
                           fontSize: "12px",
                           padding: "4px 10px",
