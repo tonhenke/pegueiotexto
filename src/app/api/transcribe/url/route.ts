@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
       ? `https://www.youtube.com/watch?v=${ytMatch[1]}`
       : rawUrl;
 
+    let backendStatus: number | null = null;
+    let backendErrText: string | null = null;
+
     // 1. First, attempt backend native transcription (fastest if native YouTube captions exist, or TikTok/Instagram)
     try {
       const backendRes = await fetch(`${BACKEND_URL}/api/transcribe/url`, {
@@ -42,6 +45,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ url: normalizedUrl, language }),
       });
 
+      backendStatus = backendRes.status;
+
       if (backendRes.ok) {
         const data = await backendRes.json();
         return NextResponse.json(data);
@@ -52,12 +57,16 @@ export async function POST(req: NextRequest) {
         const errData = await backendRes.json().catch(() => ({}));
         return NextResponse.json(errData, { status: backendRes.status });
       }
-    } catch (backendErr) {
+
+      backendErrText = await backendRes.text().catch(() => "");
+    } catch (backendErr: any) {
+      backendErrText = backendErr?.message || String(backendErr);
       console.warn("[Transcribe URL] Backend initial attempt failed:", backendErr);
     }
 
     // 2. If it is a YouTube URL and backend failed (antibot or subtitles disabled):
     // Use @distube/ytdl-core to reliably download the audio without bot check and upload to Whisper!
+    let ytdlErrorCaught: any = null;
     if (isYoutube) {
       try {
         const ytdl = new Ytdl();
@@ -109,6 +118,7 @@ export async function POST(req: NextRequest) {
           status: uploadRes.status || 500,
         });
       } catch (ytdlError: any) {
+        ytdlErrorCaught = ytdlError;
         console.error("[Transcribe URL] ytdl-core fallback failed:", ytdlError);
       }
     }
@@ -117,6 +127,12 @@ export async function POST(req: NextRequest) {
       {
         detail:
           "Não foi possível transcrever este link no momento. Verifique se o vídeo é público ou faça o upload direto do arquivo pela aba 'Enviar arquivo'.",
+        debug: {
+          backendStatus,
+          backendErrText,
+          ytdlErrorMessage: ytdlErrorCaught?.message || String(ytdlErrorCaught),
+          ytdlErrorStack: ytdlErrorCaught?.stack?.split("\n").slice(0, 4),
+        }
       },
       { status: 500 }
     );
