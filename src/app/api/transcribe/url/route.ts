@@ -5,6 +5,7 @@ import path from "path";
 import os from "os";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const BACKEND_URL =
   process.env.BACKEND_URL || "https://pegueiotexto-production.up.railway.app";
@@ -23,6 +24,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Normalize YouTube URL if it's shorts, youtu.be, or embed
+    const isYoutube = /youtube\.com|youtu\.be/i.test(rawUrl);
+    const ytMatch = rawUrl.match(/(?:shorts\/|v=|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+    const normalizedUrl = (isYoutube && ytMatch)
+      ? `https://www.youtube.com/watch?v=${ytMatch[1]}`
+      : rawUrl;
+
     // 1. First, attempt backend native transcription (fastest if native YouTube captions exist, or TikTok/Instagram)
     try {
       const backendRes = await fetch(`${BACKEND_URL}/api/transcribe/url`, {
@@ -31,7 +39,7 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
           ...(authHeader ? { Authorization: authHeader } : {}),
         },
-        body: JSON.stringify({ url: rawUrl, language }),
+        body: JSON.stringify({ url: normalizedUrl, language }),
       });
 
       if (backendRes.ok) {
@@ -50,17 +58,17 @@ export async function POST(req: NextRequest) {
 
     // 2. If it is a YouTube URL and backend failed (antibot or subtitles disabled):
     // Use @distube/ytdl-core to reliably download the audio without bot check and upload to Whisper!
-    if (/youtube\.com|youtu\.be/i.test(rawUrl)) {
+    if (isYoutube) {
       try {
         const ytdl = new Ytdl();
-        const info = await ytdl.getInfo(rawUrl);
+        const info = await ytdl.getInfo(normalizedUrl);
         const videoTitle = info.videoDetails?.title || "Vídeo do YouTube";
         const tempId = Math.random().toString(36).substring(2, 10);
         const tempFilePath = path.join(os.tmpdir(), `yt_audio_${tempId}.m4a`);
 
         // Download audio stream reliably
         await new Promise<void>((resolve, reject) => {
-          const stream = ytdl.download(rawUrl, {
+          const stream = ytdl.download(normalizedUrl, {
             filter: { hasAudio: true, hasVideo: false },
           });
           const writeStream = fs.createWriteStream(tempFilePath);
@@ -76,7 +84,7 @@ export async function POST(req: NextRequest) {
 
         const formData = new FormData();
         const blob = new Blob([fileBuffer], { type: "audio/mp4" });
-        formData.append("file", blob, `${videoTitle.slice(0, 50)}.m4a`);
+        formData.append("file", blob, "youtube_audio.m4a");
         formData.append("language", language);
         formData.append("title", videoTitle);
         formData.append("platform", "YouTube");

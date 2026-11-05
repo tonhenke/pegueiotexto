@@ -59,6 +59,13 @@ async def transcribe_from_url(
                 print(f"[YouTube] Falha na extração de legendas nativas: {cap_err}")
                 caption_fallback = None
 
+            if not caption_fallback:
+                # Fast fail so frontend Next.js ytdl-core immediately streams audio without waiting 40s
+                raise HTTPException(
+                    status_code=422,
+                    detail="YOUTUBE_NO_CAPTIONS"
+                )
+
         if not caption_fallback:
             try:
                 download_info = download_audio_from_url(req.url)
