@@ -1,4 +1,5 @@
 import uuid
+import math
 from typing import Optional
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
@@ -75,7 +76,16 @@ async def transcribe_from_url(
         # 3. Credit verification & deduction
         credit_check = check_and_deduct_credits(user["id"], duration_seconds)
         if not credit_check["allowed"]:
-            raise HTTPException(status_code=402, detail=credit_check["error"])
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "message": credit_check["error"],
+                    "minutes_needed": credit_check.get("minutes_needed", max(1, math.ceil(duration_seconds / 60))),
+                    "current_balance": credit_check.get("credits_remaining", 0),
+                    "duration_seconds": duration_seconds,
+                    "title": title
+                }
+            )
         credits_remaining = credit_check["credits_remaining"]
         minutes_deducted = credit_check["minutes_deducted"]
 
@@ -198,7 +208,16 @@ async def transcribe_from_upload(
         # Credit check & deduction
         credit_check = check_and_deduct_credits(user["id"], duration_seconds)
         if not credit_check["allowed"]:
-            raise HTTPException(status_code=402, detail=credit_check["error"])
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "message": credit_check["error"],
+                    "minutes_needed": credit_check.get("minutes_needed", max(1, math.ceil(duration_seconds / 60))),
+                    "current_balance": credit_check.get("credits_remaining", 0),
+                    "duration_seconds": duration_seconds,
+                    "title": file.filename or "Arquivo de mídia"
+                }
+            )
         credits_remaining = credit_check["credits_remaining"]
         minutes_deducted = credit_check["minutes_deducted"]
 

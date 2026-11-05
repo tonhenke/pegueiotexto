@@ -5,7 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Link2, Upload, Loader2, CheckCircle2, Download,
   Copy, FileText, FileCode, FileType, Mic2, Trash2, RotateCcw, Zap, ArrowRight,
-  Sparkles, Check, FileDown, Share2, ExternalLink, Languages, Crown, Lock, Globe
+  Sparkles, Check, FileDown, Share2, ExternalLink, Languages, Crown, Lock, Globe,
+  X, AlertCircle, Clock
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToSrt, exportToVtt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
@@ -107,7 +108,40 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [userCredits, setUserCredits] = useState<number | null>(null);
   const [isDismissedWarning, setIsDismissedWarning] = useState<boolean>(false);
+  const [showExceededModal, setShowExceededModal] = useState<boolean>(false);
+  const [exceededData, setExceededData] = useState<{
+    mediaMinutes?: number | null;
+    currentCredits?: number | null;
+    title?: string;
+    message?: string;
+  }>({});
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const getMediaDurationMinutes = (mediaFile: File): Promise<number | null> => {
+    return new Promise((resolve) => {
+      try {
+        const objectUrl = URL.createObjectURL(mediaFile);
+        const isVideo = mediaFile.type.startsWith("video") || /\.(mp4|mov|webm|mkv|avi)$/i.test(mediaFile.name);
+        const el = document.createElement(isVideo ? "video" : "audio");
+        el.preload = "metadata";
+        el.onloadedmetadata = () => {
+          URL.revokeObjectURL(objectUrl);
+          if (el.duration && !isNaN(el.duration) && el.duration > 0) {
+            resolve(Math.max(1, Math.ceil(el.duration / 60)));
+          } else {
+            resolve(null);
+          }
+        };
+        el.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve(null);
+        };
+        el.src = objectUrl;
+      } catch {
+        resolve(null);
+      }
+    });
+  };
 
   const checkUserPlan = async () => {
     try {
@@ -207,6 +241,23 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
       return;
     }
 
+    // Pre-check for uploads: if client metadata can detect duration that exceeds known balance
+    if (mode === "upload" && file && typeof userCredits === "number" && !isPaidUser) {
+      try {
+        const detectedMin = await getMediaDurationMinutes(file);
+        if (detectedMin && detectedMin > userCredits) {
+          setExceededData({
+            mediaMinutes: detectedMin,
+            currentCredits: userCredits,
+            title: file.name,
+            message: `Este arquivo requer ${detectedMin} minutos, mas seu saldo atual possui ${userCredits} minutos.`
+          });
+          setShowExceededModal(true);
+          return;
+        }
+      } catch (e) {}
+    }
+
     setStatus("loading");
     setProgress(15);
     setTranscript("");
@@ -254,10 +305,21 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        const detail = typeof errJson.detail === "string" ? errJson.detail : (errJson.detail?.message || "Erro no processamento.");
+        const detailObj = typeof errJson.detail === "object" && errJson.detail !== null ? errJson.detail : null;
+        const detail = typeof errJson.detail === "string" ? errJson.detail : (detailObj?.message || "Erro no processamento.");
 
-        // Handled: Insufficient Credits / Time Limit Exceeded
-        if (res.status === 402 || detail.toLowerCase().includes("saldo") || detail.toLowerCase().includes("insuficiente")) {
+        // Handled: Insufficient Credits / Time Limit Exceeded -> Open Pop-up Modal
+        if (res.status === 402 || detail.toLowerCase().includes("saldo") || detail.toLowerCase().includes("insuficiente") || detailObj?.minutes_needed) {
+          const needed = detailObj?.minutes_needed || Number(detail.match(/requer\s+(\d+)/i)?.[1]) || null;
+          const balance = detailObj?.current_balance !== undefined ? detailObj.current_balance : (Number(detail.match(/saldo\s+atual\s+é\s+de\s+(\d+)/i)?.[1]) || userCredits || 0);
+
+          setExceededData({
+            mediaMinutes: needed,
+            currentCredits: balance,
+            title: detailObj?.title || (mode === "url" ? targetUrl : file?.name),
+            message: detail,
+          });
+          setShowExceededModal(true);
           setStatus("insufficient_credits");
           setInsufficientMsg(detail);
           return;
@@ -1735,6 +1797,260 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* POP-UP MODAL: MEDIA EXCEEDS AVAILABLE CREDITS / PLAN UPSELL */}
+      {showExceededModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(5, 3, 9, 0.85)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            animation: "fadeIn 0.2s ease-out",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowExceededModal(false);
+          }}
+        >
+          <div
+            className="clint-card"
+            style={{
+              maxWidth: "520px",
+              width: "100%",
+              padding: "36px 30px",
+              textAlign: "center",
+              position: "relative",
+              border: "1px solid rgba(167, 139, 250, 0.45)",
+              background: "linear-gradient(145deg, rgba(22, 14, 38, 0.98), rgba(10, 6, 18, 0.98))",
+              boxShadow: "0 30px 90px -10px rgba(0, 0, 0, 0.95), 0 0 50px rgba(124, 58, 237, 0.35)",
+              animation: "scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            {/* Top Close Button */}
+            <button
+              onClick={() => setShowExceededModal(false)}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                color: "var(--text-muted)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#FFFFFF";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                e.currentTarget.style.borderColor = "rgba(167, 139, 250, 0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--text-muted)";
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+              }}
+              title={isEnglish ? "Close" : "Fechar aviso"}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Glowing Icon */}
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(124, 58, 237, 0.35))",
+                border: "1px solid rgba(236, 72, 153, 0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                boxShadow: "0 0 35px rgba(236, 72, 153, 0.4)",
+              }}
+            >
+              <Zap size={30} color="#F472B6" />
+            </div>
+
+            {/* Badge Pill */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "5px 14px",
+                borderRadius: "100px",
+                background: "rgba(236, 72, 153, 0.12)",
+                border: "1px solid rgba(236, 72, 153, 0.35)",
+                color: "#F472B6",
+                fontSize: "12px",
+                fontWeight: 700,
+                marginBottom: "14px",
+              }}
+            >
+              <span>⚠️ Limite de Minutos Excedido</span>
+            </div>
+
+            {/* Title */}
+            <h3
+              style={{
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#FFFFFF",
+                letterSpacing: "-0.02em",
+                marginBottom: "8px",
+                lineHeight: 1.3,
+              }}
+            >
+              {isEnglish ? "You need more minutes for this media" : "Mídia maior que o seu saldo disponível"}
+            </h3>
+
+            {/* Subtitle / explanation */}
+            <p
+              style={{
+                color: "var(--text-secondary)",
+                fontSize: "14px",
+                lineHeight: 1.6,
+                maxWidth: "460px",
+                margin: "0 auto 20px",
+              }}
+            >
+              {isEnglish
+                ? "This media exceeds the number of minutes available in your current balance. To transcribe it, you need to acquire a plan or refill package."
+                : "A duração deste vídeo ou áudio ultrapassa os minutos disponíveis no seu saldo atual. Para conseguir transcrever todo o conteúdo, você precisa contratar um plano ou pacote de recarga."}
+            </p>
+
+            {/* Comparison Box */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "12px",
+                background: "rgba(255, 255, 255, 0.03)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "14px",
+                padding: "16px",
+                marginBottom: "20px",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ borderRight: "1px solid rgba(255, 255, 255, 0.08)", paddingRight: "12px" }}>
+                <p style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em", margin: 0 }}>
+                  {isEnglish ? "Media Duration" : "Duração da Mídia"}
+                </p>
+                <p style={{ fontSize: "20px", fontWeight: 800, color: "#F472B6", marginTop: "4px", marginBottom: "2px" }}>
+                  {exceededData.mediaMinutes ? `${exceededData.mediaMinutes} min` : "Excede limite"}
+                </p>
+                <p style={{ fontSize: "11px", color: "var(--text-dim)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {exceededData.title || (mode === "url" ? url : file?.name || "Mídia selecionada")}
+                </p>
+              </div>
+
+              <div style={{ paddingLeft: "8px" }}>
+                <p style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.05em", margin: 0 }}>
+                  {isEnglish ? "Your Available Balance" : "Seu Saldo Atual"}
+                </p>
+                <p style={{ fontSize: "20px", fontWeight: 800, color: "#67E8F9", marginTop: "4px", marginBottom: "2px" }}>
+                  {typeof exceededData.currentCredits === "number" ? `${exceededData.currentCredits} min` : `${userCredits ?? 0} min`}
+                </p>
+                <p style={{ fontSize: "11px", color: "var(--text-dim)", margin: 0 }}>
+                  {exceededData.mediaMinutes && typeof exceededData.currentCredits === "number" && exceededData.mediaMinutes > exceededData.currentCredits
+                    ? `Faltam ${exceededData.mediaMinutes - exceededData.currentCredits} min`
+                    : "Saldo insuficiente"}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Pricing Packages Showcase */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "10px",
+                marginBottom: "22px",
+              }}
+            >
+              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "12px", padding: "12px 8px", textAlign: "center" }}>
+                <p style={{ fontSize: "11px", color: "#67E8F9", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Starter</p>
+                <p style={{ fontSize: "15px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>60 min</p>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>R$ 4,90</p>
+              </div>
+
+              <div style={{ background: "rgba(124, 58, 237, 0.16)", border: "1px solid rgba(167, 139, 250, 0.4)", borderRadius: "12px", padding: "12px 8px", textAlign: "center", position: "relative" }}>
+                <span style={{ position: "absolute", top: "-8px", left: "50%", transform: "translateX(-50%)", background: "#7C3AED", color: "#fff", fontSize: "9px", fontWeight: 800, padding: "1px 6px", borderRadius: "100px" }}>POPULAR</span>
+                <p style={{ fontSize: "11px", color: "#C4A4FF", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Pro</p>
+                <p style={{ fontSize: "15px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>300 min</p>
+                <p style={{ fontSize: "12px", color: "#67E8F9", fontWeight: 700, margin: 0 }}>R$ 17,90</p>
+              </div>
+
+              <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "12px", padding: "12px 8px", textAlign: "center" }}>
+                <p style={{ fontSize: "11px", color: "#EC4899", fontWeight: 700, textTransform: "uppercase", margin: 0 }}>Business</p>
+                <p style={{ fontSize: "15px", fontWeight: 800, color: "#fff", margin: "4px 0" }}>1.000 min</p>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>R$ 79,90</p>
+              </div>
+            </div>
+
+            {/* Action CTA Buttons */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Link
+                href={isEnglish ? "/en/pricing" : "/precos"}
+                className="btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "14px 24px",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  boxShadow: "0 8px 30px rgba(124, 58, 237, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                <Zap size={16} />
+                <span>{isEnglish ? "Choose a Plan to Transcribe" : "Contratar um Plano para Transcrever"}</span>
+                <ArrowRight size={16} />
+              </Link>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setShowExceededModal(false);
+                  handleReset();
+                }}
+                style={{
+                  width: "100%",
+                  padding: "11px 20px",
+                  fontSize: "13px",
+                  color: "var(--text-muted)",
+                  background: "transparent",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  cursor: "pointer",
+                }}
+              >
+                <RotateCcw size={13} style={{ marginRight: 6 }} />
+                <span>{isEnglish ? "Cancel and choose another media" : "Cancelar e escolher outro vídeo"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

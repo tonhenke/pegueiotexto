@@ -161,6 +161,7 @@ def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, A
             "allowed": False,
             "minutes_deducted": 0,
             "credits_remaining": current_balance,
+            "minutes_needed": minutes_needed,
             "error": f"Saldo insuficiente. Este vídeo requer {minutes_needed} minutos, mas seu saldo atual é de {current_balance} minutos."
         }
 
