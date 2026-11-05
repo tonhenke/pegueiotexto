@@ -1075,37 +1075,61 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
                 background: "rgba(147, 51, 234, 0.08)",
                 border: "1px solid rgba(147, 51, 234, 0.25)",
                 borderRadius: "12px",
-                padding: "16px 20px",
-                maxWidth: 520,
+                padding: "18px 22px",
+                maxWidth: 540,
                 margin: "0 auto 24px",
                 textAlign: "left",
-                fontSize: "13.5px",
+                fontSize: "14px",
                 color: "var(--text-secondary)",
                 lineHeight: 1.6
               }}>
-                <p style={{ fontWeight: 600, color: "#C084FC", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>💡</span> {isEnglish ? "Recommended Solution:" : "Solução recomendada:"}
+                <p style={{ fontWeight: 600, color: "#C084FC", marginBottom: "10px", display: "flex", alignItems: "center", gap: "8px", fontSize: "14.5px" }}>
+                  <span>💡</span> {isEnglish ? "Recommended 2-step solution:" : "Solução recomendada em 2 passos:"}
                 </p>
-                <p style={{ margin: 0 }}>
-                  {isEnglish
-                    ? "You can transcribe this media by uploading the video/audio file directly via the 'Upload file' tab. Our neural Whisper AI will process it with zero YouTube restrictions."
-                    : "Para transcrever este conteúdo, você pode fazer o upload do arquivo pela aba 'Enviar arquivo'. O nosso motor de IA Whisper processará o áudio com 100% de precisão e sem nenhuma interferência do YouTube."}
-                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13.5px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                    <span style={{ color: "#A855F7", fontWeight: 700, minWidth: "18px" }}>1.</span>
+                    <span>
+                      {isEnglish ? (
+                        <>Use our free <Link href={`/en/download-video${url ? `?url=${encodeURIComponent(url)}` : ""}`} target="_blank" style={{ color: "#C084FC", fontWeight: 600, textDecoration: "underline" }}>Download Tool ↗</Link> to save the video or audio file to your device.</>
+                      ) : (
+                        <>Use a ferramenta gratuita de <Link href={`/baixar-video${url ? `?url=${encodeURIComponent(url)}` : ""}`} target="_blank" style={{ color: "#C084FC", fontWeight: 600, textDecoration: "underline" }}>Baixar Vídeo do Peguei o Texto ↗</Link> para salvar o arquivo (MP4 ou MP3) no seu dispositivo.</>
+                      )}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                    <span style={{ color: "#A855F7", fontWeight: 700, minWidth: "18px" }}>2.</span>
+                    <span>
+                      {isEnglish
+                        ? "Then upload the downloaded file in the 'Upload file' tab. Our neural Whisper AI will transcribe the audio with 100% accuracy and zero YouTube restrictions."
+                        : "Depois, faça o upload do arquivo baixado pela aba 'Enviar arquivo'. O nosso motor de IA Whisper processará o áudio com 100% de precisão e sem nenhuma interferência do YouTube."}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", margin: "0 auto" }}>
               {isAntibotOrCaptionError ? (
                 <>
-                  <button
+                  <Link
+                    href={isEnglish ? `/en/download-video${url ? `?url=${encodeURIComponent(url)}` : ""}` : `/baixar-video${url ? `?url=${encodeURIComponent(url)}` : ""}`}
+                    target="_blank"
                     className="btn-primary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none", background: "linear-gradient(135deg, #9333EA 0%, #7928CA 100%)" }}
+                  >
+                    <Download size={16} />
+                    {isEnglish ? "1. Download video on Peguei o Texto ↗" : "1. Baixar vídeo no Peguei o Texto ↗"}
+                  </Link>
+                  <button
+                    className="btn-secondary"
                     onClick={() => { setMode("upload"); setStatus("idle"); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
                   >
                     <Upload size={16} />
-                    {isEnglish ? "Transcribe via 'Upload file' →" : "Transcrever pela aba 'Enviar arquivo' →"}
+                    {isEnglish ? "2. Go to 'Upload file' →" : "2. Ir para 'Enviar arquivo' →"}
                   </button>
-                  <button className="btn-secondary" onClick={handleReset}>
+                  <button className="btn-secondary" onClick={handleReset} style={{ color: "var(--text-muted)" }}>
                     <RotateCcw size={16} /> {isEnglish ? "Try another link" : "Testar outro link"}
                   </button>
                 </>

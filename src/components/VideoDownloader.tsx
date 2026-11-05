@@ -59,6 +59,14 @@ export default function VideoDownloader({
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) setCurrentUser(data.user);
     }).catch(() => {});
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlParam = params.get("url");
+      if (urlParam) {
+        setUrl(urlParam);
+      }
+    }
   }, []);
 
   const handleDownloadClick = (e: React.MouseEvent, targetUrl: string, type: "mp4" | "mp3" = "mp4") => {
