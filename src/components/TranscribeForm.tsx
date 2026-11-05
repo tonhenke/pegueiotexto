@@ -1032,9 +1032,15 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         const isAntibotOrCaptionError =
           errorMsg.toLowerCase().includes("antibot") ||
           errorMsg.toLowerCase().includes("bot") ||
+          errorMsg.toLowerCase().includes("sign in to confirm") ||
+          errorMsg.toLowerCase().includes("cookies") ||
+          errorMsg.toLowerCase().includes("yt-dlp") ||
           errorMsg.toLowerCase().includes("legendas") ||
           errorMsg.toLowerCase().includes("bloqueou") ||
-          errorMsg.toLowerCase().includes("protegido");
+          errorMsg.toLowerCase().includes("protegido") ||
+          errorMsg.toLowerCase().includes("proteção") ||
+          errorMsg.toLowerCase().includes("informações do vídeo") ||
+          errorMsg.toLowerCase().includes("áudio do youtube");
 
         return (
           <div className="glass-card" style={{ padding: "32px", textAlign: "center", borderColor: isAntibotOrCaptionError ? "rgba(245, 158, 11, 0.3)" : "rgba(239,68,68,0.3)" }}>

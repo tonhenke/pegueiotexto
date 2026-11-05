@@ -78,7 +78,11 @@ async def transcribe_from_url(
                         uploader = v_info.get("uploader")
                     except Exception as v_err:
                         print(f"[YouTube] Falha total no download para transcrição: {v_err}")
-                        raise HTTPException(status_code=500, detail=f"Erro ao processar áudio do YouTube: {dl_err}")
+                        friendly_err = (
+                            "Este vídeo não possui legendas ativas no YouTube e o link direto foi restringido pela proteção antibot do Google. "
+                            "Para transcrever este vídeo, faça o upload do arquivo pela aba 'Enviar arquivo' ou teste com vídeos que possuem legendas ativas."
+                        )
+                        raise HTTPException(status_code=500, detail=friendly_err)
         else:
             try:
                 download_info = download_audio_from_url(req.url)
@@ -88,6 +92,12 @@ async def transcribe_from_url(
                 platform = download_info.get("platform") or "Web"
                 uploader = download_info.get("uploader")
             except Exception as dl_err:
+                err_str = str(dl_err)
+                if "sign in to confirm" in err_str.lower() or "bot" in err_str.lower():
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Este link foi restringido pela proteção antibot da plataforma. Faça o upload direto do arquivo pela aba 'Enviar arquivo'."
+                    )
                 raise HTTPException(status_code=500, detail=f"Erro ao baixar áudio: {dl_err}")
 
         if caption_fallback:
