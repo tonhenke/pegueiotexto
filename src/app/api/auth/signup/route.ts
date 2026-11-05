@@ -19,7 +19,7 @@ function getPrivilegedSupabaseClient() {
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { email, name, password, ref_code } = body;
+    const { email, name, password, ref_code, bonus_code } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -105,8 +105,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Salvar perfil inicial no Supabase com 5 minutos
-    let initialCredits = 5;
+    // 4. Salvar perfil inicial no Supabase (5 minutos padrão ou 15 minutos se veio do bônus)
+    const isBonus15 = bonus_code === "15min";
+    let initialCredits = isBonus15 ? 15 : 5;
     const nowIso = new Date().toISOString();
 
     try {
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
         name: cleanName,
         plan: "gratuito",
         credits_minutes: initialCredits,
-        referral_source: cleanRef ? `convite_${cleanRef}` : "organico",
+        referral_source: cleanRef ? `convite_${cleanRef}` : (isBonus15 ? "lead_downloader_15min" : "organico"),
       });
     } catch {}
 

@@ -24,12 +24,22 @@ function LoginForm() {
   const reasonParam = searchParams.get("reason");
   const redirectParam = searchParams.get("redirect");
   const refParam = searchParams.get("ref");
+  const bonusParam = searchParams.get("bonus");
+  const emailParam = searchParams.get("email");
+  const hasBonus15 = bonusParam === "15min";
 
   const [hasReferral, setHasReferral] = useState(false);
-  const [isLogin, setIsLogin] = useState(!isSignupParam && reasonParam !== "transcribe" && !refParam);
+  const [isLogin, setIsLogin] = useState(!isSignupParam && reasonParam !== "transcribe" && !refParam && !hasBonus15);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      if (hasBonus15) {
+        setIsLogin(false);
+        if (emailParam) {
+          setEmail(decodeURIComponent(emailParam));
+        }
+      }
+
       let ref = refParam;
       if (!ref) {
         const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
@@ -47,7 +57,7 @@ function LoginForm() {
         }
       }
     }
-  }, [refParam]);
+  }, [refParam, hasBonus15, emailParam]);
 
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
@@ -158,6 +168,7 @@ function LoginForm() {
               name: name.trim(),
               password,
               ref_code: effectiveRef,
+              bonus_code: hasBonus15 ? "15min" : undefined,
             }),
             signal: controller.signal,
           });
@@ -230,8 +241,28 @@ function LoginForm() {
         </p>
       </div>
 
+      {/* 15-Minute Bonus Banner from Downloader */}
+      {hasBonus15 && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(124, 58, 237, 0.28) 0%, rgba(236, 72, 153, 0.22) 100%)",
+          border: "1px solid rgba(167, 139, 250, 0.55)",
+          borderRadius: "14px",
+          padding: "16px 18px",
+          marginBottom: "20px",
+          textAlign: "left",
+          boxShadow: "0 6px 24px rgba(124, 58, 237, 0.25)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#C4B5FD", fontWeight: 700, fontSize: "14px", marginBottom: "4px" }}>
+            <span>🎁</span> Presente de 15 Minutos Ativado!
+          </div>
+          <p style={{ margin: 0, fontSize: "13px", color: "#E2E8F0", lineHeight: 1.5 }}>
+            Conclua seu cadastro com este e-mail para liberar <strong>15 minutos grátis</strong> de transcrição de áudio e vídeo no seu saldo!
+          </p>
+        </div>
+      )}
+
       {/* Referral Welcome Bonus Banner */}
-      {hasReferral && (
+      {hasReferral && !hasBonus15 && (
         <div style={{
           background: "linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(6, 182, 212, 0.16) 100%)",
           border: "1px solid rgba(16, 185, 129, 0.45)",
@@ -251,7 +282,7 @@ function LoginForm() {
       )}
 
       {/* Motivating banner if redirected from transcribe */}
-      {(reasonParam === "transcribe" || isSignupParam) && !hasReferral && (
+      {(reasonParam === "transcribe" || isSignupParam) && !hasReferral && !hasBonus15 && (
         <div style={{
           background: "linear-gradient(135deg, rgba(124,58,237,0.18), rgba(6,182,212,0.15))",
           border: "1px solid rgba(124,58,237,0.35)",

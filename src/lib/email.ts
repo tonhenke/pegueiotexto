@@ -676,3 +676,106 @@ export async function sendOtpEmail({
   }
 }
 
+/**
+ * 8. E-mail com presente de 15 minutos grátis para Leads do Baixar Vídeo
+ */
+export async function sendBonus15Email({
+  to,
+  claimUrl,
+}: {
+  to: string;
+  claimUrl: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn("[Email] Transporter indisponível para bônus de 15 minutos.");
+    return false;
+  }
+
+  const cleanName = to.split("@")[0];
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Seus 15 Minutos Grátis Chegaram!</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0b0a16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff;">
+      <div style="max-width: 580px; margin: 0 auto; padding: 32px 20px;">
+        
+        <!-- HEADER LOGO -->
+        <div style="text-align: center; margin-bottom: 28px;">
+          <a href="https://pegueiotexto.com.br" style="text-decoration: none;">
+            <img src="https://pegueiotexto.com.br/logo.png" alt="Peguei o Texto" width="160" style="height: auto; max-height: 48px; object-fit: contain;" />
+          </a>
+        </div>
+
+        <!-- MAIN CARD -->
+        <div style="background: #14122a; border: 1px solid rgba(124, 58, 237, 0.4); border-radius: 16px; padding: 36px 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+          
+          <!-- BADGE -->
+          <div style="display: inline-block; background: rgba(124, 58, 237, 0.2); border: 1px solid rgba(124, 58, 237, 0.5); color: #C4B5FD; padding: 6px 14px; border-radius: 9999px; font-size: 13px; font-weight: 700; margin-bottom: 20px;">
+            🎁 Presente Exclusivo de 15 Minutos
+          </div>
+
+          <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 16px; color: #ffffff; line-height: 1.3;">
+            Olá! Seus 15 minutos de transcrição grátis estão prontos para você.
+          </h1>
+
+          <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 22px;">
+            Como você usou nossa ferramenta de download de vídeos, preparamos um benefício especial: <strong>15 minutos gratuitos</strong> de transcrição de áudio e vídeo com inteligência artificial para você testar quando quiser.
+          </p>
+
+          <!-- HIGHLIGHT BOX -->
+          <div style="background: rgba(124, 58, 237, 0.12); border-left: 4px solid #7C3AED; padding: 18px 20px; border-radius: 8px; margin-bottom: 28px;">
+            <p style="font-size: 14px; margin: 0; color: #e2e8f0; line-height: 1.6;">
+              ⚡ <strong>O que você pode fazer com seus 15 minutos:</strong><br>
+              • Transcrever vídeos do YouTube, Instagram Reels e TikTok colando o link.<br>
+              • Enviar arquivos MP3, MP4 ou áudios do WhatsApp gravados.<br>
+              • Exportar textos formatados, resumos com IA e arquivos de legenda SRT/VTT.
+            </p>
+          </div>
+
+          <!-- ACTION BUTTON -->
+          <div style="text-align: center; margin: 32px 0 24px;">
+            <a href="${claimUrl}" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); color: #ffffff; padding: 16px 36px; font-size: 16px; font-weight: 800; text-decoration: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45); letter-spacing: -0.01em;">
+              Ativar Meus 15 Minutos Grátis →
+            </a>
+          </div>
+
+          <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; text-align: center; margin: 0;">
+            🔒 <em>Importante:</em> O benefício de 15 minutos é vinculado a este e-mail (${to}) e será creditado no seu saldo assim que você criar sua senha pelo link acima.
+          </p>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div style="text-align: center; margin-top: 26px; font-size: 12px; color: #64748b;">
+          Peguei o Texto • Transcrição inteligente de áudio e vídeo com IA<br>
+          <a href="https://pegueiotexto.com.br" style="color: #a78bfa; text-decoration: none;">pegueiotexto.com.br</a>
+        </div>
+
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject: "🎁 Seus 15 minutos de transcrição grátis no Peguei o Texto chegaram!",
+      text: `Olá!\n\nSeus 15 minutos de transcrição gratuita com IA no Peguei o Texto estão liberados.\n\nPara ativar agora seu saldo, acesse o link abaixo:\n${claimUrl}\n\nEquipe Peguei o Texto`,
+      html,
+    });
+    console.log(`[Email] Bônus de 15 minutos enviado com sucesso para ${to}`);
+    return true;
+  } catch (err: any) {
+    console.error(`[Email] Falha ao enviar bônus de 15 minutos para ${to}:`, err.message);
+    return false;
+  }
+}
+
+

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { X, Sparkles, CheckCircle2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import AdsenseBanner from "./AdsenseBanner";
 import TrojanHorseCard from "./TrojanHorseCard";
 
@@ -42,6 +44,75 @@ export default function VideoDownloader({
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [copied, setCopied] = useState(false);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
+
+  // Lead capture modal states
+  const supabase = createClient();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showLeadModal, setShowLeadModal] = useState(false);
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadError, setLeadError] = useState("");
+  const [pendingDownloadUrl, setPendingDownloadUrl] = useState("");
+  const [pendingDownloadType, setPendingDownloadType] = useState<"mp4" | "mp3">("mp4");
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setCurrentUser(data.user);
+    }).catch(() => {});
+  }, []);
+
+  const handleDownloadClick = (e: React.MouseEvent, targetUrl: string, type: "mp4" | "mp3" = "mp4") => {
+    const savedEmail = typeof window !== "undefined" ? localStorage.getItem("pegueiotexto_lead_email") : null;
+    if (savedEmail || currentUser) {
+      trackDownload(type);
+      return; // Permite abrir diretamente na nova aba target="_blank"
+    }
+
+    // Intercepta e abre o modal de 15 minutos
+    e.preventDefault();
+    setPendingDownloadUrl(targetUrl);
+    setPendingDownloadType(type);
+    setShowLeadModal(true);
+    setLeadError("");
+  };
+
+  const handleConfirmLeadDownload = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = leadEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!clean || !emailRegex.test(clean)) {
+      setLeadError(isEnglish ? "Please enter a valid email address." : "Por favor, digite um e-mail válido.");
+      return;
+    }
+
+    // 1. Abre imediatamente a nova aba com o vídeo pronto (sem ser bloqueado por popup blocker)
+    if (pendingDownloadUrl) {
+      window.open(pendingDownloadUrl, "_blank", "noopener,noreferrer");
+    }
+
+    // 2. Salva localmente para não pedir de novo
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pegueiotexto_lead_email", clean);
+    }
+
+    // 3. Fecha modal e mostra notificação toast
+    setShowLeadModal(false);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 8000);
+
+    // 4. Dispara captura de lead e envio do e-mail de 15 min em background
+    fetch("/api/download/capture-lead", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: clean,
+        video_url: url,
+        video_title: videoInfo?.title,
+      }),
+    }).catch(() => {});
+
+    trackDownload(pendingDownloadType);
+  };
 
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "";
@@ -500,7 +571,7 @@ export default function VideoDownloader({
                     target="_blank"
                     rel="noreferrer"
                     download={`${videoInfo.title.slice(0, 30)}.mp4`}
-                    onClick={() => trackDownload("mp4")}
+                    onClick={(e) => handleDownloadClick(e, videoInfo.video_hd_url || videoInfo.video_url || "", "mp4")}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -526,10 +597,12 @@ export default function VideoDownloader({
                     id="btn-download-mp3"
                     href={videoInfo.audio_url}
                     download={`${videoInfo.title.slice(0, 40)}.mp3`}
-                    onClick={() => {
-                      setDownloadingAudio(true);
-                      setTimeout(() => setDownloadingAudio(false), 12000);
-                      trackDownload("mp3");
+                    onClick={(e) => {
+                      handleDownloadClick(e, videoInfo.audio_url || "", "mp3");
+                      if (typeof window !== "undefined" && (localStorage.getItem("pegueiotexto_lead_email") || currentUser)) {
+                        setDownloadingAudio(true);
+                        setTimeout(() => setDownloadingAudio(false), 12000);
+                      }
                     }}
                     style={{
                       display: "inline-flex",
@@ -615,6 +688,7 @@ export default function VideoDownloader({
                         href={fmt.url}
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => handleDownloadClick(e, fmt.url, "mp4")}
                         style={{
                           fontSize: "12px",
                           padding: "4px 10px",
@@ -645,6 +719,212 @@ export default function VideoDownloader({
         videoTitle={videoInfo?.title}
         platform={videoInfo?.platform || "vídeo"}
       />
+
+      {/* Toast Notification after unlocking download */}
+      {showSuccessToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            right: "24px",
+            zIndex: 10000,
+            background: "linear-gradient(135deg, rgba(20, 18, 42, 0.96) 0%, rgba(30, 20, 50, 0.96) 100%)",
+            border: "1px solid rgba(16, 185, 129, 0.45)",
+            borderRadius: "14px",
+            padding: "16px 20px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(16, 185, 129, 0.2)",
+            maxWidth: "380px",
+            backdropFilter: "blur(12px)",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "12px",
+          }}
+        >
+          <span style={{ fontSize: "20px" }}>🎉</span>
+          <div>
+            <p style={{ margin: 0, color: "#6EE7B7", fontWeight: 700, fontSize: "14px" }}>
+              {isEnglish ? "Download Unlocked!" : "Download Liberado com Sucesso!"}
+            </p>
+            <p style={{ margin: "4px 0 0", color: "#cbd5e1", fontSize: "12px", lineHeight: 1.4 }}>
+              {isEnglish
+                ? "Your 15 free transcription minutes were sent to your email. Check your inbox!"
+                : "Seus 15 minutos grátis de transcrição foram enviados para o seu e-mail. Confira sua caixa de entrada!"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Captura de Lead com Bônus de 15 Minutos */}
+      {showLeadModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(5, 4, 15, 0.82)",
+            backdropFilter: "blur(10px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLeadModal(false);
+          }}
+        >
+          <div
+            style={{
+              background: "#14122a",
+              border: "1px solid rgba(124, 58, 237, 0.45)",
+              borderRadius: "20px",
+              padding: "32px 28px",
+              maxWidth: "460px",
+              width: "100%",
+              position: "relative",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(124, 58, 237, 0.2)",
+              textAlign: "left",
+            }}
+          >
+            {/* Botão Fechar */}
+            <button
+              type="button"
+              onClick={() => setShowLeadModal(false)}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "6px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Badge */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "rgba(124, 58, 237, 0.18)",
+                border: "1px solid rgba(124, 58, 237, 0.45)",
+                color: "#C4B5FD",
+                padding: "5px 12px",
+                borderRadius: "9999px",
+                fontSize: "12px",
+                fontWeight: 700,
+                marginBottom: "16px",
+              }}
+            >
+              <span>🎁</span>
+              <span>15 Minutos de Transcrição Grátis</span>
+            </div>
+
+            {/* Título exato pedido pelo usuário */}
+            <h3
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                color: "#ffffff",
+                margin: "0 0 10px",
+                lineHeight: 1.3,
+              }}
+            >
+              🎬 Seu vídeo está pronto para download!
+            </h3>
+
+            {/* Subtítulo exato pedido pelo usuário */}
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#cbd5e1",
+                lineHeight: 1.5,
+                margin: "0 0 20px",
+              }}
+            >
+              Digite seu melhor e-mail para liberar o download em alta velocidade e receber 15 minutos grátis de transcrição com IA para testar quando quiser.
+            </p>
+
+            {/* Erro se houver */}
+            {leadError && (
+              <div
+                style={{
+                  background: "rgba(239, 68, 68, 0.12)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  color: "#FCA5A5",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  marginBottom: "16px",
+                }}
+              >
+                {leadError}
+              </div>
+            )}
+
+            {/* Formulário com input e botão */}
+            <form onSubmit={handleConfirmLeadDownload} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <input
+                type="email"
+                required
+                autoFocus
+                placeholder="seu@email.com"
+                value={leadEmail}
+                onChange={(e) => {
+                  setLeadEmail(e.target.value);
+                  setLeadError("");
+                }}
+                className="input-base"
+                style={{
+                  width: "100%",
+                  padding: "13px 16px",
+                  fontSize: "14px",
+                  borderRadius: "12px",
+                  background: "rgba(10, 8, 24, 0.7)",
+                  border: "1px solid rgba(124, 58, 237, 0.4)",
+                  color: "#ffffff",
+                }}
+              />
+
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  justifyContent: "center",
+                  borderRadius: "12px",
+                  boxShadow: "0 6px 20px rgba(124, 58, 237, 0.45)",
+                }}
+              >
+                Liberar Download Imediato →
+              </button>
+
+              {/* ps pedido pelo usuário */}
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-muted)",
+                  margin: "4px 0 0",
+                  textAlign: "center",
+                  fontStyle: "italic",
+                }}
+              >
+                ps: o crédito de 15 min de transcrição é enviado para o seu e-mail.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
