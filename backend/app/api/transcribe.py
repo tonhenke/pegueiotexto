@@ -60,17 +60,25 @@ async def transcribe_from_url(
                 caption_fallback = None
 
             if not caption_fallback:
-                # Video stream download with 360p (works 100% reliably on Railway without bot check)
                 try:
-                    v_info = download_video_from_url(req.url, max_height=360)
-                    downloaded_audio = Path(v_info["video_path"])
-                    duration_seconds = int(v_info.get("duration") or 60)
-                    title = v_info.get("title") or "Vídeo do YouTube"
+                    download_info = download_audio_from_url(req.url)
+                    downloaded_audio = download_info["audio_path"]
+                    duration_seconds = int(download_info.get("duration") or 60)
+                    title = download_info.get("title") or "Vídeo do YouTube"
                     platform = "YouTube"
-                    uploader = v_info.get("uploader")
-                except Exception as v_err:
-                    print(f"[YouTube] Falha no download do vídeo para transcrição: {v_err}")
-                    raise HTTPException(status_code=500, detail=f"Erro ao processar vídeo do YouTube: {v_err}")
+                    uploader = download_info.get("uploader")
+                except Exception as dl_err:
+                    print(f"[YouTube] Falha no download de áudio, tentando fallback de vídeo 360p: {dl_err}")
+                    try:
+                        v_info = download_video_from_url(req.url, max_height=360)
+                        downloaded_audio = Path(v_info["video_path"])
+                        duration_seconds = int(v_info.get("duration") or 60)
+                        title = v_info.get("title") or "Vídeo do YouTube"
+                        platform = "YouTube"
+                        uploader = v_info.get("uploader")
+                    except Exception as v_err:
+                        print(f"[YouTube] Falha total no download para transcrição: {v_err}")
+                        raise HTTPException(status_code=500, detail=f"Erro ao processar áudio do YouTube: {dl_err}")
         else:
             try:
                 download_info = download_audio_from_url(req.url)

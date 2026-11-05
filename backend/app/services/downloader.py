@@ -121,12 +121,11 @@ def download_audio_from_url(url: str) -> dict:
         }]
 
     # Progressive extraction strategies across multiple player clients
+    # Pure android client completely bypasses datacenter bot checks and SABR blocks
     strategies = [
-        {"player_client": ["android", "web"]},
-        None,
-        {"player_client": ["web_creator"]},
-        {"player_client": ["mweb"]},
+        {"player_client": ["android"]},
         {"player_client": ["ios"]},
+        None,
     ]
 
     info = None
@@ -632,11 +631,9 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
         base_opts["cookiefile"] = cookie_file
 
     strategies = [
-        None,
-        {"player_client": ["android", "web"]},
-        {"player_client": ["web_creator"]},
-        {"player_client": ["mweb"]},
+        {"player_client": ["android"]},
         {"player_client": ["ios"]},
+        None,
     ]
 
     info = None
@@ -706,11 +703,9 @@ def extract_video_stream_info(url: str) -> dict:
     info = None
     last_err = None
     strategies = [
-        None,
-        {"player_client": ["android", "web"]},
-        {"player_client": ["web_creator"]},
-        {"player_client": ["mweb"]},
+        {"player_client": ["android"]},
         {"player_client": ["ios"]},
+        None,
     ]
 
     for strat in strategies:
