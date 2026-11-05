@@ -49,23 +49,32 @@ async def transcribe_from_url(
     caption_fallback = None
 
     try:
-        # 2. Extract media metadata and audio stream, with seamless caption fallback for YouTube
-        try:
-            download_info = download_audio_from_url(req.url)
-            downloaded_audio = download_info["audio_path"]
-            duration_seconds = int(download_info.get("duration") or 60)
-            title = download_info.get("title") or "Vídeo da Internet"
-            platform = download_info.get("platform") or "Web"
-            uploader = download_info.get("uploader")
-        except Exception as dl_err:
-            is_youtube = ("youtube.com" in req.url) or ("youtu.be" in req.url)
-            if is_youtube:
-                try:
-                    caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
-                except Exception:
-                    caption_fallback = None
-            if not caption_fallback:
-                raise dl_err
+        # 2. Extract media metadata and audio stream, with instant native caption priority for YouTube
+        is_youtube = ("youtube.com" in req.url) or ("youtu.be" in req.url)
+
+        if is_youtube:
+            try:
+                caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
+            except Exception as cap_err:
+                print(f"[YouTube] Falha na extração de legendas nativas: {cap_err}")
+                caption_fallback = None
+
+        if not caption_fallback:
+            try:
+                download_info = download_audio_from_url(req.url)
+                downloaded_audio = download_info["audio_path"]
+                duration_seconds = int(download_info.get("duration") or 60)
+                title = download_info.get("title") or "Vídeo da Internet"
+                platform = download_info.get("platform") or "Web"
+                uploader = download_info.get("uploader")
+            except Exception as dl_err:
+                if is_youtube and not caption_fallback:
+                    try:
+                        caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
+                    except Exception:
+                        pass
+                if not caption_fallback:
+                    raise dl_err
 
         if caption_fallback:
             duration_seconds = int(caption_fallback.get("duration") or 60)
