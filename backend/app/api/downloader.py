@@ -29,47 +29,6 @@ def build_content_disposition(raw_title: str, ext: str, disposition: str = "atta
 class DownloadInfoRequest(BaseModel):
     url: str
 
-@router.post("/test-debug-youtube")
-def test_debug_youtube(req: DownloadInfoRequest):
-    from app.services.downloader import extract_youtube_video_id, try_extract_youtube_captions
-    results = {}
-    url = (req.url or "").strip()
-    results["url"] = url
-    
-    # 1. Video ID
-    video_id = extract_youtube_video_id(url)
-    results["video_id"] = video_id
-    
-    # 2. Captions
-    try:
-        caps = try_extract_youtube_captions(url)
-        results["captions_found"] = bool(caps)
-        if caps:
-            results["caption_engine"] = caps.get("engine")
-            results["caption_preview"] = caps.get("text", "")[:100]
-    except Exception as e:
-        results["captions_error"] = str(e)
-        
-    # 3. Audio download
-    try:
-        a_info = download_audio_from_url(url)
-        results["audio_download_success"] = True
-        if a_info.get("audio_path"):
-            Path(a_info["audio_path"]).unlink(missing_ok=True)
-    except Exception as e:
-        results["audio_download_error"] = str(e)
-
-    # 4. Video download
-    try:
-        v_info = download_video_from_url(url, max_height=360)
-        results["video_download_success"] = True
-        if v_info.get("video_path"):
-            Path(v_info["video_path"]).unlink(missing_ok=True)
-    except Exception as e:
-        results["video_download_error"] = str(e)
-        
-    return results
-
 @router.post("/info")
 def get_video_stream_info(req: DownloadInfoRequest):
     url = (req.url or "").strip()

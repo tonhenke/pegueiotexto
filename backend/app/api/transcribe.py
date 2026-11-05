@@ -189,6 +189,8 @@ async def transcribe_from_url(
 async def transcribe_from_upload(
     file: UploadFile = File(...),
     language: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    platform: Optional[str] = Form(None),
     authorization: Optional[str] = Header(None)
 ):
     """
@@ -228,6 +230,8 @@ async def transcribe_from_upload(
         )
 
         duration_seconds = int(transcription.get("duration") or 60)
+        final_title = (title or file.filename or "Arquivo de mídia").strip()
+        final_platform = (platform or "Upload").strip()
 
         # Credit check & deduction
         credit_check = check_and_deduct_credits(user["id"], duration_seconds)
@@ -239,13 +243,12 @@ async def transcribe_from_upload(
                     "minutes_needed": credit_check.get("minutes_needed", max(1, math.ceil(duration_seconds / 60))),
                     "current_balance": credit_check.get("credits_remaining", 0),
                     "duration_seconds": duration_seconds,
-                    "title": file.filename or "Arquivo de mídia"
+                    "title": final_title
                 }
             )
         credits_remaining = credit_check["credits_remaining"]
         minutes_deducted = credit_check["minutes_deducted"]
 
-        title = file.filename or "Arquivo de mídia"
         text = transcription.get("text", "")
         srt = transcription.get("srt", "")
         vtt = transcription.get("vtt", "")
@@ -254,8 +257,8 @@ async def transcribe_from_upload(
         if user:
             record_id = save_transcription_record(
                 user_id=user["id"],
-                title=title,
-                platform="Upload",
+                title=final_title,
+                platform=final_platform,
                 duration_seconds=duration_seconds,
                 minutes_deducted=minutes_deducted,
                 text_content=text,
@@ -266,7 +269,8 @@ async def transcribe_from_upload(
         return {
             "success": True,
             "id": record_id,
-            "title": title,
+            "title": final_title,
+            "platform": final_platform,
             "duration": duration_seconds,
             "minutes_deducted": minutes_deducted,
             "credits_remaining": credits_remaining,
