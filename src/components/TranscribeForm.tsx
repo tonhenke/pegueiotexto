@@ -1028,35 +1028,97 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
       )}
 
       {/* ERROR STATE */}
-      {status === "error" && (
-        <div className="glass-card" style={{ padding: "32px", textAlign: "center", borderColor: "rgba(239,68,68,0.3)" }}>
-          <div style={{
-            width: 48, height: 48,
-            background: "rgba(239,68,68,0.15)",
-            borderRadius: "50%",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-          }}>
-            <RotateCcw size={22} color="#EF4444" />
-          </div>
-          <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
-            {isEnglish ? "Unable to transcribe" : "Não foi possível transcrever"}
-          </h3>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 480, margin: "0 auto 24px" }}>
-            {errorMsg || (isEnglish ? "A problem occurred while downloading or processing media. Please check the link or file format." : "Ocorreu um problema ao baixar ou processar a mídia. Verifique o link ou formato do arquivo.")}
-          </p>
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", margin: "0 auto" }}>
-            {(errorMsg.toLowerCase().includes("saldo") || errorMsg.toLowerCase().includes("minutos") || errorMsg.toLowerCase().includes("insuficiente")) && (
-              <Link href={isEnglish ? "/en/pricing" : "/precos"} className="btn-primary" style={{ textDecoration: "none" }}>
-                {isEnglish ? "Refill minutes ↗" : "Recarregar minutos ↗"}
-              </Link>
+      {status === "error" && (() => {
+        const isAntibotOrCaptionError =
+          errorMsg.toLowerCase().includes("antibot") ||
+          errorMsg.toLowerCase().includes("bot") ||
+          errorMsg.toLowerCase().includes("legendas") ||
+          errorMsg.toLowerCase().includes("bloqueou") ||
+          errorMsg.toLowerCase().includes("protegido");
+
+        return (
+          <div className="glass-card" style={{ padding: "32px", textAlign: "center", borderColor: isAntibotOrCaptionError ? "rgba(245, 158, 11, 0.3)" : "rgba(239,68,68,0.3)" }}>
+            <div style={{
+              width: 48, height: 48,
+              background: isAntibotOrCaptionError ? "rgba(245, 158, 11, 0.15)" : "rgba(239,68,68,0.15)",
+              borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 16px",
+            }}>
+              {isAntibotOrCaptionError ? (
+                <AlertCircle size={24} color="#F59E0B" />
+              ) : (
+                <RotateCcw size={22} color="#EF4444" />
+              )}
+            </div>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "8px" }}>
+              {isAntibotOrCaptionError
+                ? (isEnglish ? "Link protected by YouTube" : "Vídeo com proteção do YouTube")
+                : (isEnglish ? "Unable to transcribe" : "Não foi possível transcrever")}
+            </h3>
+            <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: 520, margin: "0 auto 16px", lineHeight: 1.6 }}>
+              {isAntibotOrCaptionError
+                ? (isEnglish
+                    ? "This video has no native subtitles on YouTube and direct server extraction was challenged by Google's antibot shield."
+                    : "Este vídeo não possui legendas ativas no YouTube e a extração direta do áudio foi restringida pela proteção antibot do Google.")
+                : (errorMsg || (isEnglish ? "A problem occurred while downloading or processing media. Please check the link or file format." : "Ocorreu um problema ao baixar ou processar a mídia. Verifique o link ou formato do arquivo."))}
+            </p>
+
+            {isAntibotOrCaptionError && (
+              <div style={{
+                background: "rgba(147, 51, 234, 0.08)",
+                border: "1px solid rgba(147, 51, 234, 0.25)",
+                borderRadius: "12px",
+                padding: "16px 20px",
+                maxWidth: 520,
+                margin: "0 auto 24px",
+                textAlign: "left",
+                fontSize: "13.5px",
+                color: "var(--text-secondary)",
+                lineHeight: 1.6
+              }}>
+                <p style={{ fontWeight: 600, color: "#C084FC", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>💡</span> {isEnglish ? "Recommended Solution:" : "Solução recomendada:"}
+                </p>
+                <p style={{ margin: 0 }}>
+                  {isEnglish
+                    ? "You can transcribe this media by uploading the video/audio file directly via the 'Upload file' tab. Our neural Whisper AI will process it with zero YouTube restrictions."
+                    : "Para transcrever este conteúdo, você pode fazer o upload do arquivo pela aba 'Enviar arquivo'. O nosso motor de IA Whisper processará o áudio com 100% de precisão e sem nenhuma interferência do YouTube."}
+                </p>
+              </div>
             )}
-            <button className="btn-secondary" onClick={handleReset}>
-              <RotateCcw size={16} /> {isEnglish ? "Try again" : "Tentar novamente"}
-            </button>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", margin: "0 auto" }}>
+              {isAntibotOrCaptionError ? (
+                <>
+                  <button
+                    className="btn-primary"
+                    onClick={() => { setMode("upload"); setStatus("idle"); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none" }}
+                  >
+                    <Upload size={16} />
+                    {isEnglish ? "Transcribe via 'Upload file' →" : "Transcrever pela aba 'Enviar arquivo' →"}
+                  </button>
+                  <button className="btn-secondary" onClick={handleReset}>
+                    <RotateCcw size={16} /> {isEnglish ? "Try another link" : "Testar outro link"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {(errorMsg.toLowerCase().includes("saldo") || errorMsg.toLowerCase().includes("minutos") || errorMsg.toLowerCase().includes("insuficiente")) && (
+                    <Link href={isEnglish ? "/en/pricing" : "/precos"} className="btn-primary" style={{ textDecoration: "none" }}>
+                      {isEnglish ? "Refill minutes ↗" : "Recarregar minutos ↗"}
+                    </Link>
+                  )}
+                  <button className="btn-secondary" onClick={handleReset}>
+                    <RotateCcw size={16} /> {isEnglish ? "Try again" : "Tentar novamente"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* RESULT */}
       {status === "done" && (
