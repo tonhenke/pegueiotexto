@@ -819,8 +819,29 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
         <div className="glass-card" style={{ padding: "40px", textAlign: "center" }}>
           {/* Animated sound bars */}
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "center", gap: "6px", height: "48px", marginBottom: "24px" }}>
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="wave-bar" style={{ height: `${Math.random() * 32 + 16}px` }} />
+            {[
+              { id: 1, height: 16, delay: "0s" },
+              { id: 2, height: 24, delay: "0.15s" },
+              { id: 3, height: 36, delay: "0.3s" },
+              { id: 4, height: 44, delay: "0.45s" },
+              { id: 5, height: 38, delay: "0.3s" },
+              { id: 6, height: 26, delay: "0.15s" },
+              { id: 7, height: 18, delay: "0.05s" },
+            ].map((bar) => (
+              <div
+                key={bar.id}
+                className="wave-bar"
+                style={{
+                  height: `${bar.height}px`,
+                  width: "5px",
+                  borderRadius: "3px",
+                  background: "#A855F7",
+                  transformOrigin: "bottom",
+                  animation: "wave 1.2s ease-in-out infinite",
+                  animationDelay: bar.delay,
+                  flex: "none",
+                }}
+              />
             ))}
           </div>
 

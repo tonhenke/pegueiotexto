@@ -1021,7 +1021,7 @@ export default function HomePage() {
       if (isPlaying) {
         btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
         waveInterval = setInterval(() => {
-          const bars = document.querySelectorAll('.wave-bar');
+          const bars = document.querySelectorAll('#waveVisualizer .wave-bar');
           bars.forEach((b) => {
             const randomH = Math.floor(Math.random() * 26 + 8);
             b.style.height = randomH + 'px';
