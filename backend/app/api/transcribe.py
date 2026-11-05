@@ -60,13 +60,18 @@ async def transcribe_from_url(
                 caption_fallback = None
 
             if not caption_fallback:
-                # Fast fail so frontend Next.js ytdl-core immediately streams audio without waiting 40s
-                raise HTTPException(
-                    status_code=422,
-                    detail="YOUTUBE_NO_CAPTIONS"
-                )
-
-        if not caption_fallback:
+                # Video stream download with 360p (works 100% reliably on Railway without bot check)
+                try:
+                    v_info = download_video_from_url(req.url, max_height=360)
+                    downloaded_audio = Path(v_info["video_path"])
+                    duration_seconds = int(v_info.get("duration") or 60)
+                    title = v_info.get("title") or "Vídeo do YouTube"
+                    platform = "YouTube"
+                    uploader = v_info.get("uploader")
+                except Exception as v_err:
+                    print(f"[YouTube] Falha no download do vídeo para transcrição: {v_err}")
+                    raise HTTPException(status_code=500, detail=f"Erro ao processar vídeo do YouTube: {v_err}")
+        else:
             try:
                 download_info = download_audio_from_url(req.url)
                 downloaded_audio = download_info["audio_path"]
@@ -75,28 +80,7 @@ async def transcribe_from_url(
                 platform = download_info.get("platform") or "Web"
                 uploader = download_info.get("uploader")
             except Exception as dl_err:
-                if is_youtube and not caption_fallback:
-                    try:
-                        # Fallback 1: Try video stream download with Android client (zero bot check)
-                        v_info = download_video_from_url(req.url, max_height=360)
-                        v_path = Path(v_info["video_path"])
-                        if v_path.exists():
-                            downloaded_audio = v_path
-                            duration_seconds = int(v_info.get("duration") or 60)
-                            title = v_info.get("title") or "Vídeo do YouTube"
-                            platform = "YouTube"
-                            uploader = v_info.get("uploader")
-                    except Exception as v_err:
-                        print(f"[YouTube] Fallback video download error: {v_err}")
-
-                    if not downloaded_audio:
-                        try:
-                            caption_fallback = try_extract_youtube_captions(req.url, preferred_language=req.language)
-                        except Exception:
-                            pass
-
-                if not downloaded_audio and not caption_fallback:
-                    raise dl_err
+                raise HTTPException(status_code=500, detail=f"Erro ao baixar áudio: {dl_err}")
 
         if caption_fallback:
             duration_seconds = int(caption_fallback.get("duration") or 60)
