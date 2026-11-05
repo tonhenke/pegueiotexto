@@ -172,6 +172,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Se for lead do downloader, atualizar status para claimed no Supabase
+    if (isBonus15) {
+      try {
+        await sb.from("downloader_leads").update({ status: "claimed" }).eq("email", cleanEmail);
+      } catch {}
+    }
+
     // 6. Sincronizar com admin-store (users.json)
     try {
       upsertUser({

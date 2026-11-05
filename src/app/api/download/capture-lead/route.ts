@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import path from "path";
+import { createClient } from "@supabase/supabase-js";
 import { validateEmailSyntax, isDisposableEmail } from "@/lib/email-validator";
 import { sendBonus15Email } from "@/lib/email";
-import { readStoreJSON, writeStoreJSON } from "@/lib/admin-store";
+import { readStoreJSON, writeStoreJSON, getSupabaseServiceKey } from "@/lib/admin-store";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,15 @@ export interface DownloaderLead {
 }
 
 const LEADS_FILE = path.join(process.cwd(), "data", "downloader_leads.json");
+
+function getPrivilegedSupabaseClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cufpliitnvavlygsrrzu.supabase.co";
+  const serviceKey = getSupabaseServiceKey() || "";
+  return createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +59,25 @@ export async function POST(request: Request) {
     const token = `b15_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const claimUrl = `${baseUrl}/login?signup=true&bonus=15min&email=${encodeURIComponent(cleanEmail)}&token=${token}`;
 
-    // 3. Gravar lead no store persistente
+    // 3. Gravar no Supabase (tabela downloader_leads)
+    const sb = getPrivilegedSupabaseClient();
+    try {
+      await sb.from("downloader_leads").upsert(
+        {
+          id: token,
+          email: cleanEmail,
+          video_url: video_url ? String(video_url).slice(0, 500) : null,
+          video_title: video_title ? String(video_title).slice(0, 255) : null,
+          status: "pending",
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: "email" }
+      );
+    } catch (sbErr) {
+      console.warn("[DownloaderLead] Aviso ao gravar lead no Supabase:", sbErr);
+    }
+
+    // 4. Gravar também no arquivo local como fallback seguro
     try {
       const leads = readStoreJSON<DownloaderLead>(LEADS_FILE);
       const existing = leads.find((l) => l.email === cleanEmail);
@@ -68,7 +96,7 @@ export async function POST(request: Request) {
       console.warn("[DownloaderLead] Erro ao salvar lead local:", saveErr);
     }
 
-    // 4. Disparar e-mail com 15 minutos grátis de forma assíncrona (não-bloqueante)
+    // 5. Disparar e-mail com 15 minutos grátis de forma assíncrona (não-bloqueante)
     sendBonus15Email({ to: cleanEmail, claimUrl }).catch((mailErr) => {
       console.warn("[DownloaderLead] Erro no envio assíncrono do e-mail de 15 minutos:", mailErr);
     });
