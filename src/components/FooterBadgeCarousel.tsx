@@ -44,6 +44,22 @@ const BADGES: BadgeItem[] = [
     width: 182,
     height: 43,
   },
+  {
+    title: "Better Launch",
+    url: "https://www.betterlaunch.co/product/peguei-o-texto",
+    imgSrc: "https://www.betterlaunch.co/badge-launching-dark.svg",
+    alt: "Better Launch",
+    width: 200,
+    height: 56,
+  },
+  {
+    title: "FoundrList",
+    url: "https://www.foundrlist.com/product/pegueiotexto?utm_source=badge&utm_medium=embed",
+    imgSrc: "https://www.foundrlist.com/api/badge/pegueiotexto",
+    alt: "Featured on FoundrList",
+    width: 150,
+    height: 48,
+  },
 ];
 
 interface FooterBadgeCarouselProps {
@@ -172,3 +188,4 @@ export default function FooterBadgeCarousel({ label = "FIND US ON" }: FooterBadg
     </div>
   );
 }
+

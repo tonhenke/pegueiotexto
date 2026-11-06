@@ -984,7 +984,7 @@ const CLINT_HTML = `
 
       </div>
 
-      <!-- BADGES CAROUSEL (STYLE UNISCRIBE): PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS & FAZIER -->
+      <!-- BADGES CAROUSEL (STYLE UNISCRIBE): PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS, FAZIER, BETTER LAUNCH & FOUNDRLIST -->
       <div class="footer-badge-ticker" id="footerBadgeTicker">
         <span class="footer-badge-label">FIND US ON</span>
         <div class="footer-badge-track" id="footerBadgeTrack">
@@ -999,6 +999,12 @@ const CLINT_HTML = `
           </a>
           <a href="https://fazier.com/launches/pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Fazier" tabindex="-1">
             <img src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral" alt="Fazier badge" class="footer-badge-img" width="182" height="43" loading="lazy">
+          </a>
+          <a href="https://www.betterlaunch.co/product/peguei-o-texto" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Better Launch" tabindex="-1">
+            <img src="https://www.betterlaunch.co/badge-launching-dark.svg" alt="Better Launch" class="footer-badge-img" width="200" height="56" loading="lazy">
+          </a>
+          <a href="https://www.foundrlist.com/product/pegueiotexto?utm_source=badge&amp;utm_medium=embed" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on FoundrList" tabindex="-1">
+            <img src="https://www.foundrlist.com/api/badge/pegueiotexto" alt="Featured on FoundrList" class="footer-badge-img" width="150" height="48" loading="lazy">
           </a>
         </div>
       </div>
