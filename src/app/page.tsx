@@ -976,7 +976,7 @@ const CLINT_HTML = `
 
       </div>
 
-      <!-- BADGES: PRODUCT HUNT, STARTUPBASE & CONFETTI SAAS -->
+      <!-- BADGES: PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS & FAZIER -->
       <div class="footer-badges-row">
         <a href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Featured on Product Hunt">
           <img src="/product-hunt-badge.svg" alt="Featured on Product Hunt" class="footer-badge-img" width="250" height="54" loading="lazy">
@@ -986,6 +986,9 @@ const CLINT_HTML = `
         </a>
         <a href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge" target="_blank" rel="noopener" class="footer-badge-link" aria-label="View Peguei o Texto on ConfettiSaaS">
           <img src="https://confettisaas.com/badge-dark.svg" alt="Peguei o Texto on ConfettiSaaS" class="footer-badge-img" width="250" height="54" loading="lazy">
+        </a>
+        <a href="https://fazier.com/launches/pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Featured on Fazier">
+          <img src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral" alt="Fazier badge" class="footer-badge-img" width="182" height="43" loading="lazy">
         </a>
       </div>
 

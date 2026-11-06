@@ -241,6 +241,32 @@ export default function Footer() {
               style={{ height: "30px", width: "auto", display: "block" }}
             />
           </a>
+
+          <a
+            href="https://fazier.com/launches/pegueiotexto.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Featured on Fazier"
+            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.9";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral"
+              alt="Fazier badge"
+              height="30"
+              width="182"
+              loading="lazy"
+              style={{ height: "30px", width: "auto", display: "block" }}
+            />
+          </a>
         </div>
 
         {/* Bottom bar */}
