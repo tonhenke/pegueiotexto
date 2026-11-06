@@ -58,3 +58,4 @@ Once the AI finishes transcription, select your preferred download format:
 ## Convert Your MP3 Files Today
 
 Experience the speed of next-generation speech-to-text. [Convert your first MP3 audio file into text for free with Peguei o Texto](/en/convert-mp3-to-text) and get 5 free minutes immediately on signup.
+

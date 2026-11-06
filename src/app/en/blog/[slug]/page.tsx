@@ -472,3 +472,4 @@ export default async function EnglishBlogPostPage({ params }: BlogPostPageProps)
     </main>
   );
 }
+

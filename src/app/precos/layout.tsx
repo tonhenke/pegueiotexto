@@ -23,3 +23,4 @@ export const metadata: Metadata = {
 export default function PrecosLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
+

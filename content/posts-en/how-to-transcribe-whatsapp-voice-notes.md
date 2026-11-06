@@ -63,3 +63,4 @@ Unlike public transcription bots that store audio recordings indefinitely or use
 ## Final Thoughts
 
 Stop dreading long voice notes. Bookmark [Peguei o Texto WhatsApp Transcription](/en/transcribe-whatsapp) on your mobile home screen to turn any audio message into organized, actionable text in seconds.
+

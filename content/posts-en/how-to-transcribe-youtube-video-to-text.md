@@ -90,3 +90,4 @@ If you are editing YouTube Shorts, TikToks, or Instagram Reels:
 | **Privacy Guarantee** | Google logs activity | Zero-Retention deletion |
 
 Ready to convert your first video? [Try Peguei o Texto for Free](/en/transcribe-youtube) and transcribe up to 5 minutes immediately without a credit card.
+

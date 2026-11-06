@@ -98,3 +98,4 @@ Whisper is an open-source neural network trained on hundreds of thousands of hou
 If your goal is frictionless speed, accurate punctuation, and the freedom to convert both uploaded audio files and online video links directly in your web browser, **Peguei o Texto** provides the best balance of speed, affordability, and output quality.
 
 [Try Peguei o Texto for Free Today](/en) — no credit card required.
+

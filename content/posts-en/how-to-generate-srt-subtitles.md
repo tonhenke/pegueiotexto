@@ -80,3 +80,4 @@ CapCut is the top mobile and desktop editor for short-form viral content. Here i
 ## Start Generating Subtitles Now
 
 Stop wasting hours manually listening, pausing, and typing timestamps. [Generate your first synced .SRT track for free with Peguei o Texto](/en/generate-srt-subtitles) and elevate your short-form video workflow today.
+
