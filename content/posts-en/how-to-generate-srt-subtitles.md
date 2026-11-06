@@ -7,6 +7,7 @@ tags: ["Subtitles", "SRT", "CapCut", "Video Editing", "Reels"]
 readTime: "5 min read"
 featured: false
 coverGradient: "linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)"
+coverImage: "/blog/gerar-legendas-srt-vtt.jpg"
 author:
   name: "Peguei o Texto Team"
   role: "AI & Video Content Specialists"

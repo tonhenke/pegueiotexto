@@ -7,7 +7,7 @@ import ReadingProgressBar from "@/components/blog/ReadingProgressBar";
 import TableOfContents from "@/components/blog/TableOfContents";
 import ShareButtons from "@/components/blog/ShareButtons";
 import BlogCard from "@/components/blog/BlogCard";
-import { getAllPosts, getPostBySlug, getRelatedPosts } from "@/lib/blog";
+import { getAllPosts, getPostBySlug, getRelatedPosts, BLOG_SLUG_MAP_PT_TO_EN } from "@/lib/blog";
 import { Calendar, Clock, ChevronRight, Sparkles, ArrowRight, Zap, User, ArrowLeft } from "lucide-react";
 
 interface BlogPostPageProps {
@@ -34,6 +34,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   }
 
   const url = `https://pegueiotexto.com.br/blog/${post.slug}`;
+  const enSlug = BLOG_SLUG_MAP_PT_TO_EN[post.slug];
+  const enUrl = enSlug ? `https://pegueiotexto.com.br/en/blog/${enSlug}` : undefined;
 
   return {
     title: `${post.title} | Blog Peguei o Texto`,
@@ -41,6 +43,10 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     keywords: post.tags,
     alternates: {
       canonical: url,
+      languages: {
+        "pt-BR": url,
+        ...(enUrl ? { en: enUrl, "x-default": enUrl } : { "x-default": url }),
+      },
     },
     openGraph: {
       title: post.title,

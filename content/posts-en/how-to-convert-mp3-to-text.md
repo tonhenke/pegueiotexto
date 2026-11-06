@@ -7,6 +7,7 @@ tags: ["MP3 to Text", "Audio Converter", "Speech to Text", "Productivity"]
 readTime: "5 min read"
 featured: false
 coverGradient: "linear-gradient(135deg, #10B981 0%, #06B6D4 100%)"
+coverImage: "/blog/converter-mp3-em-texto.jpg"
 author:
   name: "Peguei o Texto Team"
   role: "AI & Video Content Specialists"

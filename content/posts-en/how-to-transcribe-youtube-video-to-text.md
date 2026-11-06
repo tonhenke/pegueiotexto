@@ -7,6 +7,7 @@ tags: ["YouTube", "Transcription", "AI Speech to Text", "Video SEO"]
 readTime: "6 min read"
 featured: true
 coverGradient: "linear-gradient(135deg, #FF0000 0%, #7C3AED 100%)"
+coverImage: "/blog/como-transcrever-video-do-youtube.jpg"
 author:
   name: "Peguei o Texto Team"
   role: "AI & Video Content Specialists"

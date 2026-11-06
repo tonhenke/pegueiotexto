@@ -3,10 +3,13 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { BLOG_SLUG_MAP_PT_TO_EN, BLOG_SLUG_MAP_EN_TO_PT } from "@/lib/blog-slugs";
 
 export const ROUTE_MAP_PT_TO_EN: Record<string, string> = {
   "/": "/en",
   "/precos": "/en/pricing",
+  "/dashboard": "/en/dashboard",
+  "/sugestoes": "/en/suggestions",
   "/blog": "/en/blog",
   "/baixar-video": "/en/download-video",
   "/transcrever-youtube": "/en/transcribe-youtube",
@@ -37,6 +40,9 @@ export const ROUTE_MAP_EN_TO_PT: Record<string, string> = Object.entries(
   acc[en] = pt;
   return acc;
 }, {} as Record<string, string>);
+
+// Support alternative English paths like /en/sugestoes
+ROUTE_MAP_EN_TO_PT["/en/sugestoes"] = "/sugestoes";
 
 export default function LanguageSwitcher() {
   const pathname = usePathname();
@@ -69,7 +75,11 @@ export default function LanguageSwitcher() {
       if (!isEnglish) {
         if (ROUTE_MAP_PT_TO_EN[cleanPath]) {
           router.push(ROUTE_MAP_PT_TO_EN[cleanPath]);
-        } else if (cleanPath.startsWith("/blog")) {
+        } else if (cleanPath.startsWith("/blog/")) {
+          const ptSlug = cleanPath.replace(/^\/blog\//, "").replace(/\/$/, "");
+          const targetEnSlug = BLOG_SLUG_MAP_PT_TO_EN[ptSlug] || ptSlug;
+          router.push(`/en/blog/${targetEnSlug}`);
+        } else if (cleanPath === "/blog") {
           router.push("/en/blog");
         } else {
           router.push("/en");
@@ -79,7 +89,11 @@ export default function LanguageSwitcher() {
       if (isEnglish) {
         if (ROUTE_MAP_EN_TO_PT[cleanPath]) {
           router.push(ROUTE_MAP_EN_TO_PT[cleanPath]);
-        } else if (cleanPath.startsWith("/en/blog")) {
+        } else if (cleanPath.startsWith("/en/blog/")) {
+          const enSlug = cleanPath.replace(/^\/en\/blog\//, "").replace(/\/$/, "");
+          const targetPtSlug = BLOG_SLUG_MAP_EN_TO_PT[enSlug] || enSlug;
+          router.push(`/blog/${targetPtSlug}`);
+        } else if (cleanPath === "/en/blog") {
           router.push("/blog");
         } else {
           router.push("/");

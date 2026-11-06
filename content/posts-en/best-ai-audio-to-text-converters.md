@@ -7,6 +7,7 @@ tags: ["Audio to Text", "Speech to Text", "AI Tools", "Productivity"]
 readTime: "7 min read"
 featured: true
 coverGradient: "linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%)"
+coverImage: "/blog/melhores-ferramentas-para-transcrever-video.jpg"
 author:
   name: "Peguei o Texto Team"
   role: "AI & Video Content Specialists"

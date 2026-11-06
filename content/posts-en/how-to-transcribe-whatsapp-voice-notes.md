@@ -7,6 +7,7 @@ tags: ["WhatsApp", "Voice Notes", "Audio Transcription", "Productivity"]
 readTime: "4 min read"
 featured: false
 coverGradient: "linear-gradient(135deg, #25D366 0%, #128C7E 100%)"
+coverImage: "/blog/transcrever-audio-whatsapp.jpg"
 author:
   name: "Peguei o Texto Team"
   role: "AI & Video Content Specialists"

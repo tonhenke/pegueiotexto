@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
@@ -32,6 +33,8 @@ const TRANSLATION_LANGUAGES = [
 ];
 
 export default function DashboardPage() {
+  const pathname = usePathname();
+  const isEn = pathname?.startsWith("/en");
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -328,7 +331,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    window.location.href = isEn ? "/en" : "/";
   };
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -485,63 +488,63 @@ export default function DashboardPage() {
   const planConfigs: Record<string, { label: string; badge: string; color: string; bg: string; border: string }> = {
     starter: {
       label: "Starter",
-      badge: "60 min contratados",
+      badge: isEn ? "60 mins plan" : "60 min contratados",
       color: "#67E8F9",
       bg: "rgba(6, 182, 212, 0.08)",
       border: "rgba(6, 182, 212, 0.3)",
     },
     starter_annual: {
-      label: "Starter Anual",
-      badge: "Assinatura Anual (720 min)",
+      label: isEn ? "Starter Annual" : "Starter Anual",
+      badge: isEn ? "Annual Subscription (720 min)" : "Assinatura Anual (720 min)",
       color: "#67E8F9",
       bg: "rgba(6, 182, 212, 0.12)",
       border: "rgba(6, 182, 212, 0.4)",
     },
     pro: {
       label: "Pro",
-      badge: "300 min contratados",
+      badge: isEn ? "300 mins plan" : "300 min contratados",
       color: "#A78BFA",
       bg: "rgba(124, 58, 237, 0.08)",
       border: "rgba(124, 58, 237, 0.3)",
     },
     pro_annual: {
-      label: "Pro Anual",
-      badge: "Assinatura Anual (3.600 min)",
+      label: isEn ? "Pro Annual" : "Pro Anual",
+      badge: isEn ? "Annual Subscription (3,600 min)" : "Assinatura Anual (3.600 min)",
       color: "#A78BFA",
       bg: "rgba(124, 58, 237, 0.12)",
       border: "rgba(124, 58, 237, 0.45)",
     },
     business: {
       label: "Business",
-      badge: "1.000 min contratados",
+      badge: isEn ? "1,000 mins plan" : "1.000 min contratados",
       color: "#F9A8D4",
       bg: "rgba(236, 72, 153, 0.08)",
       border: "rgba(236, 72, 153, 0.3)",
     },
     business_annual: {
-      label: "Business Anual",
-      badge: "Assinatura Anual (12.000 min)",
+      label: isEn ? "Business Annual" : "Business Anual",
+      badge: isEn ? "Annual Subscription (12,000 min)" : "Assinatura Anual (12.000 min)",
       color: "#F9A8D4",
       bg: "rgba(236, 72, 153, 0.12)",
       border: "rgba(236, 72, 153, 0.45)",
     },
     ilimitado: {
-      label: "Ilimitado",
-      badge: "Transcrição Ilimitada",
+      label: isEn ? "Unlimited" : "Ilimitado",
+      badge: isEn ? "Unlimited Transcription" : "Transcrição Ilimitada",
       color: "#10B981",
       bg: "rgba(16, 185, 129, 0.12)",
       border: "rgba(16, 185, 129, 0.35)",
     },
     unlimited: {
-      label: "Ilimitado",
-      badge: "Transcrição Ilimitada",
+      label: isEn ? "Unlimited" : "Ilimitado",
+      badge: isEn ? "Unlimited Transcription" : "Transcrição Ilimitada",
       color: "#10B981",
       bg: "rgba(16, 185, 129, 0.12)",
       border: "rgba(16, 185, 129, 0.35)",
     },
     gratuito: {
-      label: "Gratuito",
-      badge: "5 min de teste",
+      label: isEn ? "Free" : "Gratuito",
+      badge: isEn ? "5 min trial" : "5 min de teste",
       color: "#94A3B8",
       bg: "rgba(255, 255, 255, 0.03)",
       border: "var(--border-subtle)",
@@ -665,7 +668,7 @@ export default function DashboardPage() {
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
                   <span className="badge badge-purple" style={{ fontSize: "12px" }}>
-                    Painel de Controle
+                    {isEn ? "Control Panel" : "Painel de Controle"}
                   </span>
 
                   {/* Active Plan Tag next to Dashboard Title */}
@@ -685,12 +688,12 @@ export default function DashboardPage() {
                     ) : currentPlan.includes("starter") ? (
                       <Sparkles size={12} color={activePlanCfg.color} />
                     ) : null}
-                    <span>Plano {activePlanCfg.label}</span>
+                    <span>{isEn ? `${activePlanCfg.label} Plan` : `Plano ${activePlanCfg.label}`}</span>
                   </div>
                 </div>
 
                 <h1 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  Olá, <span className="text-gradient">{userName}</span>!
+                  {isEn ? "Hello, " : "Olá, "}<span className="text-gradient">{userName}</span>!
                 </h1>
               </div>
 
@@ -705,18 +708,18 @@ export default function DashboardPage() {
                 }}>
                   <Zap size={16} color={isUnlimited ? "#10B981" : "#A78BFA"} />
                   <span style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 700 }}>
-                    {isUnlimited ? "Ilimitado" : `${credits} min restantes`}
+                    {isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} ${isEn ? "min remaining" : "min restantes"}`}
                   </span>
                 </div>
 
                 {!isUnlimited && (
-                  <Link href="/precos" className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
-                    Recarregar minutos <ArrowRight size={14} />
+                  <Link href={isEn ? "/en/pricing" : "/precos"} className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
+                    {isEn ? "Add more minutes" : "Recarregar minutos"} <ArrowRight size={14} />
                   </Link>
                 )}
 
                 <Link
-                  href="/sugestoes"
+                  href={isEn ? "/en/suggestions" : "/sugestoes"}
                   id="btn-dashboard-feedback"
                   style={{
                     display: "inline-flex",
@@ -736,7 +739,7 @@ export default function DashboardPage() {
                   onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(251, 191, 36, 0.08)")}
                 >
                   <Lightbulb size={14} />
-                  <span>Sugerir Melhoria</span>
+                  <span>{isEn ? "Suggest Feature" : "Sugerir Melhoria"}</span>
                 </Link>
 
                 <button
@@ -791,7 +794,9 @@ export default function DashboardPage() {
             </div>
 
             <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-              Cole o link de qualquer vídeo ou faça upload. Sua mídia é automaticamente excluída após o download.
+              {isEn
+                ? "Paste any video link or upload audio. Your media is automatically deleted after processing."
+                : "Cole o link de qualquer vídeo ou faça upload. Sua mídia é automaticamente excluída após o download."}
             </p>
           </div>
 
@@ -800,7 +805,7 @@ export default function DashboardPage() {
             {[
               {
                 icon: currentPlan === "business" ? <Crown size={20} color={activePlanCfg.color} /> : <Sparkles size={20} color={activePlanCfg.color} />,
-                label: "Plano Vigente",
+                label: isEn ? "Current Plan" : "Plano Vigente",
                 value: activePlanCfg.label,
                 subtext: activePlanCfg.badge,
                 bg: activePlanCfg.bg,
@@ -808,33 +813,33 @@ export default function DashboardPage() {
               },
               {
                 icon: <CreditCard size={20} color={currentPlan === "gratuito" && credits <= 1 ? "#F59E0B" : "#6EE7B7"} />,
-                label: "Saldo Disponível",
+                label: isEn ? "Available Balance" : "Saldo Disponível",
                 value: `${credits} min`,
-                subtext: currentPlan === "gratuito" && credits <= 1 ? "⚠️ Quase esgotado" : "Liberado para uso",
+                subtext: currentPlan === "gratuito" && credits <= 1 ? (isEn ? "⚠️ Almost depleted" : "⚠️ Quase esgotado") : (isEn ? "Ready to use" : "Liberado para uso"),
                 bg: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.08)",
                 border: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.35)" : "rgba(16,185,129,0.25)"
               },
               {
                 icon: <FileText size={20} color="#A78BFA" />,
-                label: "Transcrições Feitas",
+                label: isEn ? "Transcriptions Done" : "Transcrições Feitas",
                 value: `${totalTranscriptions}`,
-                subtext: "Histórico salvo",
+                subtext: isEn ? "Saved history" : "Histórico salvo",
                 bg: "rgba(124,58,237,0.08)",
                 border: "rgba(124,58,237,0.2)"
               },
               {
                 icon: <Clock size={20} color="#67E8F9" />,
-                label: "Tempo Transcrito",
+                label: isEn ? "Time Transcribed" : "Tempo Transcrito",
                 value: `${totalMinutesTranscribed} min`,
-                subtext: "Total consumido",
+                subtext: isEn ? "Total consumed" : "Total consumido",
                 bg: "rgba(6,182,212,0.08)",
                 border: "rgba(6,182,212,0.2)"
               },
               {
                 icon: <Zap size={20} color="#FCD34D" />,
-                label: "Motor de IA",
-                value: "IA Avançada",
-                subtext: "Precisão máxima",
+                label: isEn ? "AI Engine" : "Motor de IA",
+                value: isEn ? "Advanced AI" : "IA Avançada",
+                subtext: isEn ? "Maximum accuracy" : "Precisão máxima",
                 bg: "rgba(245,158,11,0.08)",
                 border: "rgba(245,158,11,0.2)"
               },
@@ -866,10 +871,10 @@ export default function DashboardPage() {
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
               <h2 style={{ fontSize: "1.3rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
-                Seu histórico de transcrições
+                {isEn ? "Your transcription history" : "Seu histórico de transcrições"}
               </h2>
               <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                Apenas o texto é salvo • Mídias excluídas
+                {isEn ? "Only text is saved • Media deleted" : "Apenas o texto é salvo • Mídias excluídas"}
               </span>
             </div>
 
@@ -900,7 +905,7 @@ export default function DashboardPage() {
                     <Search size={16} color="#A78BFA" />
                     <input
                       type="text"
-                      placeholder="Buscar palavra ou frase em todas as transcrições..."
+                      placeholder={isEn ? "Search word or phrase across all transcriptions..." : "Buscar palavra ou frase em todas as transcrições..."}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       style={{
@@ -916,7 +921,7 @@ export default function DashboardPage() {
                       <button
                         onClick={() => setSearchQuery("")}
                         style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "14px" }}
-                        title="Limpar busca"
+                        title={isEn ? "Clear search" : "Limpar busca"}
                       >
                         ✕
                       </button>
@@ -926,8 +931,8 @@ export default function DashboardPage() {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    {filteredHistory.length} {filteredHistory.length === 1 ? "resultado" : "resultados"}
-                    {searchQuery && ` para "${searchQuery}"`}
+                    {filteredHistory.length} {isEn ? (filteredHistory.length === 1 ? "result" : "results") : (filteredHistory.length === 1 ? "resultado" : "resultados")}
+                    {searchQuery && ` ${isEn ? "for" : "para"} "${searchQuery}"`}
                   </span>
                 </div>
               </div>
@@ -935,10 +940,11 @@ export default function DashboardPage() {
               {/* Platform filter pills */}
               <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: "4px" }}>
-                  Plataforma:
+                  {isEn ? "Platform:" : "Plataforma:"}
                 </span>
                 {["todas", "YouTube", "Upload", "Instagram", "TikTok", "Vimeo"].map((plat) => {
                   const isActive = platformFilter.toLowerCase() === plat.toLowerCase();
+                  const label = plat === "todas" ? (isEn ? "All" : "Todas") : plat;
                   return (
                     <button
                       key={plat}
@@ -955,7 +961,7 @@ export default function DashboardPage() {
                         transition: "all 0.15s ease",
                       }}
                     >
-                      {plat === "todas" ? "Todas" : plat}
+                      {label}
                     </button>
                   );
                 })}
@@ -967,9 +973,11 @@ export default function DashboardPage() {
                 <div style={{ width: 48, height: 48, background: "rgba(124,58,237,0.12)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                   <Sparkles size={22} color="#A78BFA" />
                 </div>
-                <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "6px" }}>Nenhuma transcrição salva ainda</h3>
+                <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "6px" }}>
+                  {isEn ? "No transcriptions saved yet" : "Nenhuma transcrição salva ainda"}
+                </h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "14px", maxWidth: 420, margin: "0 auto" }}>
-                  Cole o link de um vídeo ou envie um arquivo acima para transcrever com seu saldo disponível!
+                  {isEn ? "Paste a video link or upload a file above to transcribe with your available balance!" : "Cole o link de um vídeo ou envie um arquivo acima para transcrever com seu saldo disponível!"}
                 </p>
               </div>
             ) : filteredHistory.length === 0 ? (
@@ -977,9 +985,11 @@ export default function DashboardPage() {
                 <div style={{ width: 44, height: 44, background: "rgba(255, 255, 255, 0.05)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
                   <Search size={20} color="var(--text-muted)" />
                 </div>
-                <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "6px" }}>Nenhum resultado encontrado</h3>
+                <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "6px" }}>
+                  {isEn ? "No results found" : "Nenhum resultado encontrado"}
+                </h3>
                 <p style={{ color: "var(--text-muted)", fontSize: "13px", maxWidth: 380, margin: "0 auto 16px" }}>
-                  Não encontramos transcrições correspondentes a &quot;{searchQuery}&quot; com os filtros selecionados.
+                  {isEn ? `No transcriptions match "${searchQuery}" with the selected filters.` : `Não encontramos transcrições correspondentes a "${searchQuery}" com os filtros selecionados.`}
                 </p>
                 <button
                   className="btn-ghost"
@@ -989,7 +999,7 @@ export default function DashboardPage() {
                   }}
                   style={{ fontSize: "12px", padding: "6px 14px" }}
                 >
-                  Limpar filtros de busca
+                  {isEn ? "Clear search filters" : "Limpar filtros de busca"}
                 </button>
               </div>
             ) : (
@@ -1021,15 +1031,15 @@ export default function DashboardPage() {
                           borderColor: copiedId === item.id ? "rgba(16, 185, 129, 0.4)" : undefined,
                           background: copiedId === item.id ? "rgba(16, 185, 129, 0.12)" : undefined
                         }}
-                        title="Copiar texto para a área de transferência"
+                        title={isEn ? "Copy text to clipboard" : "Copiar texto para a área de transferência"}
                       >
                         {copiedId === item.id ? (
                           <>
-                            <Check size={14} color="#6EE7B7" /> Copiado!
+                            <Check size={14} color="#6EE7B7" /> {isEn ? "Copied!" : "Copiado!"}
                           </>
                         ) : (
                           <>
-                            <Copy size={14} /> Copiar
+                            <Copy size={14} /> {isEn ? "Copy" : "Copiar"}
                           </>
                         )}
                       </button>
@@ -1044,15 +1054,15 @@ export default function DashboardPage() {
                           borderColor: sharedToastId === item.id ? "rgba(6, 182, 212, 0.4)" : undefined,
                           background: sharedToastId === item.id ? "rgba(6, 182, 212, 0.12)" : undefined
                         }}
-                        title="Copiar link público desta transcrição para WhatsApp ou Notion"
+                        title={isEn ? "Copy public link for this transcript" : "Copiar link público desta transcrição para WhatsApp ou Notion"}
                       >
                         {sharedToastId === item.id ? (
                           <>
-                            <Check size={14} color="#67E8F9" /> Link copiado!
+                            <Check size={14} color="#67E8F9" /> {isEn ? "Link copied!" : "Link copiado!"}
                           </>
                         ) : (
                           <>
-                            <Share2 size={14} /> Compartilhar
+                            <Share2 size={14} /> {isEn ? "Share" : "Compartilhar"}
                           </>
                         )}
                       </button>
@@ -1067,14 +1077,14 @@ export default function DashboardPage() {
                           color: activeItem?.id === item.id ? "#A78BFA" : undefined
                         }}
                       >
-                        <Eye size={14} /> {activeItem?.id === item.id ? "Ocultar" : "Ver texto & IA"}
+                        <Eye size={14} /> {activeItem?.id === item.id ? (isEn ? "Hide" : "Ocultar") : (isEn ? "View text & AI" : "Ver texto & IA")}
                       </button>
 
                       <button
                         className="btn-ghost"
                         onClick={() => handleExportTxt(item)}
                         style={{ fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px" }}
-                        title="Baixar arquivo de texto puro (.txt)"
+                        title={isEn ? "Download plain text file (.txt)" : "Baixar arquivo de texto puro (.txt)"}
                       >
                         <Download size={13} /> .TXT
                       </button>
@@ -1087,11 +1097,11 @@ export default function DashboardPage() {
                           fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px",
                           borderColor: "rgba(59, 130, 246, 0.35)", background: "rgba(59, 130, 246, 0.08)", color: "#93C5FD"
                         }}
-                        title="Baixar documento formatado para Microsoft Word (.docx)"
+                        title={isEn ? "Download formatted Microsoft Word document (.docx)" : "Baixar documento formatado para Microsoft Word (.docx)"}
                       >
                         {exportingDocxId === item.id ? (
                           <>
-                            <Loader2 size={13} className="spin" /> Gerando Word...
+                            <Loader2 size={13} className="spin" /> {isEn ? "Generating Word..." : "Gerando Word..."}
                           </>
                         ) : (
                           <>
@@ -1109,11 +1119,11 @@ export default function DashboardPage() {
                           background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
                           boxShadow: "0 2px 10px rgba(239, 68, 68, 0.3)"
                         }}
-                        title="Baixar documento em formato PDF (.pdf)"
+                        title={isEn ? "Download PDF document (.pdf)" : "Baixar documento em formato PDF (.pdf)"}
                       >
                         {exportingPdfId === item.id ? (
                           <>
-                            <Loader2 size={13} className="spin" /> Gerando PDF...
+                            <Loader2 size={13} className="spin" /> {isEn ? "Generating PDF..." : "Gerando PDF..."}
                           </>
                         ) : (
                           <>
@@ -1148,10 +1158,10 @@ export default function DashboardPage() {
                         }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <span className="badge badge-purple" style={{ fontSize: "11px" }}>
-                              Detalhes
+                              {isEn ? "Details" : "Detalhes"}
                             </span>
                             <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                              {item.text_content.length} caracteres
+                              {item.text_content.length} {isEn ? "characters" : "caracteres"}
                             </span>
                           </div>
 
@@ -1173,9 +1183,9 @@ export default function DashboardPage() {
                                 textDecoration: "none",
                                 fontWeight: 600,
                               }}
-                              title="Abrir página pública de leitura para WhatsApp ou Notion"
+                              title={isEn ? "Open public read-only page" : "Abrir página pública de leitura para WhatsApp ou Notion"}
                             >
-                              <ExternalLink size={13} /> Abrir página pública ↗
+                              <ExternalLink size={13} /> {isEn ? "Open public page ↗" : "Abrir página pública ↗"}
                             </a>
 
                             <button
@@ -1197,15 +1207,15 @@ export default function DashboardPage() {
                             >
                               {loadingSummaryId === item.id ? (
                                 <>
-                                  <Loader2 size={13} className="spin" color="#A78BFA" /> Gerando resumo...
+                                  <Loader2 size={13} className="spin" color="#A78BFA" /> {isEn ? "Generating summary..." : "Gerando resumo..."}
                                 </>
                               ) : summariesByItem[item.id] ? (
                                 <>
-                                  <RefreshCw size={13} color="#A78BFA" /> Atualizar Resumo com IA
+                                  <RefreshCw size={13} color="#A78BFA" /> {isEn ? "Refresh AI Summary" : "Atualizar Resumo com IA"}
                                 </>
                               ) : (
                                 <>
-                                  <Sparkles size={13} color="#A78BFA" /> ✨ Gerar Resumo com IA
+                                  <Sparkles size={13} color="#A78BFA" /> {isEn ? "✨ Generate AI Summary" : "✨ Gerar Resumo com IA"}
                                 </>
                               )}
                             </button>
@@ -1236,10 +1246,10 @@ export default function DashboardPage() {
                                 fontWeight: 600,
                                 transition: "all 0.2s ease",
                               }}
-                              title="Traduzir transcrição para outros idiomas com Inteligência Artificial"
+                              title={isEn ? "Translate transcript to other languages with AI" : "Traduzir transcrição para outros idiomas com Inteligência Artificial"}
                             >
                               <Languages size={13} color="#93C5FD" />
-                              <span>{translationsByItem[item.id] ? "Ver Tradução" : "Traduzir com IA"}</span>
+                              <span>{translationsByItem[item.id] ? (isEn ? "View Translation" : "Ver Tradução") : (isEn ? "Translate with AI" : "Traduzir com IA")}</span>
                               {!isPaidUser && (
                                 <span style={{
                                   fontSize: "9px",
@@ -1273,11 +1283,11 @@ export default function DashboardPage() {
                             >
                               {copiedId === `inner-${item.id}` ? (
                                 <>
-                                  <Check size={13} color="#6EE7B7" /> Texto copiado!
+                                  <Check size={13} color="#6EE7B7" /> {isEn ? "Text copied!" : "Texto copiado!"}
                                 </>
                               ) : (
                                 <>
-                                  <Copy size={13} /> Copiar texto completo
+                                  <Copy size={13} /> {isEn ? "Copy full text" : "Copiar texto completo"}
                                 </>
                               )}
                             </button>
@@ -1302,10 +1312,10 @@ export default function DashboardPage() {
                             <Loader2 size={24} className="spin" color="#A78BFA" />
                             <div>
                               <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
-                                Analisando conteúdo com Inteligência Artificial...
+                                {isEn ? "Analyzing content with Artificial Intelligence..." : "Analisando conteúdo com Inteligência Artificial..."}
                               </p>
                               <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                                Sintetizando pontos centrais e lições práticas em segundos.
+                                {isEn ? "Synthesizing core takeaways and key lessons in seconds." : "Sintetizando pontos centrais e lições práticas em segundos."}
                               </p>
                             </div>
                           </div>
@@ -1324,7 +1334,7 @@ export default function DashboardPage() {
                               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <Sparkles size={16} color="#A78BFA" />
                                 <span style={{ fontSize: "14px", fontWeight: 700, color: "#E0E7FF" }}>
-                                  Síntese Inteligente com IA
+                                  {isEn ? "AI Smart Summary" : "Síntese Inteligente com IA"}
                                 </span>
                               </div>
                               <button
@@ -1340,14 +1350,14 @@ export default function DashboardPage() {
                                 }}
                               >
                                 {copiedId === `sum-${item.id}` ? <Check size={12} color="#6EE7B7" /> : <Copy size={12} />}
-                                {copiedId === `sum-${item.id}` ? "Resumo copiado!" : "Copiar resumo"}
+                                {copiedId === `sum-${item.id}` ? (isEn ? "Summary copied!" : "Resumo copiado!") : (isEn ? "Copy summary" : "Copiar resumo")}
                               </button>
                             </div>
 
                             {/* Executive Summary */}
                             <div style={{ marginBottom: "14px" }}>
                               <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#A78BFA", fontWeight: 700, marginBottom: "4px" }}>
-                                Resumo Executivo
+                                {isEn ? "Executive Summary" : "Resumo Executivo"}
                               </p>
                               <p style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.6 }}>
                                 {summariesByItem[item.id].executive_summary}
@@ -1358,7 +1368,7 @@ export default function DashboardPage() {
                             {summariesByItem[item.id].key_points && summariesByItem[item.id].key_points.length > 0 && (
                               <div style={{ marginBottom: "14px" }}>
                                 <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#67E8F9", fontWeight: 700, marginBottom: "6px" }}>
-                                  Pontos Principais
+                                  {isEn ? "Key Points" : "Pontos Principais"}
                                 </p>
                                 <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
                                   {summariesByItem[item.id].key_points.map((pt: string, idx: number) => (
@@ -1380,7 +1390,7 @@ export default function DashboardPage() {
                                 borderRadius: "8px",
                               }}>
                                 <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#6EE7B7", fontWeight: 700, marginBottom: "3px" }}>
-                                  Principal Conclusão
+                                  {isEn ? "Core Takeaway" : "Principal Conclusão"}
                                 </p>
                                 <p style={{ fontSize: "13px", color: "var(--text-primary)", margin: 0 }}>
                                   {summariesByItem[item.id].takeaway}
@@ -1423,7 +1433,7 @@ export default function DashboardPage() {
                                 <div>
                                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                     <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#F1F5F9", margin: 0 }}>
-                                      Tradução com Inteligência Artificial
+                                      {isEn ? "AI Translation" : "Tradução com Inteligência Artificial"}
                                     </h4>
                                     <span style={{
                                       fontSize: "10px",
@@ -1434,11 +1444,13 @@ export default function DashboardPage() {
                                       color: "#6EE7B7",
                                       border: "1px solid rgba(16, 185, 129, 0.3)"
                                     }}>
-                                      ✓ Plano Pro Ativo
+                                      {isEn ? "✓ Pro Plan Active" : "✓ Plano Pro Ativo"}
                                     </span>
                                   </div>
                                   <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>
-                                    Traduza o texto mantendo o sentido natural, termos técnicos e pontuação.
+                                    {isEn
+                                      ? "Translate text while preserving natural nuance, technical terms, and punctuation."
+                                      : "Traduza o texto mantendo o sentido natural, termos técnicos e pontuação."}
                                   </p>
                                 </div>
                               </div>
@@ -1651,10 +1663,12 @@ export default function DashboardPage() {
                                   <Globe size={22} color="#93C5FD" />
                                 </div>
                                 <p style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, margin: "0 0 4px" }}>
-                                  Pronto para traduzir este texto
+                                  {isEn ? "Ready to translate this text" : "Pronto para traduzir este texto"}
                                 </p>
                                 <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
-                                  Selecione o idioma de destino no seletor acima e clique em <strong>Traduzir Agora</strong> para converter este texto com IA em segundos.
+                                  {isEn
+                                    ? <>Select target language above and click <strong>Translate Now</strong> to convert this text with AI in seconds.</>
+                                    : <>Selecione o idioma de destino no seletor acima e clique em <strong>Traduzir Agora</strong> para converter este texto com IA em segundos.</>}
                                 </p>
                               </div>
                             )}
@@ -1665,10 +1679,10 @@ export default function DashboardPage() {
                         <div>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
                             <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700, margin: 0 }}>
-                              Texto Completo
+                              {isEn ? "Full Transcript" : "Texto Completo"}
                             </p>
                             <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                              Clique em qualquer timestamp [00:00] para tocar o áudio sincronizado
+                              {isEn ? "Click any timestamp [00:00] to play synced audio" : "Clique em qualquer timestamp [00:00] para tocar o áudio sincronizado"}
                             </span>
                           </div>
                           <div style={{
@@ -1743,14 +1757,16 @@ export default function DashboardPage() {
               👑
             </div>
             <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFF", marginBottom: "8px" }}>
-              Recurso Exclusivo do Plano Pro
+              {isEn ? "Exclusive Pro Feature" : "Recurso Exclusivo do Plano Pro"}
             </h3>
             <p style={{ fontSize: "14px", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "24px" }}>
-              A tradução automática para 9 idiomas com Inteligência Artificial (Inglês, Espanhol, Francês, Alemão e mais) é um recurso exclusivo para assinantes dos planos Pro e Business.
+              {isEn
+                ? "Automated translation into 9 languages with Artificial Intelligence (English, Spanish, French, German, and more) is exclusively available for Pro and Business subscribers."
+                : "A tradução automática para 9 idiomas com Inteligência Artificial (Inglês, Espanhol, Francês, Alemão e mais) é um recurso exclusivo para assinantes dos planos Pro e Business."}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <Link
-                href="/precos"
+                href={isEn ? "/en/pricing" : "/precos"}
                 className="btn-primary"
                 style={{
                   padding: "12px 24px",
@@ -1762,14 +1778,14 @@ export default function DashboardPage() {
                   textDecoration: "none"
                 }}
               >
-                Ver Planos com 25% OFF
+                {isEn ? "View Plans with 25% OFF" : "Ver Planos com 25% OFF"}
               </Link>
               <button
                 onClick={() => setProUpgradeModalOpen(false)}
                 className="btn-ghost"
                 style={{ padding: "10px 20px", fontSize: "13px" }}
               >
-                Fechar
+                {isEn ? "Close" : "Fechar"}
               </button>
             </div>
           </div>

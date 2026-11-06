@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { marked } from "marked";
+import { BLOG_SLUG_MAP_PT_TO_EN, BLOG_SLUG_MAP_EN_TO_PT } from "./blog-slugs";
+
+export { BLOG_SLUG_MAP_PT_TO_EN, BLOG_SLUG_MAP_EN_TO_PT };
 
 const postsDirectoryPt = path.join(process.cwd(), "content/posts");
 const postsDirectoryEn = path.join(process.cwd(), "content/posts-en");
@@ -99,8 +102,9 @@ export function getAllPosts(lang: "pt" | "en" = "pt"): BlogPost[] {
  */
 export async function getPostBySlug(slug: string, lang: "pt" | "en" = "pt"): Promise<BlogPost | null> {
   const dir = getPostsDir(lang);
-  const fullPathMd = path.join(dir, `${slug}.md`);
-  const fullPathMdx = path.join(dir, `${slug}.mdx`);
+  let effectiveSlug = slug;
+  let fullPathMd = path.join(dir, `${effectiveSlug}.md`);
+  let fullPathMdx = path.join(dir, `${effectiveSlug}.mdx`);
 
   let targetPath = "";
   if (fs.existsSync(fullPathMd)) {
@@ -108,7 +112,22 @@ export async function getPostBySlug(slug: string, lang: "pt" | "en" = "pt"): Pro
   } else if (fs.existsSync(fullPathMdx)) {
     targetPath = fullPathMdx;
   } else {
-    return null;
+    // Check if the slug was passed from the other language
+    const fallbackSlug = lang === "en" ? BLOG_SLUG_MAP_PT_TO_EN[slug] : BLOG_SLUG_MAP_EN_TO_PT[slug];
+    if (fallbackSlug) {
+      effectiveSlug = fallbackSlug;
+      const fallbackMd = path.join(dir, `${effectiveSlug}.md`);
+      const fallbackMdx = path.join(dir, `${effectiveSlug}.mdx`);
+      if (fs.existsSync(fallbackMd)) {
+        targetPath = fallbackMd;
+      } else if (fs.existsSync(fallbackMdx)) {
+        targetPath = fallbackMdx;
+      }
+    }
+
+    if (!targetPath) {
+      return null;
+    }
   }
 
   const fileContents = fs.readFileSync(targetPath, "utf8");
