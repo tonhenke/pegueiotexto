@@ -976,6 +976,19 @@ const CLINT_HTML = `
 
       </div>
 
+      <!-- BADGES: PRODUCT HUNT, STARTUPBASE & CONFETTI SAAS -->
+      <div class="footer-badges-row">
+        <a href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Featured on Product Hunt">
+          <img src="/product-hunt-badge.svg" alt="Featured on Product Hunt" class="footer-badge-img" width="250" height="54" loading="lazy">
+        </a>
+        <a href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Launched on StartupBase">
+          <img src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg" alt="Launched on StartupBase" class="footer-badge-img" width="300" height="80" loading="lazy">
+        </a>
+        <a href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge" target="_blank" rel="noopener" class="footer-badge-link" aria-label="View Peguei o Texto on ConfettiSaaS">
+          <img src="https://confettisaas.com/badge-dark.svg" alt="Peguei o Texto on ConfettiSaaS" class="footer-badge-img" width="250" height="54" loading="lazy">
+        </a>
+      </div>
+
       <div class="footer-bottom">
         <div>
           © 2026 Peguei o Texto. Todos os direitos reservados.

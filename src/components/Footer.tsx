@@ -134,54 +134,6 @@ export default function Footer() {
             >
               ✉ contato@pegueiotexto.com.br
             </a>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start" }}>
-              <a
-                href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.9";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
-                  alt="Launched on StartupBase"
-                  height="34"
-                  style={{ height: "34px", width: "auto", display: "block" }}
-                />
-              </a>
-
-              <a
-                href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.9";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/product-hunt-badge.svg"
-                  alt="Featured on Product Hunt"
-                  height="34"
-                  style={{ height: "34px", width: "auto", display: "block" }}
-                />
-              </a>
-            </div>
           </div>
 
           {/* 3 Balanced Link Columns */}
@@ -210,8 +162,89 @@ export default function Footer() {
           ))}
         </div>
 
+        {/* Badges Row */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginTop: "32px" }}>
+          <a
+            href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Featured on Product Hunt"
+            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.9";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/product-hunt-badge.svg"
+              alt="Featured on Product Hunt"
+              height="30"
+              width="250"
+              loading="lazy"
+              style={{ height: "30px", width: "auto", display: "block" }}
+            />
+          </a>
+
+          <a
+            href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Launched on StartupBase"
+            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.9";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
+              alt="Launched on StartupBase"
+              height="30"
+              width="300"
+              loading="lazy"
+              style={{ height: "30px", width: "auto", display: "block" }}
+            />
+          </a>
+
+          <a
+            href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View Peguei o Texto on ConfettiSaaS"
+            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.9";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://confettisaas.com/badge-dark.svg"
+              alt="Peguei o Texto on ConfettiSaaS"
+              height="30"
+              width="250"
+              loading="lazy"
+              style={{ height: "30px", width: "auto", display: "block" }}
+            />
+          </a>
+        </div>
+
         {/* Bottom bar */}
-        <div style={{ height: "1px", background: "rgba(255, 255, 255, 0.08)", margin: "40px 0 24px" }} />
+        <div style={{ height: "1px", background: "rgba(255, 255, 255, 0.08)", margin: "24px 0" }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
           <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>
             © {new Date().getFullYear()} Peguei o Texto. {isEnglish ? "All rights reserved." : "Todos os direitos reservados."}
