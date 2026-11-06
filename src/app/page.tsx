@@ -35,6 +35,10 @@ const CLINT_HTML = `
       </nav>
 
       <div class="nav-actions">
+        <a href="/en" class="nav-lang-btn" title="Switch to English" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.2s ease;">
+          <span style="font-size: 14px;">🇺🇸</span>
+          <span>EN</span>
+        </a>
         <a href="/login" class="nav-login" id="navLoginLink">Entrar</a>
         <a href="/login?signup=true" class="btn-primary nav-cta" id="navCtaLink" onclick="handleStartFree(event)">
           <span>Começar grátis</span>
@@ -56,6 +60,10 @@ const CLINT_HTML = `
       <a href="/precos" class="nav-link" onclick="toggleMobileMenu()">Preços</a>
       <a href="#duvidas" class="nav-link" onclick="toggleMobileMenu()">Dúvidas</a>
       <a href="/login" class="nav-link" id="mobileNavLoginLink" onclick="toggleMobileMenu()">Entrar</a>
+      <a href="/en" class="nav-link" onclick="toggleMobileMenu()" style="display: flex; align-items: center; gap: 8px; color: #C4B5FD; font-weight: 600;">
+        <span>🇺🇸</span>
+        <span>English (US)</span>
+      </a>
       <a href="/login?signup=true" class="btn-primary" id="mobileNavCtaLink" style="margin-top: 8px; width: 100%;" onclick="toggleMobileMenu(); handleStartFree(event)">Começar grátis</a>
     </div>
   </header>

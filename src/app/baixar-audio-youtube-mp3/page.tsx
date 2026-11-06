@@ -33,6 +33,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/baixar-audio-youtube-mp3",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/baixar-audio-youtube-mp3",
+      "en": "https://pegueiotexto.com.br/en/youtube-to-mp3",
+      "x-default": "https://pegueiotexto.com.br/baixar-audio-youtube-mp3",
+    },
   },
   openGraph: {
     title: "Baixar Áudio do YouTube em MP3 Grátis de Alta Qualidade | Peguei o Texto",

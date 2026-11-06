@@ -2,7 +2,41 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Globe, ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
+
+export const ROUTE_MAP_PT_TO_EN: Record<string, string> = {
+  "/": "/en",
+  "/precos": "/en/pricing",
+  "/blog": "/en/blog",
+  "/baixar-video": "/en/download-video",
+  "/transcrever-youtube": "/en/transcribe-youtube",
+  "/transcrever-instagram": "/en/transcribe-instagram",
+  "/transcrever-tiktok": "/en/transcribe-tiktok",
+  "/transcrever-whatsapp": "/en/transcribe-whatsapp",
+  "/gerar-legendas-srt": "/en/generate-srt-subtitles",
+  "/converter-mp3-em-texto": "/en/convert-mp3-to-text",
+  "/converter-mp4-em-texto": "/en/convert-mp4-to-text",
+  "/converter-m4a-em-texto": "/en/convert-m4a-to-text",
+  "/converter-wav-em-texto": "/en/convert-wav-to-text",
+  "/transcricao-juridica": "/en/legal-transcription",
+  "/transcricao-academica": "/en/academic-transcription",
+  "/transcricao-de-reunioes": "/en/meeting-transcription",
+  "/baixar-video-youtube": "/en/download-youtube-video",
+  "/baixar-video-tiktok": "/en/download-tiktok-video",
+  "/baixar-reels-instagram": "/en/download-instagram-reels",
+  "/baixar-audio-youtube-mp3": "/en/youtube-to-mp3",
+  "/sobre-nos": "/en/about-us",
+  "/privacidade": "/en/privacy",
+  "/termos-de-uso": "/en/terms",
+};
+
+// Build reverse dictionary dynamically
+export const ROUTE_MAP_EN_TO_PT: Record<string, string> = Object.entries(
+  ROUTE_MAP_PT_TO_EN
+).reduce((acc, [pt, en]) => {
+  acc[en] = pt;
+  return acc;
+}, {} as Record<string, string>);
 
 export default function LanguageSwitcher() {
   const pathname = usePathname();
@@ -29,26 +63,24 @@ export default function LanguageSwitcher() {
       localStorage.setItem("pegueiotexto_lang", lang.toLowerCase());
     } catch {}
 
+    const cleanPath = pathname ? pathname.replace(/\/$/, "") || "/" : "/";
+
     if (lang === "EN") {
       if (!isEnglish) {
-        if (pathname === "/" || !pathname) {
-          router.push("/en");
-        } else if (pathname.includes("baixar-video") || pathname.includes("baixar")) {
-          router.push("/en/download-video");
-        } else if (pathname.includes("preco") || pathname.includes("pricing")) {
-          router.push("/en/pricing");
+        if (ROUTE_MAP_PT_TO_EN[cleanPath]) {
+          router.push(ROUTE_MAP_PT_TO_EN[cleanPath]);
+        } else if (cleanPath.startsWith("/blog")) {
+          router.push("/en/blog");
         } else {
           router.push("/en");
         }
       }
     } else {
       if (isEnglish) {
-        if (pathname === "/en" || pathname === "/en/") {
-          router.push("/");
-        } else if (pathname.includes("download-video")) {
-          router.push("/baixar-video");
-        } else if (pathname.includes("pricing") || pathname.includes("preco")) {
-          router.push("/precos");
+        if (ROUTE_MAP_EN_TO_PT[cleanPath]) {
+          router.push(ROUTE_MAP_EN_TO_PT[cleanPath]);
+        } else if (cleanPath.startsWith("/en/blog")) {
+          router.push("/blog");
         } else {
           router.push("/");
         }

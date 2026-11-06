@@ -35,6 +35,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/baixar-video-youtube",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/baixar-video-youtube",
+      "en": "https://pegueiotexto.com.br/en/download-youtube-video",
+      "x-default": "https://pegueiotexto.com.br/baixar-video-youtube",
+    },
   },
   openGraph: {
     title: "Baixar Vídeos do YouTube Grátis em MP4 HD e 1080p Online | Peguei o Texto",

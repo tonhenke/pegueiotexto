@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/converter-mp4-em-texto",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/converter-mp4-em-texto",
+      "en": "https://pegueiotexto.com.br/en/convert-mp4-to-text",
+      "x-default": "https://pegueiotexto.com.br/converter-mp4-em-texto",
+    },
   },
   openGraph: {
     title: "Converter Vídeo MP4 em Texto Online com IA | Peguei o Texto",

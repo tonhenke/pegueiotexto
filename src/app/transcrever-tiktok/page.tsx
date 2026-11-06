@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcrever-tiktok",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcrever-tiktok",
+      "en": "https://pegueiotexto.com.br/en/transcribe-tiktok",
+      "x-default": "https://pegueiotexto.com.br/transcrever-tiktok",
+    },
   },
   openGraph: {
     title: "Transcrever Vídeo do TikTok em Texto com IA | Peguei o Texto",

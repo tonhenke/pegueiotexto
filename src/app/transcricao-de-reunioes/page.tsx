@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcricao-de-reunioes",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcricao-de-reunioes",
+      "en": "https://pegueiotexto.com.br/en/meeting-transcription",
+      "x-default": "https://pegueiotexto.com.br/transcricao-de-reunioes",
+    },
   },
   openGraph: {
     title: "Transcrição de Reuniões e Ata com IA | Peguei o Texto",

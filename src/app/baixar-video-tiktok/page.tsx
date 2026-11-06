@@ -33,6 +33,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/baixar-video-tiktok",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/baixar-video-tiktok",
+      "en": "https://pegueiotexto.com.br/en/download-tiktok-video",
+      "x-default": "https://pegueiotexto.com.br/baixar-video-tiktok",
+    },
   },
   openGraph: {
     title: "Baixar Vídeo do TikTok Sem Marca d'Água Grátis em MP4 HD | Peguei o Texto",

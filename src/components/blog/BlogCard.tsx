@@ -5,10 +5,13 @@ import type { BlogPost } from "@/lib/blog";
 interface BlogCardProps {
   post: BlogPost;
   isFeatured?: boolean;
+  basePath?: string;
+  lang?: "pt" | "en";
 }
 
-export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
-  const formattedDate = new Date(post.date).toLocaleDateString("pt-BR", {
+export default function BlogCard({ post, isFeatured = false, basePath = "/blog", lang = "pt" }: BlogCardProps) {
+  const isEn = lang === "en";
+  const formattedDate = new Date(post.date).toLocaleDateString(isEn ? "en-US" : "pt-BR", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -76,7 +79,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
                   border: "1px solid rgba(255, 255, 255, 0.25)",
                 }}
               >
-                <Sparkles size={12} color="#F59E0B" /> Artigo em Destaque
+                <Sparkles size={12} color="#F59E0B" /> {isEn ? "Featured Article" : "Artigo em Destaque"}
               </span>
               <span
                 className="badge"
@@ -102,7 +105,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
                 textShadow: "0 2px 4px rgba(0,0,0,0.6)",
               }}
             >
-              Peguei o Texto • Blog Oficial
+              Peguei o Texto • {isEn ? "Official Blog" : "Blog Oficial"}
             </div>
           </div>
 
@@ -146,7 +149,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
               }}
             >
               <Link
-                href={`/blog/${post.slug}`}
+                href={`${basePath}/${post.slug}`}
                 style={{
                   color: "inherit",
                   textDecoration: "none",
@@ -169,11 +172,11 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                Por <strong style={{ color: "var(--text-primary)" }}>{post.author.name}</strong>
+                {isEn ? "By" : "Por"} <strong style={{ color: "var(--text-primary)" }}>{post.author.name}</strong>
               </div>
 
               <Link
-                href={`/blog/${post.slug}`}
+                href={`${basePath}/${post.slug}`}
                 className="btn-primary"
                 style={{
                   display: "inline-flex",
@@ -185,7 +188,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
                   borderRadius: "12px",
                 }}
               >
-                Ler Artigo <ArrowUpRight size={16} />
+                {isEn ? "Read Article" : "Ler Artigo"} <ArrowUpRight size={16} />
               </Link>
             </div>
           </div>
@@ -209,7 +212,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
     >
       {/* Visual Header / Cover */}
       <Link
-        href={`/blog/${post.slug}`}
+        href={`${basePath}/${post.slug}`}
         style={{
           display: "block",
           textDecoration: "none",
@@ -300,7 +303,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
             }}
           >
             <Link
-              href={`/blog/${post.slug}`}
+              href={`${basePath}/${post.slug}`}
               style={{
                 color: "inherit",
                 textDecoration: "none",
@@ -340,7 +343,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
           </span>
 
           <Link
-            href={`/blog/${post.slug}`}
+            href={`${basePath}/${post.slug}`}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -351,7 +354,7 @@ export default function BlogCard({ post, isFeatured = false }: BlogCardProps) {
               textDecoration: "none",
             }}
           >
-            Ler mais <ArrowUpRight size={14} />
+            {isEn ? "Read more" : "Ler mais"} <ArrowUpRight size={14} />
           </Link>
         </div>
       </div>

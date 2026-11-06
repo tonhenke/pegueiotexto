@@ -6,9 +6,10 @@ import type { TocItem } from "@/lib/blog";
 
 interface TableOfContentsProps {
   toc: TocItem[];
+  title?: string;
 }
 
-export default function TableOfContents({ toc }: TableOfContentsProps) {
+export default function TableOfContents({ toc, title = "Neste Artigo" }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function TableOfContents({ toc }: TableOfContentsProps) {
         }}
       >
         <ListCollapse size={18} color="#A78BFA" />
-        <span>Neste Artigo</span>
+        <span>{title}</span>
       </div>
 
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>

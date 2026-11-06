@@ -3,7 +3,12 @@ import path from "path";
 import matter from "gray-matter";
 import { marked } from "marked";
 
-const postsDirectory = path.join(process.cwd(), "content/posts");
+const postsDirectoryPt = path.join(process.cwd(), "content/posts");
+const postsDirectoryEn = path.join(process.cwd(), "content/posts-en");
+
+function getPostsDir(lang: "pt" | "en" = "pt"): string {
+  return lang === "en" ? postsDirectoryEn : postsDirectoryPt;
+}
 
 export interface BlogAuthor {
   name: string;
@@ -51,33 +56,34 @@ export function slugify(text: string): string {
 /**
  * Retrieves all published blog posts sorted by date (newest first).
  */
-export function getAllPosts(): BlogPost[] {
-  if (!fs.existsSync(postsDirectory)) {
+export function getAllPosts(lang: "pt" | "en" = "pt"): BlogPost[] {
+  const dir = getPostsDir(lang);
+  if (!fs.existsSync(dir)) {
     return [];
   }
 
-  const fileNames = fs.readdirSync(postsDirectory);
+  const fileNames = fs.readdirSync(dir);
   const allPostsData: BlogPost[] = fileNames
     .filter((fileName) => fileName.endsWith(".md") || fileName.endsWith(".mdx"))
     .map((fileName) => {
       const slug = fileName.replace(/\.(md|mdx)$/, "");
-      const fullPath = path.join(postsDirectory, fileName);
+      const fullPath = path.join(dir, fileName);
       const fileContents = fs.readFileSync(fullPath, "utf8");
 
       const { data, content } = matter(fileContents);
 
       return {
         slug,
-        title: data.title || "Sem título",
+        title: data.title || (lang === "en" ? "Untitled" : "Sem título"),
         description: data.description || "",
         date: data.date || new Date().toISOString().split("T")[0],
         author: data.author || {
-          name: "Equipe Peguei o Texto",
-          role: "Especialistas em IA & Conteúdo",
+          name: lang === "en" ? "Peguei o Texto Team" : "Equipe Peguei o Texto",
+          role: lang === "en" ? "AI & Content Specialists" : "Especialistas em IA & Conteúdo",
         },
-        category: data.category || "Geral",
+        category: data.category || (lang === "en" ? "General" : "Geral"),
         tags: Array.isArray(data.tags) ? data.tags : [],
-        readTime: data.readTime || "5 min de leitura",
+        readTime: data.readTime || (lang === "en" ? "5 min read" : "5 min de leitura"),
         featured: Boolean(data.featured),
         coverGradient: data.coverGradient || "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
         coverImage: data.coverImage,
@@ -91,9 +97,10 @@ export function getAllPosts(): BlogPost[] {
 /**
  * Retrieves a single blog post by slug, compiling markdown to HTML and extracting TOC.
  */
-export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const fullPathMd = path.join(postsDirectory, `${slug}.md`);
-  const fullPathMdx = path.join(postsDirectory, `${slug}.mdx`);
+export async function getPostBySlug(slug: string, lang: "pt" | "en" = "pt"): Promise<BlogPost | null> {
+  const dir = getPostsDir(lang);
+  const fullPathMd = path.join(dir, `${slug}.md`);
+  const fullPathMdx = path.join(dir, `${slug}.mdx`);
 
   let targetPath = "";
   if (fs.existsSync(fullPathMd)) {
@@ -138,16 +145,16 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 
   return {
     slug,
-    title: data.title || "Sem título",
+    title: data.title || (lang === "en" ? "Untitled" : "Sem título"),
     description: data.description || "",
     date: data.date || new Date().toISOString().split("T")[0],
     author: data.author || {
-      name: "Equipe Peguei o Texto",
-      role: "Especialistas em IA & Conteúdo",
+      name: lang === "en" ? "Peguei o Texto Team" : "Equipe Peguei o Texto",
+      role: lang === "en" ? "AI & Content Specialists" : "Especialistas em IA & Conteúdo",
     },
-    category: data.category || "Geral",
+    category: data.category || (lang === "en" ? "General" : "Geral"),
     tags: Array.isArray(data.tags) ? data.tags : [],
-    readTime: data.readTime || "5 min de leitura",
+    readTime: data.readTime || (lang === "en" ? "5 min read" : "5 min de leitura"),
     featured: Boolean(data.featured),
     coverGradient: data.coverGradient || "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
     coverImage: data.coverImage,
@@ -160,8 +167,8 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 /**
  * Returns featured posts, falling back to latest if none marked featured.
  */
-export function getFeaturedPosts(limit = 1): BlogPost[] {
-  const posts = getAllPosts();
+export function getFeaturedPosts(limit = 1, lang: "pt" | "en" = "pt"): BlogPost[] {
+  const posts = getAllPosts(lang);
   const featured = posts.filter((p) => p.featured);
   if (featured.length > 0) {
     return featured.slice(0, limit);
@@ -172,8 +179,8 @@ export function getFeaturedPosts(limit = 1): BlogPost[] {
 /**
  * Returns related posts based on matching category or tags.
  */
-export function getRelatedPosts(currentSlug: string, category: string, limit = 3): BlogPost[] {
-  const posts = getAllPosts();
+export function getRelatedPosts(currentSlug: string, category: string, limit = 3, lang: "pt" | "en" = "pt"): BlogPost[] {
+  const posts = getAllPosts(lang);
   return posts
     .filter((p) => p.slug !== currentSlug && (p.category === category || p.tags.some((t) => category.includes(t))))
     .slice(0, limit);
@@ -182,12 +189,12 @@ export function getRelatedPosts(currentSlug: string, category: string, limit = 3
 /**
  * Returns all distinct categories with counts.
  */
-export function getAllCategories(): BlogCategory[] {
-  const posts = getAllPosts();
+export function getAllCategories(lang: "pt" | "en" = "pt"): BlogCategory[] {
+  const posts = getAllPosts(lang);
   const map = new Map<string, number>();
 
   posts.forEach((post) => {
-    const cat = post.category || "Geral";
+    const cat = post.category || (lang === "en" ? "General" : "Geral");
     map.set(cat, (map.get(cat) || 0) + 1);
   });
 

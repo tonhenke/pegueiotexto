@@ -1,0 +1,474 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import ReadingProgressBar from "@/components/blog/ReadingProgressBar";
+import TableOfContents from "@/components/blog/TableOfContents";
+import ShareButtons from "@/components/blog/ShareButtons";
+import BlogCard from "@/components/blog/BlogCard";
+import { getAllPosts, getPostBySlug, getRelatedPosts } from "@/lib/blog";
+import { Clock, ChevronRight, Sparkles, ArrowRight, Zap, User, ArrowLeft } from "lucide-react";
+
+interface BlogPostPageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+}
+
+export async function generateStaticParams() {
+  const posts = getAllPosts("en");
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug, "en");
+
+  if (!post) {
+    return {
+      title: "Article Not Found | Peguei o Texto",
+    };
+  }
+
+  const url = `https://pegueiotexto.com.br/en/blog/${post.slug}`;
+
+  return {
+    title: `${post.title} | Peguei o Texto Blog`,
+    description: post.description,
+    keywords: post.tags,
+    alternates: {
+      canonical: url,
+      languages: {
+        "en": url,
+        "x-default": url,
+      },
+    },
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      url,
+      type: "article",
+      publishedTime: post.date,
+      authors: [post.author.name],
+      tags: post.tags,
+      images: post.coverImage
+        ? [
+            {
+              url: post.coverImage.startsWith("http")
+                ? post.coverImage
+                : `https://pegueiotexto.com.br${post.coverImage}`,
+              width: 1200,
+              height: 675,
+              alt: post.title,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      images: post.coverImage
+        ? [
+            post.coverImage.startsWith("http")
+              ? post.coverImage
+              : `https://pegueiotexto.com.br${post.coverImage}`,
+          ]
+        : undefined,
+    },
+  };
+}
+
+export default async function EnglishBlogPostPage({ params }: BlogPostPageProps) {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug, "en");
+
+  if (!post) {
+    notFound();
+  }
+
+  const relatedPosts = getRelatedPosts(post.slug, post.category, 3, "en");
+
+  const formattedDate = new Date(post.date).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const fullCoverImageUrl = post.coverImage
+    ? post.coverImage.startsWith("http")
+      ? post.coverImage
+      : `https://pegueiotexto.com.br${post.coverImage}`
+    : undefined;
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "description": post.description,
+    "image": fullCoverImageUrl ? [fullCoverImageUrl] : undefined,
+    "datePublished": post.date,
+    "dateModified": post.date,
+    "author": {
+      "@type": "Person",
+      "name": post.author.name,
+      "jobTitle": post.author.role,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Peguei o Texto",
+      "url": "https://pegueiotexto.com.br/en",
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://pegueiotexto.com.br/en/blog/${post.slug}`,
+    },
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://pegueiotexto.com.br/en",
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blog",
+        "item": "https://pegueiotexto.com.br/en/blog",
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": post.title,
+        "item": `https://pegueiotexto.com.br/en/blog/${post.slug}`,
+      },
+    ],
+  };
+
+  return (
+    <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
+      <ReadingProgressBar />
+      <Navbar />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
+      <article style={{ paddingTop: "96px", paddingBottom: "70px" }}>
+        <div className="container" style={{ maxWidth: 1120 }}>
+          {/* Breadcrumb Navigation */}
+          <nav
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "0.85rem",
+              color: "var(--text-muted)",
+              marginBottom: "28px",
+              flexWrap: "wrap",
+            }}
+          >
+            <Link href="/en" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>
+              Home
+            </Link>
+            <ChevronRight size={14} />
+            <Link href="/en/blog" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>
+              Blog
+            </Link>
+            <ChevronRight size={14} />
+            <span style={{ color: "#A78BFA" }}>{post.category}</span>
+          </nav>
+
+          {/* Article Header */}
+          <header style={{ maxWidth: 860, marginBottom: "36px" }}>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "16px" }}>
+              <span
+                className="badge"
+                style={{
+                  background: "rgba(124, 58, 237, 0.15)",
+                  border: "1px solid rgba(124, 58, 237, 0.35)",
+                  color: "#C4B5FD",
+                }}
+              >
+                {post.category}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                <Clock size={14} /> {post.readTime}
+              </span>
+            </div>
+
+            <h1
+              style={{
+                fontSize: "clamp(2rem, 4vw, 3rem)",
+                fontWeight: 900,
+                color: "#FFFFFF",
+                lineHeight: 1.2,
+                letterSpacing: "-0.03em",
+                marginBottom: "18px",
+              }}
+            >
+              {post.title}
+            </h1>
+
+            <p
+              style={{
+                fontSize: "clamp(1.05rem, 1.8vw, 1.22rem)",
+                color: "var(--text-secondary)",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+              }}
+            >
+              {post.description}
+            </p>
+
+            {/* Author and Date bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "16px",
+                padding: "14px 16px",
+                background: "rgba(14, 13, 36, 0.6)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "16px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#FFFFFF",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  <User size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, color: "#FFFFFF", fontSize: "0.95rem" }}>
+                    {post.author.name}
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    {post.author.role} • {formattedDate}
+                  </div>
+                </div>
+              </div>
+
+              <ShareButtons title={post.title} slug={post.slug} basePath="/en/blog" lang="en" />
+            </div>
+          </header>
+
+          {/* Featured Cover Banner */}
+          {post.coverImage && (
+            <div className="blog-cover-banner">
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </div>
+          )}
+
+          {/* Mobile Table of Contents: positioned immediately after main cover on mobile */}
+          {post.tableOfContents && post.tableOfContents.length > 0 && (
+            <div className="blog-mobile-toc">
+              <TableOfContents toc={post.tableOfContents} title="In This Article" />
+            </div>
+          )}
+
+          {/* Main Layout: Content + Sticky Sidebar */}
+          <div className="blog-layout-grid">
+            {/* Left Column: Markdown Prose */}
+            <div className="blog-main-column">
+              <div
+                className="blog-prose"
+                dangerouslySetInnerHTML={{ __html: post.htmlContent || "" }}
+              />
+
+              {/* Tags */}
+              {post.tags && post.tags.length > 0 && (
+                <div
+                  style={{
+                    marginTop: "48px",
+                    paddingTop: "24px",
+                    borderTop: "1px solid var(--border-subtle)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Tags:</span>
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="badge"
+                      style={{
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid var(--border-subtle)",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Bottom Callout in Article */}
+              <div
+                className="glass-card"
+                style={{
+                  marginTop: "48px",
+                  borderRadius: "20px",
+                  padding: "32px",
+                  border: "1px solid rgba(124, 58, 237, 0.35)",
+                  background: "linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(6, 182, 212, 0.05))",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <Sparkles size={16} color="#A78BFA" />
+                  <span style={{ color: "#C4B5FD", fontWeight: 700, fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Try It Now
+                  </span>
+                </div>
+
+                <h3 style={{ fontSize: "1.45rem", fontWeight: 800, color: "#FFFFFF", marginBottom: "10px" }}>
+                  Transcribe your first audio or video in seconds
+                </h3>
+
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", lineHeight: 1.6, marginBottom: "20px" }}>
+                  Upload MP3, WAV, Zoom recordings or paste any YouTube link. Test our AI with 5 free minutes and experience studio-grade accuracy!
+                </p>
+
+                <Link
+                  href="/en"
+                  className="btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "12px 24px",
+                    borderRadius: "12px",
+                    textDecoration: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Start Free on Peguei o Texto <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column: Sticky Sidebar */}
+            <aside className="blog-sidebar-column">
+              {/* Table of contents (desktop only) */}
+              {post.tableOfContents && post.tableOfContents.length > 0 && (
+                <div className="blog-desktop-toc">
+                  <TableOfContents toc={post.tableOfContents} title="In This Article" />
+                </div>
+              )}
+
+              {/* Sidebar Action Widget */}
+              <div
+                className="glass-card"
+                style={{
+                  borderRadius: "18px",
+                  padding: "24px",
+                  border: "1px solid var(--border-subtle)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", color: "#A78BFA" }}>
+                  <Zap size={16} />
+                  <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>Peguei o Texto</span>
+                </div>
+                <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "18px" }}>
+                  Convert audio and video recordings into clean summaries, Word documents, and SRT subtitles with 98% accuracy.
+                </p>
+                <Link
+                  href="/en"
+                  className="btn-primary"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    padding: "10px 16px",
+                    fontSize: "0.85rem",
+                    borderRadius: "10px",
+                    textDecoration: "none",
+                  }}
+                >
+                  Test 5 Free Minutes
+                </Link>
+              </div>
+
+              {/* Back to Blog link */}
+              <Link
+                href="/en/blog"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  color: "var(--text-muted)",
+                  fontSize: "0.85rem",
+                  textDecoration: "none",
+                  paddingLeft: "4px",
+                  transition: "color 0.2s ease",
+                }}
+              >
+                <ArrowLeft size={14} /> Back to Blog
+              </Link>
+            </aside>
+          </div>
+
+          {/* Related Articles Section */}
+          {relatedPosts.length > 0 && (
+            <section style={{ marginTop: "80px", paddingTop: "48px", borderTop: "1px solid var(--border-subtle)" }}>
+              <div style={{ marginBottom: "28px" }}>
+                <h2 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#FFFFFF", marginBottom: "6px" }}>
+                  Related Articles
+                </h2>
+                <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                  Continue reading other guides in this category
+                </p>
+              </div>
+
+              <div className="blog-related-grid">
+                {relatedPosts.map((related) => (
+                  <BlogCard key={related.slug} post={related} basePath="/en/blog" lang="en" />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </article>
+
+      <Footer />
+    </main>
+  );
+}

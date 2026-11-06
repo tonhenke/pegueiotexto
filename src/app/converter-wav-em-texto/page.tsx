@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/converter-wav-em-texto",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/converter-wav-em-texto",
+      "en": "https://pegueiotexto.com.br/en/convert-wav-to-text",
+      "x-default": "https://pegueiotexto.com.br/converter-wav-em-texto",
+    },
   },
   openGraph: {
     title: "Converter Áudio WAV em Texto Online com IA | Peguei o Texto",

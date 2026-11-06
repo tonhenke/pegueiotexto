@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcrever-youtube",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcrever-youtube",
+      "en": "https://pegueiotexto.com.br/en/transcribe-youtube",
+      "x-default": "https://pegueiotexto.com.br/transcrever-youtube",
+    },
   },
   openGraph: {
     title: "Transcrever Vídeo do YouTube em Texto com IA | Peguei o Texto",

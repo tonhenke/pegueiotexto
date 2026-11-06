@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcricao-juridica",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcricao-juridica",
+      "en": "https://pegueiotexto.com.br/en/legal-transcription",
+      "x-default": "https://pegueiotexto.com.br/transcricao-juridica",
+    },
   },
   openGraph: {
     title: "Transcrição de Audiências e Degravação Jurídica com IA | Peguei o Texto",

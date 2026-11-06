@@ -7,6 +7,11 @@ export const metadata: Metadata = {
     "Termos e Condições Gerais de Uso da plataforma Peguei o Texto. Leia os direitos, deveres e regras para utilização dos serviços de transcrição de áudio e vídeo com inteligência artificial.",
   alternates: {
     canonical: "https://pegueiotexto.com.br/termos-de-uso",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/termos-de-uso",
+      "en": "https://pegueiotexto.com.br/en/terms",
+      "x-default": "https://pegueiotexto.com.br/termos-de-uso",
+    },
   },
   robots: {
     index: true,

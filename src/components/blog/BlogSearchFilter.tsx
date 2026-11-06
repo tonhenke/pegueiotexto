@@ -8,11 +8,15 @@ import type { BlogPost, BlogCategory } from "@/lib/blog";
 interface BlogSearchFilterProps {
   initialPosts: BlogPost[];
   categories: BlogCategory[];
+  basePath?: string;
+  lang?: "pt" | "en";
 }
 
-export default function BlogSearchFilter({ initialPosts, categories }: BlogSearchFilterProps) {
+export default function BlogSearchFilter({ initialPosts, categories, basePath = "/blog", lang = "pt" }: BlogSearchFilterProps) {
+  const isEn = lang === "en";
+  const allCategoryLabel = isEn ? "All" : "Todos";
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
+  const [selectedCategory, setSelectedCategory] = useState<string>(allCategoryLabel);
 
   const filteredPosts = useMemo(() => {
     return initialPosts.filter((post) => {
@@ -23,11 +27,11 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
         post.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesCategory =
-        selectedCategory === "Todos" || post.category.toLowerCase() === selectedCategory.toLowerCase();
+        selectedCategory === allCategoryLabel || post.category.toLowerCase() === selectedCategory.toLowerCase();
 
       return matchesSearch && matchesCategory;
     });
-  }, [initialPosts, searchTerm, selectedCategory]);
+  }, [initialPosts, searchTerm, selectedCategory, allCategoryLabel]);
 
   return (
     <div>
@@ -56,7 +60,7 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar artigos, tutoriais, dicas de áudio..."
+            placeholder={isEn ? "Search articles, guides, audio tips..." : "Buscar artigos, tutoriais, dicas de áudio..."}
             style={{
               width: "100%",
               padding: "14px 44px 14px 48px",
@@ -112,7 +116,7 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
           }}
         >
           <button
-            onClick={() => setSelectedCategory("Todos")}
+            onClick={() => setSelectedCategory(allCategoryLabel)}
             className="badge"
             style={{
               padding: "8px 16px",
@@ -121,16 +125,16 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
               borderRadius: "9999px",
               transition: "all 0.2s ease",
               background:
-                selectedCategory === "Todos" ? "var(--gradient-cta)" : "rgba(255, 255, 255, 0.04)",
-              color: selectedCategory === "Todos" ? "#FFFFFF" : "var(--text-secondary)",
+                selectedCategory === allCategoryLabel ? "var(--gradient-cta)" : "rgba(255, 255, 255, 0.04)",
+              color: selectedCategory === allCategoryLabel ? "#FFFFFF" : "var(--text-secondary)",
               border:
-                selectedCategory === "Todos"
+                selectedCategory === allCategoryLabel
                   ? "1px solid transparent"
                   : "1px solid var(--border-subtle)",
-              fontWeight: selectedCategory === "Todos" ? 700 : 400,
+              fontWeight: selectedCategory === allCategoryLabel ? 700 : 400,
             }}
           >
-            <Layers size={13} style={{ marginRight: "4px", display: "inline" }} /> Todos ({initialPosts.length})
+            <Layers size={13} style={{ marginRight: "4px", display: "inline" }} /> {allCategoryLabel} ({initialPosts.length})
           </button>
 
           {categories.map((cat) => {
@@ -163,7 +167,7 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
       {filteredPosts.length > 0 ? (
         <div className="blog-cards-grid">
           {filteredPosts.map((post) => (
-            <BlogCard key={post.slug} post={post} />
+            <BlogCard key={post.slug} post={post} basePath={basePath} lang={lang} />
           ))}
         </div>
       ) : (
@@ -177,12 +181,12 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
           }}
         >
           <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", marginBottom: "16px" }}>
-            Nenhum artigo encontrado para os filtros selecionados.
+            {isEn ? "No articles found for the selected filters." : "Nenhum artigo encontrado para os filtros selecionados."}
           </p>
           <button
             onClick={() => {
               setSearchTerm("");
-              setSelectedCategory("Todos");
+              setSelectedCategory(allCategoryLabel);
             }}
             className="btn-secondary"
             style={{
@@ -191,7 +195,7 @@ export default function BlogSearchFilter({ initialPosts, categories }: BlogSearc
               cursor: "pointer",
             }}
           >
-            Limpar Filtros
+            {isEn ? "Clear Filters" : "Limpar Filtros"}
           </button>
         </div>
       )}

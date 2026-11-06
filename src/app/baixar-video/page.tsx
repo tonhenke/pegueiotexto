@@ -36,6 +36,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/baixar-video",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/baixar-video",
+      "en": "https://pegueiotexto.com.br/en/download-video",
+      "x-default": "https://pegueiotexto.com.br/baixar-video",
+    },
   },
   openGraph: {
     title: "Baixar Vídeos e Áudios Online em MP4 / MP3 Grátis | Peguei o Texto",

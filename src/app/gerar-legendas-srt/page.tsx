@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/gerar-legendas-srt",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/gerar-legendas-srt",
+      "en": "https://pegueiotexto.com.br/en/generate-srt-subtitles",
+      "x-default": "https://pegueiotexto.com.br/gerar-legendas-srt",
+    },
   },
   openGraph: {
     title: "Gerador de Legendas .SRT Automático com IA | Peguei o Texto",

@@ -23,6 +23,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcricao-academica",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcricao-academica",
+      "en": "https://pegueiotexto.com.br/en/academic-transcription",
+      "x-default": "https://pegueiotexto.com.br/transcricao-academica",
+    },
   },
   openGraph: {
     title: "Transcrição de Entrevistas para TCC e Pesquisa com IA | Peguei o Texto",

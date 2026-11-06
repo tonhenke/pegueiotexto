@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/blog",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/blog",
+      "en": "https://pegueiotexto.com.br/en/blog",
+      "x-default": "https://pegueiotexto.com.br/blog",
+    },
   },
   openGraph: {
     title: "Blog Oficial do Peguei o Texto | IA & Produtividade",

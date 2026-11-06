@@ -33,6 +33,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/baixar-reels-instagram",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/baixar-reels-instagram",
+      "en": "https://pegueiotexto.com.br/en/download-instagram-reels",
+      "x-default": "https://pegueiotexto.com.br/baixar-reels-instagram",
+    },
   },
   openGraph: {
     title: "Baixar Reels do Instagram Grátis em MP4 Online | Peguei o Texto",

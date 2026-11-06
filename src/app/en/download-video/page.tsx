@@ -35,6 +35,7 @@ export const metadata: Metadata = {
     languages: {
       "pt-BR": "https://pegueiotexto.com.br/baixar-video",
       "en": "https://pegueiotexto.com.br/en/download-video",
+      "x-default": "https://pegueiotexto.com.br/en/download-video",
     },
   },
   openGraph: {

@@ -20,6 +20,7 @@ export default function Navbar() {
         { label: "How it works", href: "/en#how-it-works" },
         { label: "Platforms", href: "/en#platforms" },
         { label: "Download Video", href: "/en/download-video" },
+        { label: "Blog", href: "/en/blog" },
         { label: "Pricing", href: "/en/pricing" },
       ]
     : [

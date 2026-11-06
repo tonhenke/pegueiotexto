@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/converter-m4a-em-texto",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/converter-m4a-em-texto",
+      "en": "https://pegueiotexto.com.br/en/convert-m4a-to-text",
+      "x-default": "https://pegueiotexto.com.br/converter-m4a-em-texto",
+    },
   },
   openGraph: {
     title: "Converter Áudio M4A do iPhone em Texto com IA | Peguei o Texto",

@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcrever-instagram",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcrever-instagram",
+      "en": "https://pegueiotexto.com.br/en/transcribe-instagram",
+      "x-default": "https://pegueiotexto.com.br/transcrever-instagram",
+    },
   },
   openGraph: {
     title: "Transcrever Reels do Instagram em Texto com IA | Peguei o Texto",

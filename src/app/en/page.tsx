@@ -40,6 +40,7 @@ export const metadata: Metadata = {
     languages: {
       "pt-BR": "https://pegueiotexto.com.br",
       "en": "https://pegueiotexto.com.br/en",
+      "x-default": "https://pegueiotexto.com.br/en",
     },
   },
   openGraph: {

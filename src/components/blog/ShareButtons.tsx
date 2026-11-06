@@ -6,11 +6,19 @@ import { Share2, Link as LinkIcon, Check } from "lucide-react";
 interface ShareButtonsProps {
   title: string;
   slug: string;
+  basePath?: string;
+  lang?: "pt" | "en";
 }
 
-export default function ShareButtons({ title, slug }: ShareButtonsProps) {
+export default function ShareButtons({
+  title,
+  slug,
+  basePath = "/blog",
+  lang = "pt",
+}: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
-  const url = `https://pegueiotexto.com.br/blog/${slug}`;
+  const cleanBasePath = basePath.replace(/\/$/, "");
+  const url = `https://pegueiotexto.com.br${cleanBasePath}/${slug}`;
 
   const handleCopy = async () => {
     try {
@@ -26,10 +34,12 @@ export default function ShareButtons({ title, slug }: ShareButtonsProps) {
   const shareTwitter = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
   const shareLinkedIn = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
 
+  const isEn = lang === "en";
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
       <span style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "6px" }}>
-        <Share2 size={15} /> Compartilhar:
+        <Share2 size={15} /> {isEn ? "Share:" : "Compartilhar:"}
       </span>
 
       <a
@@ -103,11 +113,11 @@ export default function ShareButtons({ title, slug }: ShareButtonsProps) {
       >
         {copied ? (
           <>
-            <Check size={13} /> Link copiado!
+            <Check size={13} /> {isEn ? "Link copied!" : "Link copiado!"}
           </>
         ) : (
           <>
-            <LinkIcon size={13} /> Copiar link
+            <LinkIcon size={13} /> {isEn ? "Copy link" : "Copiar link"}
           </>
         )}
       </button>

@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/privacidade",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/privacidade",
+      "en": "https://pegueiotexto.com.br/en/privacy",
+      "x-default": "https://pegueiotexto.com.br/privacidade",
+    },
   },
   openGraph: {
     title: "Política de Privacidade | Peguei o Texto",

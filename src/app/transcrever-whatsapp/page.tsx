@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://pegueiotexto.com.br/transcrever-whatsapp",
+    languages: {
+      "pt-BR": "https://pegueiotexto.com.br/transcrever-whatsapp",
+      "en": "https://pegueiotexto.com.br/en/transcribe-whatsapp",
+      "x-default": "https://pegueiotexto.com.br/transcrever-whatsapp",
+    },
   },
   openGraph: {
     title: "Transcrever Áudio do WhatsApp em Texto Online com IA | Peguei o Texto",
