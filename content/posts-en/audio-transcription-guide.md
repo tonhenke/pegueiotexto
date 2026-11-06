@@ -54,3 +54,4 @@ Today, modern Deep Learning architectures (such as OpenAI Whisper and neural spe
 3. **Export Document**: In less than 60 seconds, download your punctuated text in Word (.DOCX), PDF, or plain text (.TXT).
 
 [Start transcribing your audio free on Peguei o Texto](/en) with 5 complimentary minutes!
+

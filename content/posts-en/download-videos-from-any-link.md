@@ -183,3 +183,4 @@ Yes! When you paste the URL into Peguei o Texto, simply click **"Download Audio 
 Downloading videos by link should never be a frustrating ordeal full of deceptive ads, malware warnings, and muted files. With modern, secure solutions like [Peguei o Texto](/en/download-youtube-video), you can save your favorite videos from anywhere on the web in Full HD MP4 and extract audio in MP3 with complete confidence.
 
 And when you need to turn spoken video content into written notes, let Artificial Intelligence transcribe hours of dialogue into structured documents in seconds!
+

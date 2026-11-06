@@ -28,3 +28,4 @@ export default function SugestoesLayout({
 }) {
   return <>{children}</>;
 }
+

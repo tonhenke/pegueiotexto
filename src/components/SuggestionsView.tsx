@@ -819,3 +819,4 @@ export default function SuggestionsView({ lang }: { lang?: "pt" | "en" }) {
     </div>
   );
 }
+

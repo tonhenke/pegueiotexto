@@ -76,3 +76,4 @@ When choosing a meeting transcription solution, consider whether you want intrus
 Manual transcription of meetings is an unnecessary cost in 2026. With AI speech recognition, you can convert hours of discussions into clear, actionable minutes in seconds.
 
 [Try Peguei o Texto Meeting Transcription free](/en/meeting-transcription) and save 90% of the time spent writing meeting notes today!
+

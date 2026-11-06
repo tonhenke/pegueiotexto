@@ -51,3 +51,4 @@ When you **transcribe video to text**, you unlock major advantages:
 3. **Download your text or subtitles**: Export clean text (.TXT), formatted Word (.DOCX), PDF, or synchronized subtitles (.SRT).
 
 [Try Video Transcription free on Peguei o Texto](/en) and turn your videos into text in seconds!
+

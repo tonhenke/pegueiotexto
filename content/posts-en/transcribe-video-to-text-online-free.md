@@ -50,3 +50,4 @@ Converting video speech into digital text unlocks immediate benefits:
 3. **Download Document**: Export directly to Word (.DOCX) or PDF, or generate an AI executive summary.
 
 [Start transcribing your video free on Peguei o Texto](/en) with 5 free minutes!
+

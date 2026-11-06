@@ -54,3 +54,4 @@ With [Peguei o Texto Academic Transcription](/en/academic-transcription), an hou
 Don't let manual audio typing delay your thesis submission. Leverage AI transcription to focus your energy on literature review and qualitative analysis.
 
 [Transcribe your academic interviews free on Peguei o Texto](/en/academic-transcription)!
+

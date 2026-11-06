@@ -24,3 +24,4 @@ export const BLOG_SLUG_MAP_EN_TO_PT: Record<string, string> = Object.entries(
   acc[en] = pt;
   return acc;
 }, {} as Record<string, string>);
+
