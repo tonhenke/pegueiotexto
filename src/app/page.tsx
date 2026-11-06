@@ -984,20 +984,23 @@ const CLINT_HTML = `
 
       </div>
 
-      <!-- BADGES: PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS & FAZIER -->
-      <div class="footer-badges-row">
-        <a href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Featured on Product Hunt">
-          <img src="/product-hunt-badge.svg" alt="Featured on Product Hunt" class="footer-badge-img" width="250" height="54" loading="lazy">
-        </a>
-        <a href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Launched on StartupBase">
-          <img src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg" alt="Launched on StartupBase" class="footer-badge-img" width="300" height="80" loading="lazy">
-        </a>
-        <a href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge" target="_blank" rel="noopener" class="footer-badge-link" aria-label="View Peguei o Texto on ConfettiSaaS">
-          <img src="https://confettisaas.com/badge-dark.svg" alt="Peguei o Texto on ConfettiSaaS" class="footer-badge-img" width="250" height="54" loading="lazy">
-        </a>
-        <a href="https://fazier.com/launches/pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-link" aria-label="Featured on Fazier">
-          <img src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral" alt="Fazier badge" class="footer-badge-img" width="182" height="43" loading="lazy">
-        </a>
+      <!-- BADGES CAROUSEL (STYLE UNISCRIBE): PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS & FAZIER -->
+      <div class="footer-badge-ticker" id="footerBadgeTicker">
+        <span class="footer-badge-label">FIND US ON</span>
+        <div class="footer-badge-track" id="footerBadgeTrack">
+          <a href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto" target="_blank" rel="noopener noreferrer" class="footer-badge-item active" aria-label="Featured on Product Hunt">
+            <img src="/product-hunt-badge.svg" alt="Featured on Product Hunt" class="footer-badge-img" width="250" height="54" loading="lazy">
+          </a>
+          <a href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Launched on StartupBase" tabindex="-1">
+            <img src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg" alt="Launched on StartupBase" class="footer-badge-img" width="300" height="80" loading="lazy">
+          </a>
+          <a href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="View Peguei o Texto on ConfettiSaaS" tabindex="-1">
+            <img src="https://confettisaas.com/badge-dark.svg" alt="Peguei o Texto on ConfettiSaaS" class="footer-badge-img" width="250" height="54" loading="lazy">
+          </a>
+          <a href="https://fazier.com/launches/pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Fazier" tabindex="-1">
+            <img src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral" alt="Fazier badge" class="footer-badge-img" width="182" height="43" loading="lazy">
+          </a>
+        </div>
       </div>
 
       <div class="footer-bottom">
@@ -1543,6 +1546,31 @@ export default function HomePage() {
             if (fileInput) fileInput.click();
           }
         });
+      }
+
+      // 11. Footer Badges Ticker (UniScribe style rotation)
+      const ticker = document.getElementById('footerBadgeTicker');
+      const tickerItems = document.querySelectorAll('.footer-badge-item');
+      if (ticker && tickerItems.length > 0) {
+        let activeIdx = 0;
+        let isTickerPaused = false;
+
+        ticker.addEventListener('mouseenter', () => { isTickerPaused = true; });
+        ticker.addEventListener('mouseleave', () => { isTickerPaused = false; });
+
+        setInterval(() => {
+          if (isTickerPaused) return;
+          activeIdx = (activeIdx + 1) % tickerItems.length;
+          tickerItems.forEach((item, idx) => {
+            if (idx === activeIdx) {
+              item.classList.add('active');
+              item.removeAttribute('tabindex');
+            } else {
+              item.classList.remove('active');
+              item.setAttribute('tabindex', '-1');
+            }
+          });
+        }, 3000);
       }
     }
   }, []);

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import FooterBadgeCarousel from "./FooterBadgeCarousel";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -162,112 +163,8 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Badges Row */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginTop: "32px" }}>
-          <a
-            href="https://www.producthunt.com/posts/peguei-o-texto?utm_source=badge-featured&utm_medium=badge&utm_campaign=peguei-o-texto"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Featured on Product Hunt"
-            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/product-hunt-badge.svg"
-              alt="Featured on Product Hunt"
-              height="30"
-              width="250"
-              loading="lazy"
-              style={{ height: "30px", width: "auto", display: "block" }}
-            />
-          </a>
-
-          <a
-            href="https://startupbase.io/products/peguei-o-texto?utm_source=startupbase&utm_medium=badge&utm_campaign=launch-badge-neutral"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Launched on StartupBase"
-            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://statics.startupbase.io/site/badges/launched-on-sb-neutral.svg"
-              alt="Launched on StartupBase"
-              height="30"
-              width="300"
-              loading="lazy"
-              style={{ height: "30px", width: "auto", display: "block" }}
-            />
-          </a>
-
-          <a
-            href="https://confettisaas.com/saas/pegueiotexto-com-br?ref=badge"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="View Peguei o Texto on ConfettiSaaS"
-            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://confettisaas.com/badge-dark.svg"
-              alt="Peguei o Texto on ConfettiSaaS"
-              height="30"
-              width="250"
-              loading="lazy"
-              style={{ height: "30px", width: "auto", display: "block" }}
-            />
-          </a>
-
-          <a
-            href="https://fazier.com/launches/pegueiotexto.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Featured on Fazier"
-            style={{ display: "inline-block", transition: "transform 0.2s, opacity 0.2s" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=neutral"
-              alt="Fazier badge"
-              height="30"
-              width="182"
-              loading="lazy"
-              style={{ height: "30px", width: "auto", display: "block" }}
-            />
-          </a>
-        </div>
+        {/* Rotating Badges Carousel (UniScribe style) */}
+        <FooterBadgeCarousel label="FIND US ON" />
 
         {/* Bottom bar */}
         <div style={{ height: "1px", background: "rgba(255, 255, 255, 0.08)", margin: "24px 0" }} />
