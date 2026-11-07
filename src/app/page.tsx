@@ -1062,6 +1062,9 @@ const CLINT_HTML = `
           <a href="https://shipybara.com/?ref=48daca65-151b-45a6-b9c1-b10341284265" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Shipybara" tabindex="-1">
             <img src="https://shipybara.com/images/badges/shipybara-badge-light.svg" alt="Featured on Shipybara" class="footer-badge-img" width="150" height="54" loading="lazy">
           </a>
+          <a href="https://startupfa.me/s/peguei-o-texto?utm_source=pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Peguei o Texto - Featured on Startup Fame" tabindex="-1">
+            <img src="https://startupfa.me/badges/featured-badge.webp" alt="Peguei o Texto - Featured on Startup Fame" class="footer-badge-img" width="171" height="54" loading="lazy">
+          </a>
         </div>
       </div>
 

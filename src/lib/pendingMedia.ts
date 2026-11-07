@@ -137,3 +137,4 @@ export async function clearPendingMedia(): Promise<void> {
     store.delete("pending_file");
   } catch (e) {}
 }
+

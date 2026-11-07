@@ -76,6 +76,14 @@ const BADGES: BadgeItem[] = [
     width: 150,
     height: 54,
   },
+  {
+    title: "Startup Fame",
+    url: "https://startupfa.me/s/peguei-o-texto?utm_source=pegueiotexto.com.br",
+    imgSrc: "https://startupfa.me/badges/featured-badge.webp",
+    alt: "Peguei o Texto - Featured on Startup Fame",
+    width: 171,
+    height: 54,
+  },
 ];
 
 interface FooterBadgeCarouselProps {
