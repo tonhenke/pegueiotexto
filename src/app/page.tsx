@@ -1058,6 +1058,9 @@ const CLINT_HTML = `
           <a href="https://twelve.tools" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Twelve Tools" tabindex="-1">
             <img src="https://twelve.tools/badge2-dark.svg" alt="Featured on Twelve Tools" class="footer-badge-img" width="148" height="40" loading="lazy">
           </a>
+          <a href="https://shipybara.com/?ref=48daca65-151b-45a6-b9c1-b10341284265" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Shipybara" tabindex="-1">
+            <img src="https://shipybara.com/images/badges/shipybara-badge-light.svg" alt="Featured on Shipybara" class="footer-badge-img" width="150" height="54" loading="lazy">
+          </a>
         </div>
       </div>
 

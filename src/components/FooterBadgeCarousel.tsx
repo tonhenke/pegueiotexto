@@ -68,6 +68,14 @@ const BADGES: BadgeItem[] = [
     width: 148,
     height: 40,
   },
+  {
+    title: "Shipybara",
+    url: "https://shipybara.com/?ref=48daca65-151b-45a6-b9c1-b10341284265",
+    imgSrc: "https://shipybara.com/images/badges/shipybara-badge-light.svg",
+    alt: "Featured on Shipybara",
+    width: 150,
+    height: 54,
+  },
 ];
 
 interface FooterBadgeCarouselProps {
