@@ -60,6 +60,14 @@ const BADGES: BadgeItem[] = [
     width: 150,
     height: 48,
   },
+  {
+    title: "Twelve Tools",
+    url: "https://twelve.tools",
+    imgSrc: "https://twelve.tools/badge2-dark.svg",
+    alt: "Featured on Twelve Tools",
+    width: 148,
+    height: 40,
+  },
 ];
 
 interface FooterBadgeCarouselProps {

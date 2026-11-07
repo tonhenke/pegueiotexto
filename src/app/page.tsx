@@ -1033,7 +1033,7 @@ const CLINT_HTML = `
 
       </div>
 
-      <!-- BADGES CAROUSEL (STYLE UNISCRIBE): PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS, FAZIER, BETTER LAUNCH & FOUNDRLIST -->
+      <!-- BADGES CAROUSEL (STYLE UNISCRIBE): PRODUCT HUNT, STARTUPBASE, CONFETTI SAAS, FAZIER, BETTER LAUNCH, FOUNDRLIST & TWELVE TOOLS -->
       <div class="footer-badge-ticker" id="footerBadgeTicker">
         <span class="footer-badge-label">FIND US ON</span>
         <div class="footer-badge-track" id="footerBadgeTrack">
@@ -1054,6 +1054,9 @@ const CLINT_HTML = `
           </a>
           <a href="https://www.foundrlist.com/product/pegueiotexto?utm_source=badge&amp;utm_medium=embed" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on FoundrList" tabindex="-1">
             <img src="https://www.foundrlist.com/api/badge/pegueiotexto" alt="Featured on FoundrList" class="footer-badge-img" width="150" height="48" loading="lazy">
+          </a>
+          <a href="https://twelve.tools" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Twelve Tools" tabindex="-1">
+            <img src="https://twelve.tools/badge2-dark.svg" alt="Featured on Twelve Tools" class="footer-badge-img" width="148" height="40" loading="lazy">
           </a>
         </div>
       </div>
