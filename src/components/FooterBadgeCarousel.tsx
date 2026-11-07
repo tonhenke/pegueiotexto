@@ -84,6 +84,14 @@ const BADGES: BadgeItem[] = [
     width: 171,
     height: 54,
   },
+  {
+    title: "ScrollLaunch",
+    url: "https://www.scrolllaunch.com/products/peguei-o-texto?ref=badge",
+    imgSrc: "https://www.scrolllaunch.com/api/badge/peguei-o-texto",
+    alt: "Featured on ScrollLaunch",
+    width: 220,
+    height: 48,
+  },
 ];
 
 interface FooterBadgeCarouselProps {

@@ -1070,6 +1070,9 @@ const CLINT_HTML_EN = `
           <a href="https://startupfa.me/s/peguei-o-texto?utm_source=pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Peguei o Texto - Featured on Startup Fame" tabindex="-1">
             <img src="https://startupfa.me/badges/featured-badge.webp" alt="Peguei o Texto - Featured on Startup Fame" class="footer-badge-img" width="171" height="54" loading="lazy">
           </a>
+          <a href="https://www.scrolllaunch.com/products/peguei-o-texto?ref=badge" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on ScrollLaunch" tabindex="-1">
+            <img src="https://www.scrolllaunch.com/api/badge/peguei-o-texto" alt="Featured on ScrollLaunch" class="footer-badge-img" width="220" height="48" loading="lazy">
+          </a>
         </div>
       </div>
 
