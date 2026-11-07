@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import "./clint.css";
 import { createClient } from "@/lib/supabase/client";
+import { savePendingMedia } from "@/lib/pendingMedia";
 
 const CLINT_HTML = `
 
@@ -1144,9 +1145,12 @@ export default function HomePage() {
       }
     }
 
+    let selectedHeroFile = null;
+
     function handleHeroFileSelected(fileInput) {
       if (fileInput.files && fileInput.files[0]) {
-        const file = fileInput.files[0];
+        selectedHeroFile = fileInput.files[0];
+        const file = selectedHeroFile;
         const input = document.getElementById('heroUrlInput');
         if (input) {
           const mb = (file.size / (1024 * 1024)).toFixed(1);
@@ -1161,14 +1165,25 @@ export default function HomePage() {
       const rawValue = input ? input.value.trim() : '';
 
       if (btn) {
-        btn.innerHTML = '<span>Redirecionando...</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
-        btn.style.opacity = '0.7';
+        btn.innerHTML = '<span>Gerando prévia IA...</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        btn.style.opacity = '0.8';
       }
 
-      // Se inseriu link de vídeo no modo URL, salva no localStorage para processar no dashboard
-      if (currentTranscribeMode === 'url' && rawValue && !rawValue.startsWith('📁')) {
+      if (currentTranscribeMode === 'upload' && selectedHeroFile) {
         try {
-          localStorage.setItem('pegueiotexto_pending_url', rawValue);
+          await savePendingMedia({
+            file: selectedHeroFile,
+            mode: 'upload',
+            fileName: selectedHeroFile.name,
+            fileSize: selectedHeroFile.size,
+          });
+        } catch (e) {}
+      } else if (rawValue && !rawValue.startsWith('📁')) {
+        try {
+          await savePendingMedia({
+            url: rawValue,
+            mode: 'url',
+          });
         } catch (e) {}
       }
 
@@ -1178,10 +1193,10 @@ export default function HomePage() {
         if (session?.user) {
           window.location.href = '/dashboard?auto_transcribe=true';
         } else {
-          window.location.href = '/login?signup=true&reason=transcribe&redirect=/dashboard?auto_transcribe=true';
+          window.location.href = '/login?signup=true&reason=transcribe&preview=true&redirect=/dashboard?auto_transcribe=true';
         }
       } catch (err) {
-        window.location.href = '/login?signup=true&reason=transcribe&redirect=/dashboard?auto_transcribe=true';
+        window.location.href = '/login?signup=true&reason=transcribe&preview=true&redirect=/dashboard?auto_transcribe=true';
       }
     }
 

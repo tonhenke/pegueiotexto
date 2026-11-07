@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToSrt, exportToVtt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
+import { getPendingMedia, clearPendingMedia } from "@/lib/pendingMedia";
 import AudioSyncPlayer from "@/components/AudioSyncPlayer";
 import InteractiveTranscript from "@/components/InteractiveTranscript";
 
@@ -194,23 +195,42 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       const queryUrl = searchParams.get("url");
-      const savedUrl = queryUrl || localStorage.getItem("pegueiotexto_pending_url");
 
-      if (savedUrl) {
-        setUrl(savedUrl);
-        localStorage.removeItem("pegueiotexto_pending_url");
+      getPendingMedia().then((pending) => {
+        const savedUrl = queryUrl || pending?.url || localStorage.getItem("pegueiotexto_pending_url");
 
-        // Verify if user is logged in
-        const supabase = createClient();
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            // User just arrived from login or Trojan Horse link, auto-trigger transcription in dashboard!
-            handleTranscribe(savedUrl);
-          } else {
-            setIsRestored(true);
-          }
-        });
-      }
+        if (savedUrl) {
+          setUrl(savedUrl);
+          setMode("url");
+          clearPendingMedia();
+
+          // Verify if user is logged in
+          const supabase = createClient();
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              // User just arrived from login or Trojan Horse link, auto-trigger transcription in dashboard!
+              handleTranscribe(savedUrl);
+            } else {
+              setIsRestored(true);
+            }
+          });
+        } else if (pending?.file) {
+          setFile(pending.file);
+          setMode("upload");
+          clearPendingMedia();
+
+          const supabase = createClient();
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              setTimeout(() => {
+                handleTranscribe();
+              }, 400);
+            } else {
+              setIsRestored(true);
+            }
+          });
+        }
+      });
     }
   }, []);
 

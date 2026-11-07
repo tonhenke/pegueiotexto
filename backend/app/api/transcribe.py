@@ -21,6 +21,114 @@ from app.services.database import (
 
 router = APIRouter(prefix="/api/transcribe", tags=["Transcription"])
 
+class TranscribePreviewRequest(BaseModel):
+    url: str
+    language: Optional[str] = "auto"
+
+@router.post("/preview")
+async def preview_transcription(req: TranscribePreviewRequest):
+    """
+    Returns a quick preview (title, platform, duration, first 20-30s snippet of transcription)
+    without authentication. Perfect for teaser split signup page.
+    """
+    url = (req.url or "").strip()
+    if not url or not url.startswith("http"):
+        raise HTTPException(status_code=400, detail="URL inválida.")
+
+    is_youtube = ("youtube.com" in url) or ("youtu.be" in url)
+    caption_fallback = None
+
+    if is_youtube:
+        try:
+            caption_fallback = try_extract_youtube_captions(url, preferred_language=req.language)
+        except Exception as e:
+            print(f"[Preview] YouTube caption error: {e}")
+            caption_fallback = None
+
+    if caption_fallback:
+        segments = caption_fallback.get("segments", [])
+        title = caption_fallback.get("title") or "Vídeo do YouTube"
+        duration = int(caption_fallback.get("duration") or 60)
+
+        preview_segs = []
+        preview_words = []
+        for s in segments:
+            preview_segs.append(s)
+            preview_words.append(s.get("text", ""))
+            if s.get("end", 0) >= 28 or len(" ".join(preview_words)) >= 220:
+                break
+
+        preview_text = " ".join(preview_words).strip()
+        if not preview_text and segments:
+            preview_text = segments[0].get("text", "")
+
+        return {
+            "success": True,
+            "title": title,
+            "platform": "YouTube",
+            "duration": duration,
+            "total_minutes": max(1, math.ceil(duration / 60)),
+            "preview_text": preview_text or "Áudio detectado e pronto para transcrição completa com IA.",
+            "segments": preview_segs,
+            "has_real_captions": True,
+            "exceeds_free": duration > 300,
+        }
+
+    # If not YouTube or no captions: extract metadata
+    try:
+        from app.services.downloader import extract_youtube_video_id
+        import httpx
+
+        title = "Vídeo da Internet"
+        duration = 180
+        platform = "Web"
+
+        if is_youtube:
+            platform = "YouTube"
+            vid = extract_youtube_video_id(url)
+            if vid:
+                try:
+                    with httpx.Client(timeout=4.0) as client:
+                        resp = client.get(f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={vid}&format=json")
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            title = data.get("title") or title
+                except Exception:
+                    pass
+        else:
+            if "instagram.com" in url:
+                platform = "Instagram"
+                title = "Reels / Vídeo do Instagram"
+            elif "tiktok.com" in url:
+                platform = "TikTok"
+                title = "Vídeo do TikTok"
+
+        return {
+            "success": True,
+            "title": title,
+            "platform": platform,
+            "duration": duration,
+            "total_minutes": max(1, math.ceil(duration / 60)),
+            "preview_text": "Transcrição de áudio de alta precisão iniciada com inteligência artificial.",
+            "segments": [
+                {"start": 0.0, "end": 15.0, "text": "Transcrição de áudio de alta precisão iniciada com inteligência artificial."}
+            ],
+            "has_real_captions": False,
+            "exceeds_free": duration > 300,
+        }
+    except Exception as e:
+        return {
+            "success": True,
+            "title": "Mídia da Internet",
+            "platform": "Web",
+            "duration": 180,
+            "total_minutes": 3,
+            "preview_text": "Áudio identificado e pronto para transcrição completa no painel.",
+            "segments": [],
+            "has_real_captions": False,
+            "exceeds_free": False,
+        }
+
 class TranscribeUrlRequest(BaseModel):
     url: str
     language: Optional[str] = None
