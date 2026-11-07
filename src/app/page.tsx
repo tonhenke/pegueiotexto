@@ -35,10 +35,52 @@ const CLINT_HTML = `
       </nav>
 
       <div class="nav-actions">
-        <a href="/en" class="nav-lang-btn" title="Switch to English" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.2s ease;">
-          <span style="font-size: 14px;">🇺🇸</span>
-          <span>EN</span>
-        </a>
+        <!-- Seletor de Idioma Dropdown (Padrão: Português 🇧🇷 PT) -->
+        <div id="langDropdownWrapper" style="position: relative; display: inline-block;">
+          <button
+            type="button"
+            id="langDropdownBtn"
+            onclick="toggleLangDropdown(event)"
+            aria-label="Selecionar idioma / Select language"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.85); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, border-color 0.2s;"
+            onmouseenter="this.style.background='rgba(255, 255, 255, 0.1)'; this.style.borderColor='rgba(255, 255, 255, 0.25)';"
+            onmouseleave="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.borderColor='rgba(255, 255, 255, 0.12)';"
+          >
+            <span style="font-size: 14px;">🇧🇷</span>
+            <span>PT</span>
+            <svg id="langChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6; transition: transform 0.2s;"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+
+          <div
+            id="langDropdownMenu"
+            style="display: none; position: absolute; top: calc(100% + 6px); right: 0; background: rgba(15, 15, 35, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 6px; min-width: 140px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); z-index: 9999; flex-direction: column; gap: 2px;"
+          >
+            <a
+              href="/"
+              style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 8px; background: rgba(139, 92, 246, 0.18); color: #c084fc; text-decoration: none; font-size: 13px; font-weight: 600;"
+            >
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span>🇧🇷</span>
+                <span>Português</span>
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </a>
+
+            <a
+              href="/en"
+              onclick="try { localStorage.setItem('pegueiotexto_lang', 'en'); } catch(e) {}"
+              style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 8px; background: transparent; color: rgba(255, 255, 255, 0.8); text-decoration: none; font-size: 13px; font-weight: 600; transition: background 0.2s;"
+              onmouseenter="this.style.background='rgba(255, 255, 255, 0.08)';"
+              onmouseleave="this.style.background='transparent';"
+            >
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span>🇺🇸</span>
+                <span>English</span>
+              </span>
+            </a>
+          </div>
+        </div>
+
         <a href="/login" class="nav-login" id="navLoginLink">Entrar</a>
         <a href="/login?signup=true" class="btn-primary nav-cta" id="navCtaLink" onclick="handleStartFree(event)">
           <span>Começar grátis</span>
@@ -60,10 +102,17 @@ const CLINT_HTML = `
       <a href="/precos" class="nav-link" onclick="toggleMobileMenu()">Preços</a>
       <a href="#duvidas" class="nav-link" onclick="toggleMobileMenu()">Dúvidas</a>
       <a href="/login" class="nav-link" id="mobileNavLoginLink" onclick="toggleMobileMenu()">Entrar</a>
-      <a href="/en" class="nav-link" onclick="toggleMobileMenu()" style="display: flex; align-items: center; gap: 8px; color: #C4B5FD; font-weight: 600;">
-        <span>🇺🇸</span>
-        <span>English (US)</span>
-      </a>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.06); margin: 4px 0;">
+        <span style="font-size: 12px; color: rgba(255,255,255,0.45); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Idioma:</span>
+        <a href="/" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: #c084fc; font-size: 13px; font-weight: 700; text-decoration: none;">
+          <span>🇧🇷</span>
+          <span>Português</span>
+        </a>
+        <a href="/en" onclick="try { localStorage.setItem('pegueiotexto_lang', 'en'); } catch(e) {}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.75); font-size: 13px; font-weight: 600; text-decoration: none;">
+          <span>🇺🇸</span>
+          <span>English</span>
+        </a>
+      </div>
       <a href="/login?signup=true" class="btn-primary" id="mobileNavCtaLink" style="margin-top: 8px; width: 100%;" onclick="toggleMobileMenu(); handleStartFree(event)">Começar grátis</a>
     </div>
   </header>
@@ -1498,6 +1547,29 @@ export default function HomePage() {
       (window as any).setPricingMode = setPricingMode;
       (window as any).toggleFaq = toggleFaq;
       (window as any).toggleMobileMenu = toggleMobileMenu;
+
+      function toggleLangDropdown(e?: any) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const menu = document.getElementById('langDropdownMenu');
+        const chevron = document.getElementById('langChevron');
+        if (!menu) return;
+        const isOpen = menu.style.display === 'flex';
+        menu.style.display = isOpen ? 'none' : 'flex';
+        if (chevron) {
+          chevron.style.transform = isOpen ? 'none' : 'rotate(180deg)';
+        }
+      }
+      (window as any).toggleLangDropdown = toggleLangDropdown;
+
+      document.addEventListener('click', (e: MouseEvent) => {
+        const wrapper = document.getElementById('langDropdownWrapper');
+        const menu = document.getElementById('langDropdownMenu');
+        const chevron = document.getElementById('langChevron');
+        if (wrapper && menu && !wrapper.contains(e.target as Node)) {
+          menu.style.display = 'none';
+          if (chevron) chevron.style.transform = 'none';
+        }
+      });
 
       initWaveform();
       renderUseCase(0);
