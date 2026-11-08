@@ -1068,6 +1068,9 @@ const CLINT_HTML = `
           <a href="https://www.scrolllaunch.com/products/peguei-o-texto?ref=badge" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on ScrollLaunch" tabindex="-1">
             <img src="https://www.scrolllaunch.com/api/badge/peguei-o-texto" alt="Featured on ScrollLaunch" class="footer-badge-img" width="220" height="48" loading="lazy">
           </a>
+          <a href="https://www.tools.rodeo/?ref=pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Tools Rodeo" tabindex="-1">
+            <img src="https://www.tools.rodeo/badge/tools-rodeo-badge-dark-33368f08.svg" alt="Featured on Tools Rodeo" class="footer-badge-img" width="216" height="64" loading="lazy">
+          </a>
         </div>
       </div>
 

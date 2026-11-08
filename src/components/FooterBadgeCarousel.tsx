@@ -92,6 +92,14 @@ const BADGES: BadgeItem[] = [
     width: 220,
     height: 48,
   },
+  {
+    title: "Tools Rodeo",
+    url: "https://www.tools.rodeo/?ref=pegueiotexto.com.br",
+    imgSrc: "https://www.tools.rodeo/badge/tools-rodeo-badge-dark-33368f08.svg",
+    alt: "Featured on Tools Rodeo",
+    width: 216,
+    height: 64,
+  },
 ];
 
 interface FooterBadgeCarouselProps {
