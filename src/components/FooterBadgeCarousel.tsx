@@ -100,6 +100,14 @@ const BADGES: BadgeItem[] = [
     width: 216,
     height: 64,
   },
+  {
+    title: "Nick Launches",
+    url: "https://nicklaunches.com/products/peguei-o-texto/",
+    imgSrc: "https://nicklaunches.com/badges/featured-dark.png",
+    alt: "Peguei o Texto on Nick Launches",
+    width: 244,
+    height: 56,
+  },
 ];
 
 interface FooterBadgeCarouselProps {

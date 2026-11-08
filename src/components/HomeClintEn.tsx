@@ -1076,6 +1076,9 @@ const CLINT_HTML_EN = `
           <a href="https://www.tools.rodeo/?ref=pegueiotexto.com.br" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Featured on Tools Rodeo" tabindex="-1">
             <img src="https://www.tools.rodeo/badge/tools-rodeo-badge-dark-33368f08.svg" alt="Featured on Tools Rodeo" class="footer-badge-img" width="216" height="64" loading="lazy">
           </a>
+          <a href="https://nicklaunches.com/products/peguei-o-texto/" target="_blank" rel="noopener noreferrer" class="footer-badge-item" aria-label="Peguei o Texto on Nick Launches" tabindex="-1">
+            <img src="https://nicklaunches.com/badges/featured-dark.png" alt="Peguei o Texto on Nick Launches" class="footer-badge-img" width="244" height="56" loading="lazy">
+          </a>
         </div>
       </div>
 
