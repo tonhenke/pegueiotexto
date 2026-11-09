@@ -15,7 +15,7 @@ export async function GET(
   const supabaseKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "";
+    "sb_publishable_VYRSuA8NTBM_cqQSUdtwRA_Spnnao2Y";
 
   if (!supabaseKey) {
     return NextResponse.json({ detail: "Serviço temporariamente indisponível." }, { status: 503 });

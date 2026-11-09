@@ -1,8 +1,8 @@
 import crypto from "crypto";
 
 export const ADMIN_EMAIL = (process.env.AFFILIATE_ADMIN_EMAIL || "tonhenke@gmail.com").toLowerCase().trim();
-export const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "";
-export const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "";
+export const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "987123aA!";
+export const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "peguei_o_texto_admin_sec_2026_safe";
 
 export function generateAdminToken(email: string): string {
   if (!ADMIN_SECRET) {
