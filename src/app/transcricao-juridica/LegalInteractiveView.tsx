@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Scale,
@@ -378,11 +378,21 @@ export default function LegalInteractiveView() {
   // Use case tabs
   const [activeUseCase, setActiveUseCase] = useState(0);
 
-  // Pricing mode: default to "anual" as requested!
+  // Pricing mode: default to "anual"
   const [pricingMode, setPricingMode] = useState<"anual" | "avulso">("anual");
+
+  // Mobile horizontal carousel state
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [activePlanIdx, setActivePlanIdx] = useState(0);
 
   // FAQ accordion
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  // Combine free plan as first column with the active tier plans
+  const currentPricingPlans = [
+    FREE_PLAN,
+    ...(pricingMode === "anual" ? ANNUAL_PLANS : PACKAGES),
+  ];
 
   // Playback timer simulation
   useEffect(() => {
@@ -443,14 +453,162 @@ export default function LegalInteractiveView() {
     URL.revokeObjectURL(url);
   };
 
-  // Combine free plan as first column with the active tier plans
-  const currentPricingPlans = [
-    FREE_PLAN,
-    ...(pricingMode === "anual" ? ANNUAL_PLANS : PACKAGES),
-  ];
+  const handleSwitchPricingMode = (mode: "anual" | "avulso") => {
+    setPricingMode(mode);
+    setActivePlanIdx(0);
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ left: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollCarousel = () => {
+    if (!carouselRef.current) return;
+    const container = carouselRef.current;
+    const scrollLeft = container.scrollLeft;
+    const cardWidth = container.clientWidth * 0.84;
+    const newIndex = Math.min(
+      currentPricingPlans.length - 1,
+      Math.max(0, Math.round(scrollLeft / (cardWidth + 14)))
+    );
+    setActivePlanIdx(newIndex);
+  };
+
+  const scrollToPlan = (idx: number) => {
+    if (!carouselRef.current) return;
+    const container = carouselRef.current;
+    const cards = container.children;
+    if (cards[idx]) {
+      (cards[idx] as HTMLElement).scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+      setActivePlanIdx(idx);
+    }
+  };
 
   return (
     <div style={{ position: "relative", width: "100%", overflowX: "hidden" }}>
+      {/* SCOPED RESPONSIVE STYLES FOR MOBILE UX */}
+      <style>{`
+        /* Hearing player adjustments on mobile */
+        @media (max-width: 680px) {
+          .hearing-player-card {
+            padding: 18px 14px !important;
+            border-radius: 16px !important;
+          }
+          .hearing-player-header-top {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 14px !important;
+          }
+          .hearing-player-title-box {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+          }
+          .hearing-player-filename-row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            width: 100% !important;
+          }
+          .hearing-player-filename {
+            font-size: 13.5px !important;
+            word-break: break-all !important;
+            line-height: 1.3 !important;
+          }
+          .hearing-player-actions {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          .hearing-player-actions button {
+            width: 100% !important;
+            padding: 8px 6px !important;
+            font-size: 11.5px !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+          }
+          /* Dialogue row: STACK vertically so text gets 100% full width */
+          .hearing-line-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            padding: 12px 12px !important;
+          }
+          .hearing-speaker-meta {
+            min-width: auto !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin-bottom: 2px !important;
+          }
+          .hearing-text-col {
+            width: 100% !important;
+          }
+          .hearing-text-col p {
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+          }
+          .mobile-hide {
+            display: none !important;
+          }
+          .mobile-show {
+            display: inline !important;
+          }
+        }
+
+        @media (min-width: 681px) {
+          .mobile-show {
+            display: none !important;
+          }
+        }
+
+        /* Mobile Horizontal Carousel for Pricing */
+        @media (max-width: 820px) {
+          .pricing-grid-container {
+            display: flex !important;
+            flex-direction: row !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory !important;
+            -webkit-overflow-scrolling: touch !important;
+            gap: 14px !important;
+            padding: 12px 18px 20px !important;
+            margin: 0 -18px !important;
+            scrollbar-width: none !important;
+          }
+          .pricing-grid-container::-webkit-scrollbar {
+            display: none !important;
+          }
+          .pricing-card-col {
+            flex: 0 0 84vw !important;
+            min-width: 275px !important;
+            max-width: 325px !important;
+            scroll-snap-align: center !important;
+          }
+          .mobile-pricing-quickbar {
+            display: flex !important;
+          }
+          .mobile-pricing-indicator {
+            display: flex !important;
+          }
+        }
+
+        @media (min-width: 821px) {
+          .mobile-pricing-quickbar {
+            display: none !important;
+          }
+          .mobile-pricing-indicator {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* AURORA LIGHTING EFFECTS (CLINT SIGNATURE) */}
       <div className="aurora-bg" aria-hidden="true">
         <div className="aurora-orb-center" />
@@ -466,24 +624,26 @@ export default function LegalInteractiveView() {
         style={{
           position: "relative",
           zIndex: 2,
-          paddingTop: "90px",
-          paddingBottom: "60px",
+          paddingTop: "75px",
+          paddingBottom: "50px",
           textAlign: "center",
         }}
       >
-        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 20px" }}>
+        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 18px" }}>
           {/* Trust Authority Pill */}
-          <div style={{ display: "inline-flex", justifyContent: "center", marginBottom: "22px" }}>
+          <div style={{ display: "inline-flex", justifyContent: "center", marginBottom: "20px" }}>
             <span
               className="badge-pill"
               style={{
                 borderColor: "rgba(167, 139, 250, 0.35)",
                 background: "rgba(124, 58, 237, 0.12)",
                 boxShadow: "0 0 25px rgba(124, 58, 237, 0.2)",
+                fontSize: "12.5px",
+                padding: "6px 14px",
               }}
             >
               <span className="pill-dot" style={{ background: "#10B981" }} />
-              <Scale size={15} style={{ color: "#A78BFA" }} />
+              <Scale size={14} style={{ color: "#A78BFA" }} />
               <span>Solução Especializada para Advogados & Escritórios • LGPD Compliant</span>
             </span>
           </div>
@@ -491,11 +651,11 @@ export default function LegalInteractiveView() {
           {/* Main Title */}
           <h1
             style={{
-              fontSize: "clamp(2.3rem, 5.2vw, 3.8rem)",
+              fontSize: "clamp(2rem, 5vw, 3.8rem)",
               fontWeight: 900,
-              lineHeight: 1.14,
+              lineHeight: 1.15,
               letterSpacing: "-0.03em",
-              marginBottom: "22px",
+              marginBottom: "20px",
               color: "#FFFFFF",
             }}
           >
@@ -514,10 +674,10 @@ export default function LegalInteractiveView() {
           {/* Subtitle */}
           <p
             style={{
-              fontSize: "clamp(1.05rem, 2vw, 1.25rem)",
+              fontSize: "clamp(1rem, 2vw, 1.25rem)",
               color: "var(--text-muted, #9E96B3)",
               maxWidth: 780,
-              margin: "0 auto 36px",
+              margin: "0 auto 32px",
               lineHeight: 1.6,
             }}
           >
@@ -533,32 +693,32 @@ export default function LegalInteractiveView() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "24px",
+              gap: "16px",
               flexWrap: "wrap",
-              marginBottom: "38px",
+              marginBottom: "36px",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#E2D9F3" }}>
-              <ShieldCheck size={18} color="#10B981" />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "#E2D9F3" }}>
+              <ShieldCheck size={17} color="#10B981" />
               <span>Sigilo absoluto (deleção permanente pós-transcrição)</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#E2D9F3" }}>
-              <Zap size={18} color="#67E8F9" />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "#E2D9F3" }}>
+              <Zap size={17} color="#67E8F9" />
               <span>10× mais rápido que degravação humana</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#E2D9F3" }}>
-              <Award size={18} color="#F59E0B" />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "#E2D9F3" }}>
+              <Award size={17} color="#F59E0B" />
               <span>5 minutos grátis imediatos no cadastro</span>
             </div>
           </div>
 
           {/* Transcribe Form Integration */}
-          <div style={{ maxWidth: 860, margin: "0 auto 48px", position: "relative" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto 40px", position: "relative" }}>
             <TranscribeForm initialPlaceholder="Cole o link do PJe Mídias, gravação do Zoom/Teams ou envie MP4, MP3, WAV, M4A..." />
           </div>
 
           {/* Quick CTA Sub-text */}
-          <p style={{ fontSize: "13px", color: "var(--text-dim, #6B6382)", marginTop: "-20px" }}>
+          <p style={{ fontSize: "12.5px", color: "var(--text-dim, #6B6382)", marginTop: "-16px" }}>
             Sem necessidade de cartão de crédito. Seus arquivos são processados com isolamento e criptografia.
           </p>
         </div>
@@ -569,27 +729,27 @@ export default function LegalInteractiveView() {
         style={{
           position: "relative",
           zIndex: 2,
-          padding: "24px 0",
+          padding: "20px 0",
           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
           background: "rgba(12, 8, 20, 0.65)",
           backdropFilter: "blur(12px)",
         }}
       >
-        <div className="container" style={{ maxWidth: 1160, margin: "0 auto", padding: "0 20px" }}>
+        <div className="container" style={{ maxWidth: 1160, margin: "0 auto", padding: "0 18px" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "36px",
+              gap: "24px",
               flexWrap: "wrap",
               textAlign: "center",
             }}
           >
             <span
               style={{
-                fontSize: "12px",
+                fontSize: "11.5px",
                 fontWeight: 700,
                 color: "#A78BFA",
                 textTransform: "uppercase",
@@ -598,24 +758,24 @@ export default function LegalInteractiveView() {
             >
               Compatível com o Ecossistema Forense:
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "28px", flexWrap: "wrap", justifyContent: "center" }}>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                🏛️ PJe Mídias (CNJ)
+            <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap", justifyContent: "center" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
+                🏛️ PJe Mídias
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                🎥 Zoom Audiências
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
+                🎥 Zoom
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                💻 Microsoft Teams
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
+                💻 Teams
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
                 🎙️ Gravadores Sony / Olympus
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                📱 WhatsApp (.opus / .ogg)
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
+                📱 WhatsApp (.opus)
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "6px" }}>
-                📄 Word (.DOCX) & PDF
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255, 255, 255, 0.8)", display: "flex", alignItems: "center", gap: "5px" }}>
+                📄 Word (.DOCX)
               </span>
             </div>
           </div>
@@ -623,9 +783,9 @@ export default function LegalInteractiveView() {
       </section>
 
       {/* LIVE INTERACTIVE HEARING MOCKUP */}
-      <section style={{ position: "relative", zIndex: 2, padding: "80px 0" }}>
-        <div className="container" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "40px" }}>
+      <section style={{ position: "relative", zIndex: 2, padding: "70px 0" }}>
+        <div className="container" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "36px" }}>
             <span
               style={{
                 color: "#67E8F9",
@@ -639,26 +799,26 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.6vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
-                marginBottom: "14px",
+                marginBottom: "12px",
                 color: "#FFFFFF",
               }}
             >
               Veja como uma audiência real fica transcrita
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", maxWidth: 650, margin: "0 auto" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", maxWidth: 650, margin: "0 auto" }}>
               Clique nas falas para ouvir o áudio simulado ou aperte o Play. Teste a separação por oradores,
               marcação temporal e a facilidade de cópia para petições.
             </p>
           </div>
 
-          {/* Interactive Player Card */}
+          {/* Interactive Player Card (with mobile responsiveness) */}
           <div
-            className="clint-card"
+            className="clint-card hearing-player-card"
             style={{
-              padding: "28px",
+              padding: "26px",
               borderRadius: "20px",
               background: "linear-gradient(rgba(14, 9, 24, 0.85), rgba(11, 7, 20, 0.92))",
               border: "1px solid rgba(167, 139, 250, 0.25)",
@@ -667,24 +827,26 @@ export default function LegalInteractiveView() {
           >
             {/* Player Header */}
             <div
+              className="hearing-player-header-top"
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexWrap: "wrap",
                 gap: "16px",
-                paddingBottom: "20px",
+                paddingBottom: "18px",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: "1 1 auto" }}>
                 <button
                   type="button"
                   onClick={handleTogglePlay}
                   aria-label={isPlaying ? "Pausar audiência" : "Reproduzir audiência"}
                   style={{
-                    width: "48px",
-                    height: "48px",
+                    width: "44px",
+                    height: "44px",
+                    flexShrink: 0,
                     borderRadius: "50%",
                     border: "none",
                     background: "linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)",
@@ -699,35 +861,37 @@ export default function LegalInteractiveView() {
                   onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                   onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                 >
-                  {isPlaying ? <Pause size={22} /> : <Play size={22} style={{ marginLeft: "2px" }} />}
+                  {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: "2px" }} />}
                 </button>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF" }}>
+
+                <div className="hearing-player-title-box" style={{ minWidth: 0 }}>
+                  <div className="hearing-player-filename-row" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                    <span className="hearing-player-filename" style={{ fontSize: "14.5px", fontWeight: 700, color: "#FFFFFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       audiencia_instrucao_0001234.mp4
                     </span>
                     <span
                       style={{
-                        padding: "2px 8px",
-                        borderRadius: "6px",
+                        padding: "2px 7px",
+                        borderRadius: "5px",
                         fontSize: "11px",
                         fontWeight: 700,
                         background: "rgba(16, 185, 129, 0.18)",
                         color: "#10B981",
                         border: "1px solid rgba(16, 185, 129, 0.3)",
+                        flexShrink: 0,
                       }}
                     >
                       PJe Mídias
                     </span>
                   </div>
-                  <span style={{ fontSize: "13px", color: "var(--text-muted, #9E96B3)" }}>
-                    Diarização ativa: 4 Oradores identificados • 99.4% precisão
+                  <span style={{ fontSize: "12px", color: "var(--text-muted, #9E96B3)", display: "block", marginTop: "2px" }}>
+                    Diarização ativa: 4 Oradores • 99.4% precisão
                   </span>
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* Action buttons (grid 2 cols on mobile) */}
+              <div className="hearing-player-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   type="button"
                   onClick={handleCopyTranscript}
@@ -740,14 +904,14 @@ export default function LegalInteractiveView() {
                     background: "rgba(255, 255, 255, 0.05)",
                     border: "1px solid rgba(255, 255, 255, 0.12)",
                     color: copiedDemo ? "#10B981" : "#E2D9F3",
-                    fontSize: "13px",
+                    fontSize: "12.5px",
                     fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
                 >
-                  {copiedDemo ? <Check size={15} /> : <Copy size={15} />}
-                  <span>{copiedDemo ? "Copiado para Petição!" : "Copiar com Timestamps"}</span>
+                  {copiedDemo ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiedDemo ? "Copiado!" : "Copiar Timestamps"}</span>
                 </button>
 
                 <button
@@ -762,20 +926,20 @@ export default function LegalInteractiveView() {
                     background: "rgba(59, 130, 246, 0.15)",
                     border: "1px solid rgba(59, 130, 246, 0.35)",
                     color: "#93C5FD",
-                    fontSize: "13px",
+                    fontSize: "12.5px",
                     fontWeight: 600,
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
                 >
-                  <Download size={15} />
-                  <span>Baixar Modelo (.DOCX)</span>
+                  <Download size={14} />
+                  <span>Modelo (.DOCX)</span>
                 </button>
               </div>
             </div>
 
             {/* Audio Wave Timeline Bar */}
-            <div style={{ margin: "20px 0 24px", position: "relative" }}>
+            <div style={{ margin: "18px 0 22px", position: "relative" }}>
               <div
                 style={{
                   height: "8px",
@@ -812,25 +976,27 @@ export default function LegalInteractiveView() {
                 }}
               >
                 <span>
-                  00:{playbackSeconds < 10 ? `0${playbackSeconds}` : playbackSeconds}
+                  00:{playbackSeconds < 10 ? `0${playbackSeconds}` : playbackSeconds} / 00:30
                 </span>
-                <span>00:30 (Trecho demonstrativo da audiência)</span>
+                <span className="mobile-hide">Trecho demonstrativo da audiência</span>
+                <span className="mobile-show">Demonstração</span>
               </div>
             </div>
 
-            {/* Transcript Lines */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {/* Transcript Lines (Stacked vertically on mobile to prevent narrow squished text!) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {SAMPLE_HEARING.map((item, idx) => {
                 const isActive = currentLineIndex === idx;
                 return (
                   <div
                     key={item.id}
+                    className="hearing-line-item"
                     onClick={() => handleSelectLine(idx)}
                     style={{
                       display: "flex",
                       alignItems: "flex-start",
                       gap: "14px",
-                      padding: "14px 18px",
+                      padding: "14px 16px",
                       borderRadius: "12px",
                       cursor: "pointer",
                       background: isActive
@@ -843,8 +1009,8 @@ export default function LegalInteractiveView() {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    {/* Timestamp & Speaker Badge */}
-                    <div style={{ minWidth: "140px", flexShrink: 0 }}>
+                    {/* Timestamp & Speaker Header */}
+                    <div className="hearing-speaker-meta" style={{ minWidth: "140px", flexShrink: 0 }}>
                       <div
                         style={{
                           display: "inline-flex",
@@ -857,7 +1023,6 @@ export default function LegalInteractiveView() {
                           fontSize: "12px",
                           fontWeight: 700,
                           color: item.roleColor,
-                          marginBottom: "4px",
                         }}
                       >
                         <span>{item.avatarText}</span>
@@ -869,14 +1034,15 @@ export default function LegalInteractiveView() {
                           color: isActive ? "#A78BFA" : "var(--text-dim, #6B6382)",
                           fontFamily: "var(--font-mono, monospace)",
                           fontWeight: 600,
+                          marginTop: "2px",
                         }}
                       >
                         [{item.time}]
                       </div>
                     </div>
 
-                    {/* Dialogue Text */}
-                    <div style={{ flex: 1 }}>
+                    {/* Dialogue Text (100% full width on mobile) */}
+                    <div className="hearing-text-col" style={{ flex: 1 }}>
                       <div
                         style={{
                           fontSize: "12px",
@@ -900,8 +1066,8 @@ export default function LegalInteractiveView() {
                       </p>
                     </div>
 
-                    {/* Play/Jump Icon */}
-                    <div style={{ alignSelf: "center", color: isActive ? "#A78BFA" : "rgba(255, 255, 255, 0.2)" }}>
+                    {/* Headphones Icon */}
+                    <div className="mobile-hide" style={{ alignSelf: "center", color: isActive ? "#A78BFA" : "rgba(255, 255, 255, 0.2)" }}>
                       <Headphones size={16} />
                     </div>
                   </div>
@@ -912,8 +1078,8 @@ export default function LegalInteractiveView() {
             {/* Bottom note */}
             <div
               style={{
-                marginTop: "20px",
-                padding: "12px 16px",
+                marginTop: "18px",
+                padding: "12px 14px",
                 borderRadius: "10px",
                 background: "rgba(255, 255, 255, 0.03)",
                 display: "flex",
@@ -921,12 +1087,12 @@ export default function LegalInteractiveView() {
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: "10px",
-                fontSize: "13px",
+                fontSize: "12.5px",
                 color: "var(--text-muted, #9E96B3)",
               }}
             >
               <span>
-                💡 <strong>Dica Processual:</strong> Basta clicar e copiar as falas com os minutos exatos para fundamentar contradições em sede de Alegações Finais ou Apelação.
+                💡 <strong>Dica:</strong> Clique nas falas para conferir a minutagem exata.
               </span>
               <Link
                 href="/login?signup=true"
@@ -939,7 +1105,7 @@ export default function LegalInteractiveView() {
                   textDecoration: "none",
                 }}
               >
-                Degravar áudio real agora <ArrowRight size={14} />
+                Degravar seu áudio agora <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -951,13 +1117,13 @@ export default function LegalInteractiveView() {
         style={{
           position: "relative",
           zIndex: 2,
-          padding: "80px 0",
+          padding: "70px 0",
           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           background: "rgba(10, 6, 18, 0.4)",
         }}
       >
-        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "50px" }}>
+        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "44px" }}>
             <span
               style={{
                 color: "#A78BFA",
@@ -971,7 +1137,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -979,7 +1145,7 @@ export default function LegalInteractiveView() {
             >
               Como degravar audiências em 3 passos
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", marginTop: "8px" }}>
               Do arquivo bruto à citação perfeita na petição em menos de 5 minutos
             </p>
           </div>
@@ -987,15 +1153,15 @@ export default function LegalInteractiveView() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "28px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "24px",
             }}
           >
             {/* Step 1 */}
             <div
               className="clint-card"
               style={{
-                padding: "32px 28px",
+                padding: "28px 24px",
                 borderRadius: "18px",
                 position: "relative",
                 display: "flex",
@@ -1017,26 +1183,26 @@ export default function LegalInteractiveView() {
               </div>
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
+                  width: "44px",
+                  height: "44px",
                   borderRadius: "12px",
                   background: "rgba(59, 130, 246, 0.15)",
                   border: "1px solid rgba(59, 130, 246, 0.35)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "20px",
+                  marginBottom: "18px",
                   color: "#60A5FA",
                 }}
               >
-                <Scale size={24} />
+                <Scale size={22} />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "12px", color: "#FFFFFF" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px", color: "#FFFFFF" }}>
                 1. Envie a Gravação
               </h3>
-              <p style={{ fontSize: "14.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
+              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
                 Faça upload do arquivo baixado do <strong>PJe Mídias</strong>, gravação do <strong>Zoom</strong>,{" "}
-                <strong>Teams</strong>, <strong>Google Meet</strong> ou áudio do gravador de voz. Suporte a vídeos e áudios de até 3 horas.
+                <strong>Teams</strong> ou áudio do gravador de voz. Suporte a arquivos de até 3 horas.
               </p>
             </div>
 
@@ -1044,7 +1210,7 @@ export default function LegalInteractiveView() {
             <div
               className="clint-card"
               style={{
-                padding: "32px 28px",
+                padding: "28px 24px",
                 borderRadius: "18px",
                 position: "relative",
                 display: "flex",
@@ -1066,24 +1232,24 @@ export default function LegalInteractiveView() {
               </div>
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
+                  width: "44px",
+                  height: "44px",
                   borderRadius: "12px",
                   background: "rgba(124, 58, 237, 0.15)",
                   border: "1px solid rgba(167, 139, 250, 0.35)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "20px",
+                  marginBottom: "18px",
                   color: "#A78BFA",
                 }}
               >
-                <Zap size={24} />
+                <Zap size={22} />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "12px", color: "#FFFFFF" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px", color: "#FFFFFF" }}>
                 2. IA Jurídica Degrava
               </h3>
-              <p style={{ fontSize: "14.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
+              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
                 Nossa IA processa o diálogo aplicando gramática jurídica, separando os oradores (Juiz, Partes, Testemunhas) e inserindo marcações de tempo sincronizadas automaticamente.
               </p>
             </div>
@@ -1092,7 +1258,7 @@ export default function LegalInteractiveView() {
             <div
               className="clint-card"
               style={{
-                padding: "32px 28px",
+                padding: "28px 24px",
                 borderRadius: "18px",
                 position: "relative",
                 display: "flex",
@@ -1114,24 +1280,24 @@ export default function LegalInteractiveView() {
               </div>
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
+                  width: "44px",
+                  height: "44px",
                   borderRadius: "12px",
                   background: "rgba(16, 185, 129, 0.15)",
                   border: "1px solid rgba(16, 185, 129, 0.35)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "20px",
+                  marginBottom: "18px",
                   color: "#10B981",
                 }}
               >
-                <Download size={24} />
+                <Download size={22} />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "12px", color: "#FFFFFF" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "10px", color: "#FFFFFF" }}>
                 3. Junte Direto na Peça
               </h3>
-              <p style={{ fontSize: "14.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
+              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, flex: 1 }}>
                 Exporte o texto formatado para <strong>Word (.DOCX)</strong> ou <strong>PDF</strong> com timestamps prontos para fundamentar suas petições iniciais, contestações e recursos.
               </p>
             </div>
@@ -1140,9 +1306,9 @@ export default function LegalInteractiveView() {
       </section>
 
       {/* FORENSIC ROUTINE BENTO FEATURES */}
-      <section style={{ position: "relative", zIndex: 2, padding: "80px 0" }}>
-        <div className="container" style={{ maxWidth: 1140, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "50px" }}>
+      <section style={{ position: "relative", zIndex: 2, padding: "70px 0" }}>
+        <div className="container" style={{ maxWidth: 1140, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "44px" }}>
             <span
               style={{
                 color: "#67E8F9",
@@ -1156,7 +1322,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -1164,7 +1330,7 @@ export default function LegalInteractiveView() {
             >
               Funcionalidades que transformam a rotina jurídica
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", marginTop: "8px" }}>
               Rigor técnico, velocidade extrema e segurança para quem não pode perder prazos processuais.
             </p>
           </div>
@@ -1172,157 +1338,157 @@ export default function LegalInteractiveView() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: "24px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+              gap: "20px",
             }}
           >
             {/* Feature 1 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(124, 58, 237, 0.15)",
                   color: "#A78BFA",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <Users size={20} />
+                <Users size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 Identificação de Oradores (Diarização)
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
-                Nossa IA distingue automaticamente as vozes do magistrado, advogados, partes e testemunhas. Essencial para elaborar atas de audiência minuciosas e sem ambiguidades.
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+                Nossa IA distingue automaticamente as vozes do magistrado, advogados, partes e testemunhas. Essencial para elaborar atas de audiência minuciosas.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(59, 130, 246, 0.15)",
                   color: "#60A5FA",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <FileText size={20} />
+                <FileText size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 Exportação Direta para Word (.DOCX)
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
-                Baixe o arquivo com formatação limpa, parágrafos recuados e timestamps para integrar imediatamente às suas peças sem perder tempo reformatando textos desajustados.
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+                Baixe o arquivo com formatação limpa, parágrafos recuados e timestamps para integrar imediatamente às suas peças sem perder tempo reformatando.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(16, 185, 129, 0.15)",
                   color: "#10B981",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <Clock size={20} />
+                <Clock size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 1 Hora de Audiência em ~3 Minutos
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
                 Enquanto a degravação manual por estagiários leva de 4 a 8 horas, o Peguei o Texto entrega o texto completo em minutos. Audiência de manhã, peça pronta à tarde.
               </p>
             </div>
 
             {/* Feature 4 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(236, 72, 153, 0.15)",
                   color: "#F472B6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <Lock size={20} />
+                <Lock size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 Sigilo Absoluto & Deleção Imediata
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
                 Respeito rigoroso ao dever de sigilo do Estatuto da Advocacia e à LGPD. Seus arquivos de áudio são criptografados e excluídos permanentemente logo após a transcrição.
               </p>
             </div>
 
             {/* Feature 5 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(245, 158, 11, 0.15)",
                   color: "#FBBF24",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <Award size={20} />
+                <Award size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 Português Jurídico & Jargão Forense
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
-                Modelos afinados com termos forenses brasileiros (ex: *de cujus*, *in dubio pro reo*, *preclusão consumativa*, *contradita*, *embargos declaratórios*), evitando erros bizarros.
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+                Modelos afinados com termos forenses brasileiros (ex: *de cujus*, *in dubio pro reo*, *preclusão consumativa*, *contradita*), evitando erros bizarros.
               </p>
             </div>
 
             {/* Feature 6 */}
-            <div className="clint-card" style={{ padding: "28px", borderRadius: "16px" }}>
+            <div className="clint-card" style={{ padding: "24px 20px", borderRadius: "16px" }}>
               <div
                 style={{
-                  width: "42px",
-                  height: "42px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "10px",
                   background: "rgba(6, 182, 212, 0.15)",
                   color: "#67E8F9",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               >
-                <Headphones size={20} />
+                <Headphones size={19} />
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#FFFFFF", marginBottom: "10px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, color: "#FFFFFF", marginBottom: "8px" }}>
                 Player Sincronizado para Conferência
               </h3>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
-                Dúvida em uma palavra crucial da oitiva? Clique em qualquer trecho do texto e o player salta imediatamente para o segundo exato do áudio para você tirar a teima.
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6 }}>
+                Dúvida em uma palavra crucial da oitiva? Clique em qualquer trecho do texto e o player salta imediatamente para o segundo exato do áudio para conferir.
               </p>
             </div>
           </div>
@@ -1334,13 +1500,13 @@ export default function LegalInteractiveView() {
         style={{
           position: "relative",
           zIndex: 2,
-          padding: "80px 0",
+          padding: "70px 0",
           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           background: "rgba(8, 5, 14, 0.5)",
         }}
       >
-        <div className="container" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+        <div className="container" style={{ maxWidth: 1040, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <span
               style={{
                 color: "#F59E0B",
@@ -1354,7 +1520,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -1362,7 +1528,7 @@ export default function LegalInteractiveView() {
             >
               Chega de pagar caro ou perder horas com degravação
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", marginTop: "8px" }}>
               Compare o custo real por audiência e o tempo de entrega entre os dois métodos:
             </p>
           </div>
@@ -1370,8 +1536,8 @@ export default function LegalInteractiveView() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: "28px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+              gap: "24px",
             }}
           >
             {/* Degravação Manual / Terceirizada */}
@@ -1380,11 +1546,11 @@ export default function LegalInteractiveView() {
                 background: "rgba(255, 255, 255, 0.02)",
                 border: "1px solid rgba(239, 68, 68, 0.25)",
                 borderRadius: "20px",
-                padding: "32px",
+                padding: "28px 22px",
                 position: "relative",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
                 <span
                   style={{
                     width: "28px",
@@ -1395,42 +1561,36 @@ export default function LegalInteractiveView() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "16px",
+                    fontSize: "15px",
                     fontWeight: 700,
                   }}
                 >
                   ✕
                 </span>
-                <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#EF4444" }}>
+                <h3 style={{ fontSize: "19px", fontWeight: 700, color: "#EF4444" }}>
                   Degravação Manual / Terceirizada
                 </h3>
               </div>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", marginBottom: "24px" }}>
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", marginBottom: "20px" }}>
                 Método tradicional moroso com custo elevado e risco de vazamento
               </p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
-                  <span>
-                    <strong>R$ 150 a R$ 300 por audiência de 1 hora</strong> cobrados por profissionais terceirizados
-                  </span>
+                  <span><strong>R$ 150 a R$ 300 por audiência de 1 hora</strong></span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
                   <span><strong>Prazo de 24h a 72h úteis</strong> (inviável para prazos fatais de agravo ou contestação)</span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
                   <span><strong>Risco de vazamento de dados sensíveis</strong> ao repassar áudios a terceiros</span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
                   <span>Formatação inconsistente sem marcação exata de timestamps</span>
-                </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
-                  <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
-                  <span>Correções e ajustes exigem retrabalho demorado</span>
                 </div>
               </div>
             </div>
@@ -1440,7 +1600,7 @@ export default function LegalInteractiveView() {
               className="clint-card"
               style={{
                 borderRadius: "20px",
-                padding: "32px",
+                padding: "28px 22px",
                 border: "1px solid rgba(167, 139, 250, 0.45)",
                 background: "linear-gradient(rgba(20, 13, 33, 0.9), rgba(14, 9, 24, 0.95))",
                 boxShadow: "0 20px 50px rgba(124, 58, 237, 0.25)",
@@ -1451,8 +1611,8 @@ export default function LegalInteractiveView() {
                 style={{
                   position: "absolute",
                   top: "-12px",
-                  right: "24px",
-                  padding: "4px 14px",
+                  right: "20px",
+                  padding: "4px 12px",
                   borderRadius: "999px",
                   background: "linear-gradient(135deg, #10B981, #059669)",
                   color: "#FFFFFF",
@@ -1465,7 +1625,7 @@ export default function LegalInteractiveView() {
                 Recomendado para Advocacia
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
                 <span
                   style={{
                     width: "28px",
@@ -1476,42 +1636,38 @@ export default function LegalInteractiveView() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "16px",
+                    fontSize: "15px",
                     fontWeight: 700,
                   }}
                 >
                   ✓
                 </span>
-                <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#FFFFFF" }}>
+                <h3 style={{ fontSize: "19px", fontWeight: 700, color: "#FFFFFF" }}>
                   Peguei o Texto com IA Jurídica
                 </h3>
               </div>
-              <p style={{ fontSize: "14px", color: "var(--text-muted, #9E96B3)", marginBottom: "24px" }}>
+              <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", marginBottom: "20px" }}>
                 Agilidade, máxima economia e controle total na ponta dos seus dedos
               </p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
                   <span>
                     <strong>1 hora de audiência sai por menos de R$ 2,97</strong>
                   </span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
                   <span><strong>Audiência de 1 hora pronta em 3 a 5 minutos</strong> (disponível 24 horas por dia)</span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
                   <span><strong>Sigilo profissional e deleção permanente</strong> em servidores seguros</span>
                 </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
+                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
                   <span><strong>Exportação direta para Word (.DOCX)</strong> com formatação forense e timestamps</span>
-                </div>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
-                  <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
-                  <span><strong>Player sincronizado:</strong> clique no texto e ouça a gravação no segundo exato</span>
                 </div>
               </div>
             </div>
@@ -1520,9 +1676,9 @@ export default function LegalInteractiveView() {
       </section>
 
       {/* PRACTICE AREAS USE CASES TABS */}
-      <section style={{ position: "relative", zIndex: 2, padding: "80px 0" }}>
-        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "40px" }}>
+      <section style={{ position: "relative", zIndex: 2, padding: "70px 0" }}>
+        <div className="container" style={{ maxWidth: 1100, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "36px" }}>
             <span
               style={{
                 color: "#A78BFA",
@@ -1536,7 +1692,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -1544,7 +1700,7 @@ export default function LegalInteractiveView() {
             >
               Como os advogados usam o Peguei o Texto
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", marginTop: "8px" }}>
               Cenários de uso do áudio bruto do tribunal até a petição pronta para protocolo
             </p>
           </div>
@@ -1554,9 +1710,9 @@ export default function LegalInteractiveView() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "10px",
+              gap: "8px",
               flexWrap: "wrap",
-              marginBottom: "36px",
+              marginBottom: "32px",
             }}
           >
             {USE_CASES.map((uc, idx) => {
@@ -1567,9 +1723,9 @@ export default function LegalInteractiveView() {
                   type="button"
                   onClick={() => setActiveUseCase(idx)}
                   style={{
-                    padding: "10px 18px",
+                    padding: "8px 16px",
                     borderRadius: "10px",
-                    fontSize: "14px",
+                    fontSize: "13.5px",
                     fontWeight: 600,
                     cursor: "pointer",
                     border: isSelected
@@ -1594,19 +1750,19 @@ export default function LegalInteractiveView() {
             <div
               className="clint-card"
               style={{
-                padding: "36px",
+                padding: "30px 22px",
                 borderRadius: "20px",
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: "36px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+                gap: "28px",
                 alignItems: "center",
               }}
             >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
                   <span
                     style={{
-                      padding: "3px 10px",
+                      padding: "3px 9px",
                       borderRadius: "6px",
                       fontSize: "11px",
                       fontWeight: 700,
@@ -1617,23 +1773,23 @@ export default function LegalInteractiveView() {
                   >
                     {USE_CASES[activeUseCase].badge}
                   </span>
-                  <span style={{ fontSize: "14px", color: "var(--text-dim, #6B6382)", fontWeight: 500 }}>
+                  <span style={{ fontSize: "13.5px", color: "var(--text-dim, #6B6382)", fontWeight: 500 }}>
                     {USE_CASES[activeUseCase].subtitle}
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: "24px", fontWeight: 800, color: "#FFFFFF", marginBottom: "14px" }}>
+                <h3 style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", marginBottom: "12px" }}>
                   {USE_CASES[activeUseCase].title}
                 </h3>
 
-                <p style={{ fontSize: "15px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, marginBottom: "22px" }}>
+                <p style={{ fontSize: "14.5px", color: "var(--text-muted, #9E96B3)", lineHeight: 1.6, marginBottom: "20px" }}>
                   {USE_CASES[activeUseCase].description}
                 </p>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {USE_CASES[activeUseCase].bullets.map((b, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", color: "#E2D9F3" }}>
-                      <CheckCircle2 size={16} color="#10B981" />
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13.5px", color: "#E2D9F3" }}>
+                      <CheckCircle2 size={15} color="#10B981" />
                       <span>{b}</span>
                     </div>
                   ))}
@@ -1646,35 +1802,35 @@ export default function LegalInteractiveView() {
                   background: "rgba(6, 3, 9, 0.7)",
                   border: "1px solid rgba(167, 139, 250, 0.2)",
                   borderRadius: "14px",
-                  padding: "24px",
+                  padding: "20px",
                   position: "relative",
                 }}
               >
-                <div style={{ fontSize: "12px", color: "#A78BFA", fontWeight: 700, marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <FileCheck2 size={16} /> Trecho Formatado Pronto para Citação na Peça
+                <div style={{ fontSize: "12px", color: "#A78BFA", fontWeight: 700, marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <FileCheck2 size={15} /> Trecho Formatado Pronto para Citação na Peça
                 </div>
                 <p
                   style={{
-                    fontSize: "14px",
+                    fontSize: "13.5px",
                     fontStyle: "italic",
                     lineHeight: 1.6,
                     color: "rgba(255, 255, 255, 0.85)",
                     fontFamily: "var(--font-sans, sans-serif)",
                     background: "rgba(255, 255, 255, 0.03)",
-                    padding: "16px",
+                    padding: "14px",
                     borderRadius: "8px",
                     borderLeft: "3px solid #7C3AED",
                   }}
                 >
                   {USE_CASES[activeUseCase].sampleQuote}
                 </p>
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "14px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "12px" }}>
                   <Link
                     href="/login?signup=true"
                     className="btn-primary"
                     style={{
-                      padding: "10px 20px",
-                      fontSize: "13px",
+                      padding: "9px 18px",
+                      fontSize: "12.5px",
                       textDecoration: "none",
                       display: "inline-flex",
                       alignItems: "center",
@@ -1690,19 +1846,19 @@ export default function LegalInteractiveView() {
         </div>
       </section>
 
-      {/* PRICING PLANS SECTION (PEGUEI O TEXTO MODEL) */}
+      {/* PRICING PLANS SECTION (PEGUEI O TEXTO MODEL WITH MOBILE HORIZONTAL CAROUSEL) */}
       <section
         id="precos"
         style={{
           position: "relative",
           zIndex: 2,
-          padding: "90px 0",
+          padding: "80px 0",
           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           background: "rgba(10, 6, 18, 0.5)",
         }}
       >
-        <div className="container" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "40px" }}>
+        <div className="container" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "32px" }}>
             <span
               style={{
                 color: "#10B981",
@@ -1716,7 +1872,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(2rem, 4vw, 2.8rem)",
+                fontSize: "clamp(1.9rem, 4vw, 2.8rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -1724,7 +1880,7 @@ export default function LegalInteractiveView() {
             >
               Escolha como prefere transcrever
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "16px", marginTop: "8px", maxWidth: 680, margin: "8px auto 0" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px", maxWidth: 680, margin: "8px auto 0" }}>
               Sem surpresas cambiais e sem contratos que prendem seu escritório. 
               Comece com <strong>5 minutos grátis imediatos</strong> para testar na prática.
             </p>
@@ -1736,20 +1892,20 @@ export default function LegalInteractiveView() {
                 alignItems: "center",
                 gap: "6px",
                 background: "rgba(255, 255, 255, 0.05)",
-                padding: "6px",
+                padding: "5px",
                 borderRadius: "14px",
                 border: "1px solid rgba(167, 139, 250, 0.3)",
                 boxShadow: "0 4px 20px rgba(124, 58, 237, 0.15)",
-                marginTop: "28px",
+                marginTop: "24px",
               }}
             >
               <button
                 type="button"
-                onClick={() => setPricingMode("anual")}
+                onClick={() => handleSwitchPricingMode("anual")}
                 style={{
-                  padding: "10px 22px",
+                  padding: "9px 18px",
                   borderRadius: "10px",
-                  fontSize: "14px",
+                  fontSize: "13.5px",
                   fontWeight: 700,
                   cursor: "pointer",
                   border: "none",
@@ -1759,16 +1915,16 @@ export default function LegalInteractiveView() {
                   transition: "all 0.2s",
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: "6px",
                 }}
               >
-                <span>⭐ Planos Anuais Recorrentes</span>
+                <span>⭐ Planos Anuais</span>
                 <span
                   style={{
                     background: "rgba(16, 185, 129, 0.25)",
                     color: "#10B981",
-                    padding: "2px 8px",
-                    borderRadius: "6px",
+                    padding: "2px 7px",
+                    borderRadius: "5px",
                     fontSize: "11px",
                     fontWeight: 800,
                   }}
@@ -1779,11 +1935,11 @@ export default function LegalInteractiveView() {
 
               <button
                 type="button"
-                onClick={() => setPricingMode("avulso")}
+                onClick={() => handleSwitchPricingMode("avulso")}
                 style={{
-                  padding: "10px 20px",
+                  padding: "9px 16px",
                   borderRadius: "10px",
-                  fontSize: "14px",
+                  fontSize: "13.5px",
                   fontWeight: 700,
                   cursor: "pointer",
                   border: "none",
@@ -1793,13 +1949,65 @@ export default function LegalInteractiveView() {
                   transition: "all 0.2s",
                 }}
               >
-                Pacotes Avulsos (Sem Mensalidade)
+                Pacotes Avulsos
               </button>
+            </div>
+
+            {/* Mobile quick-nav selector pills: jumps to plan with 1 tap */}
+            <div
+              className="mobile-pricing-quickbar"
+              style={{
+                display: "none",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                marginTop: "20px",
+                flexWrap: "wrap",
+              }}
+            >
+              {currentPricingPlans.map((p, idx) => {
+                const isPActive = activePlanIdx === idx;
+                const shortLabel =
+                  idx === 0
+                    ? "Grátis"
+                    : idx === 1
+                    ? "Starter"
+                    : idx === 2
+                    ? "Pro ⭐"
+                    : "Banca";
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => scrollToPlan(idx)}
+                    style={{
+                      padding: "6px 13px",
+                      borderRadius: "999px",
+                      border: isPActive
+                        ? "1px solid rgba(167, 139, 250, 0.7)"
+                        : "1px solid rgba(255, 255, 255, 0.12)",
+                      background: isPActive
+                        ? "linear-gradient(135deg, rgba(139, 92, 246, 0.45), rgba(124, 58, 237, 0.35))"
+                        : "rgba(255, 255, 255, 0.04)",
+                      color: isPActive ? "#FFFFFF" : "var(--text-muted, #9E96B3)",
+                      fontSize: "12px",
+                      fontWeight: isPActive ? 700 : 500,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {shortLabel}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Pricing Grid (4 Columns: Começar Grátis + 3 Tiers) */}
+          {/* Pricing Grid: Desktop 4 Cols / Mobile Horizontal Snap Carousel */}
           <div
+            ref={carouselRef}
+            onScroll={handleScrollCarousel}
+            className="pricing-grid-container"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
@@ -1810,10 +2018,10 @@ export default function LegalInteractiveView() {
             {currentPricingPlans.map((plan) => (
               <div
                 key={plan.id}
-                className="clint-card"
+                className="clint-card pricing-card-col"
                 style={{
                   borderRadius: "20px",
-                  padding: "32px 18px",
+                  padding: "30px 18px",
                   display: "flex",
                   flexDirection: "column",
                   position: "relative",
@@ -1859,8 +2067,8 @@ export default function LegalInteractiveView() {
                 )}
 
                 {/* Plan Header */}
-                <div style={{ marginBottom: "16px" }}>
-                  <h3 style={{ fontSize: "19px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
+                <div style={{ marginBottom: "14px" }}>
+                  <h3 style={{ fontSize: "18.5px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
                     {plan.name}
                   </h3>
                   <p style={{ fontSize: "13px", color: "var(--text-muted, #9E96B3)", minHeight: "36px", lineHeight: 1.4 }}>
@@ -1925,7 +2133,7 @@ export default function LegalInteractiveView() {
                     </div>
                   )}
 
-                  {/* Quadro essencial de capacidade */}
+                  {/* Quadro essencial de capacidade em 1 linha única */}
                   <div
                     style={{
                       marginTop: "12px",
@@ -1994,28 +2202,75 @@ export default function LegalInteractiveView() {
             ))}
           </div>
 
+          {/* Mobile Carousel Indicators & Swipe Hint */}
+          <div
+            className="mobile-pricing-indicator"
+            style={{
+              display: "none",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "8px",
+              marginTop: "16px",
+            }}
+          >
+            <div style={{ display: "flex", gap: "7px", alignItems: "center" }}>
+              {currentPricingPlans.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => scrollToPlan(idx)}
+                  aria-label={`Ver plano ${idx + 1}`}
+                  style={{
+                    width: activePlanIdx === idx ? "22px" : "7px",
+                    height: "7px",
+                    borderRadius: "4px",
+                    border: "none",
+                    background:
+                      activePlanIdx === idx
+                        ? "linear-gradient(90deg, #60A5FA, #A78BFA)"
+                        : "rgba(255, 255, 255, 0.2)",
+                    cursor: "pointer",
+                    transition: "all 0.25s ease",
+                  }}
+                />
+              ))}
+            </div>
+            <div
+              style={{
+                fontSize: "11.5px",
+                color: "var(--text-dim, #6B6382)",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span>Deslize para a direita para ver todos os planos</span>
+              <ArrowRight size={12} />
+            </div>
+          </div>
+
           {/* Guarantee Banner */}
           <div
             style={{
-              marginTop: "48px",
-              padding: "24px",
+              marginTop: "40px",
+              padding: "20px",
               borderRadius: "16px",
               background: "rgba(16, 185, 129, 0.08)",
               border: "1px solid rgba(16, 185, 129, 0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "16px",
+              gap: "14px",
               flexWrap: "wrap",
               textAlign: "center",
             }}
           >
-            <ShieldCheck size={28} color="#10B981" />
+            <ShieldCheck size={26} color="#10B981" />
             <div>
-              <strong style={{ color: "#FFFFFF", fontSize: "15px" }}>
+              <strong style={{ color: "#FFFFFF", fontSize: "14.5px" }}>
                 Garantia Incondicional de Satisfação:
               </strong>{" "}
-              <span style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14px" }}>
+              <span style={{ color: "var(--text-muted, #9E96B3)", fontSize: "13.5px" }}>
                 Comece com 5 minutos grátis imediatos. Se adquirir um pacote e não ficar satisfeito com a precisão jurídica, devolvemos 100% do seu valor em até 7 dias.
               </span>
             </div>
@@ -2024,9 +2279,9 @@ export default function LegalInteractiveView() {
       </section>
 
       {/* FAQ SECTION */}
-      <section style={{ position: "relative", zIndex: 2, padding: "80px 0" }}>
-        <div className="container" style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+      <section style={{ position: "relative", zIndex: 2, padding: "70px 0" }}>
+        <div className="container" style={{ maxWidth: 860, margin: "0 auto", padding: "0 18px" }}>
+          <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <span
               style={{
                 color: "#60A5FA",
@@ -2040,7 +2295,7 @@ export default function LegalInteractiveView() {
             </span>
             <h2
               style={{
-                fontSize: "clamp(1.8rem, 3.5vw, 2.6rem)",
+                fontSize: "clamp(1.7rem, 3.5vw, 2.6rem)",
                 fontWeight: 800,
                 marginTop: "10px",
                 color: "#FFFFFF",
@@ -2048,12 +2303,12 @@ export default function LegalInteractiveView() {
             >
               Perguntas Frequentes sobre Degravação com IA
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "14.5px", marginTop: "8px" }}>
               Tire todas as dúvidas sobre validade, sigilo profissional e rotina processual.
             </p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {FAQS.map((faq, idx) => {
               const isOpen = openFaq === idx;
               return (
@@ -2074,23 +2329,23 @@ export default function LegalInteractiveView() {
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
                     style={{
                       width: "100%",
-                      padding: "20px 24px",
+                      padding: "18px 20px",
                       background: "transparent",
                       border: "none",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      gap: "16px",
+                      gap: "14px",
                       textAlign: "left",
                       cursor: "pointer",
                       color: "#FFFFFF",
                     }}
                   >
-                    <span style={{ fontSize: "16px", fontWeight: 700, lineHeight: 1.4 }}>
+                    <span style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.4 }}>
                       {faq.q}
                     </span>
                     <ChevronDown
-                      size={20}
+                      size={18}
                       style={{
                         transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                         transition: "transform 0.25s ease",
@@ -2103,12 +2358,12 @@ export default function LegalInteractiveView() {
                   {isOpen && (
                     <div
                       style={{
-                        padding: "0 24px 22px",
-                        fontSize: "14.5px",
+                        padding: "0 20px 20px",
+                        fontSize: "14px",
                         lineHeight: 1.65,
                         color: "var(--text-muted, #D1CADF)",
                         borderTop: "1px solid rgba(255, 255, 255, 0.04)",
-                        paddingTop: "16px",
+                        paddingTop: "14px",
                       }}
                     >
                       {faq.a}
@@ -2122,12 +2377,12 @@ export default function LegalInteractiveView() {
       </section>
 
       {/* FINAL GLOWING CTA BANNER */}
-      <section style={{ position: "relative", zIndex: 2, padding: "90px 0 110px" }}>
-        <div className="container" style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px" }}>
+      <section style={{ position: "relative", zIndex: 2, padding: "70px 0 100px" }}>
+        <div className="container" style={{ maxWidth: 860, margin: "0 auto", padding: "0 18px" }}>
           <div
             className="clint-card"
             style={{
-              padding: "50px 36px",
+              padding: "44px 24px",
               borderRadius: "24px",
               textAlign: "center",
               background: "linear-gradient(135deg, rgba(30, 18, 54, 0.85) 0%, rgba(14, 9, 24, 0.95) 100%)",
@@ -2149,7 +2404,7 @@ export default function LegalInteractiveView() {
                 color: "#10B981",
                 fontSize: "12px",
                 fontWeight: 700,
-                marginBottom: "20px",
+                marginBottom: "18px",
               }}
             >
               <Sparkles size={14} /> Comece em menos de 2 minutos
@@ -2157,10 +2412,10 @@ export default function LegalInteractiveView() {
 
             <h2
               style={{
-                fontSize: "clamp(2rem, 4.2vw, 3rem)",
+                fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
                 fontWeight: 900,
                 color: "#FFFFFF",
-                marginBottom: "16px",
+                marginBottom: "14px",
                 lineHeight: 1.2,
               }}
             >
@@ -2169,10 +2424,10 @@ export default function LegalInteractiveView() {
 
             <p
               style={{
-                fontSize: "16px",
+                fontSize: "15px",
                 color: "var(--text-muted, #9E96B3)",
                 maxWidth: 620,
-                margin: "0 auto 32px",
+                margin: "0 auto 28px",
                 lineHeight: 1.6,
               }}
             >
@@ -2184,28 +2439,28 @@ export default function LegalInteractiveView() {
               style={{
                 display: "flex",
                 justifyContent: "center",
-                gap: "16px",
+                gap: "14px",
                 flexWrap: "wrap",
-                marginBottom: "20px",
+                marginBottom: "18px",
               }}
             >
               <Link
                 href="/login?signup=true"
                 className="btn-primary"
                 style={{
-                  padding: "16px 36px",
-                  fontSize: "16px",
+                  padding: "14px 32px",
+                  fontSize: "15px",
                   textDecoration: "none",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "10px",
                 }}
               >
-                Degravar Primeira Audiência Grátis <ArrowRight size={18} />
+                Degravar Primeira Audiência Grátis <ArrowRight size={17} />
               </Link>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap", fontSize: "13px", color: "var(--text-dim, #6B6382)" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap", fontSize: "12.5px", color: "var(--text-dim, #6B6382)" }}>
               <span>✓ Sem cartão de crédito</span>
               <span>✓ Suporte a PJe Mídias</span>
               <span>✓ Arquivos deletados com sigilo</span>
