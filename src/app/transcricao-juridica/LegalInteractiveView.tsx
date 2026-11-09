@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Scale,
@@ -19,15 +19,9 @@ import {
   Sparkles,
   Lock,
   Headphones,
-  SlidersHorizontal,
-  Building2,
-  Briefcase,
   Users,
-  AlertCircle,
-  FileCheck2,
   Award,
-  Globe2,
-  Share2,
+  FileCheck2,
 } from "lucide-react";
 import TranscribeForm from "@/components/TranscribeForm";
 
@@ -179,15 +173,42 @@ const USE_CASES = [
   },
 ];
 
+const FREE_PLAN = {
+  id: "free",
+  name: "Começar Grátis",
+  currency: "R$",
+  numericPrice: "0",
+  period: "grátis",
+  billingNote: "Sem cartão de crédito",
+  capacityBadge: "5 minutos grátis imediatos",
+  hourlyComparison: "Degrave 5 min com áudio real para conferir a precisão jurídica da IA antes de contratar",
+  desc: "Ideal para testar a acurácia com depoimentos reais e conferir a pontuação",
+  color: "#10B981",
+  features: [
+    "5 minutos grátis imediatos no cadastro",
+    "Sem necessidade de cartão de crédito",
+    "Suporte a PJe Mídias, Zoom, Teams, MP4 e MP3",
+    "Identificação e separação de oradores",
+    "Player sincronizado com áudio e timestamps",
+    "Sigilo profissional e deleção automática",
+  ],
+  cta: "Testar 5 Minutos Grátis",
+  popular: false,
+  badge: "Teste Sem Cartão",
+  href: "/login?signup=true",
+};
+
 const PACKAGES = [
   {
     id: "starter",
     name: "Starter Jurídico",
-    price: "R$ 4,90",
+    currency: "R$",
+    numericPrice: "4,90",
     period: "pagamento único",
-    rate: "R$ 0,08 por minuto",
-    minutes: "60 minutos",
-    desc: "Perfeito para audiências pontuais e testes em casos específicos",
+    billingNote: "Sem cobranças recorrentes",
+    capacityBadge: "60 minutos (1 hora inteira)",
+    hourlyComparison: "Sua audiência de 1 hora sai por apenas R$ 4,90 no total (contra R$ 150 a R$ 300 do mercado manual)",
+    desc: "Perfeito para audiências esporádicas e casos específicos",
     color: "#06B6D4",
     features: [
       "60 minutos de degravação com IA",
@@ -199,19 +220,22 @@ const PACKAGES = [
     ],
     cta: "Comprar Pacote Starter",
     popular: false,
+    badge: null,
     href: "/login?signup=true&plan=starter",
   },
   {
     id: "pro",
     name: "Pro Escritório",
-    price: "R$ 17,90",
+    currency: "R$",
+    numericPrice: "17,90",
     period: "pagamento único",
-    rate: "Apenas R$ 0,05 por minuto",
-    minutes: "300 minutos (5 horas)",
-    desc: "O plano mais escolhido por advogados atuantes e bancas jurídicas",
+    billingNote: "Sem cobranças recorrentes",
+    capacityBadge: "300 minutos (5 horas de audiências)",
+    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 3,58 (5 horas inclusas por R$ 17,90 no total)",
+    desc: "O pacote avulso mais escolhido por advogados atuantes e bancas jurídicas",
     color: "#7C3AED",
     features: [
-      "300 minutos de degravação com IA",
+      "300 minutos de degravação com IA (5 horas)",
       "Exportação para Word (.DOCX) pronta para petições",
       "Exportação em PDF formatado e legendas (.SRT)",
       "Identificação automática de oradores (Diarização)",
@@ -220,18 +244,21 @@ const PACKAGES = [
       "Suporte a links do PJe Mídias, Google Drive e Zoom",
       "Validade de 12 meses para consumir",
     ],
-    cta: "Comprar Pacote Pro (Recomendado)",
+    cta: "Comprar Pacote Pro",
     popular: true,
+    badge: "Mais Procurado no Avulso",
     href: "/login?signup=true&plan=pro",
   },
   {
     id: "business",
     name: "Banca Jurídica",
-    price: "R$ 79,90",
+    currency: "R$",
+    numericPrice: "79,90",
     period: "pagamento único",
-    rate: "Apenas R$ 0,07 por minuto",
-    minutes: "1.000 minutos (16,6 horas)",
-    desc: "Para escritórios com grande volume de audiências de instrução e júri",
+    billingNote: "Sem cobranças recorrentes",
+    capacityBadge: "1.000 minutos (~16,6 horas)",
+    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 4,79 (~16,6 horas inclusas por R$ 79,90 total)",
+    desc: "Para escritórios com grande volume pontual de audiências de instrução e júri",
     color: "#EC4899",
     features: [
       "1.000 minutos de transcrição com IA de alta precisão",
@@ -242,8 +269,9 @@ const PACKAGES = [
       "Suporte prioritário via WhatsApp e e-mail",
       "Validade de 24 meses para consumir",
     ],
-    cta: "Comprar Pacote Banca Jurídica",
+    cta: "Comprar Pacote Banca",
     popular: false,
+    badge: null,
     href: "/login?signup=true&plan=business",
   },
 ];
@@ -252,10 +280,13 @@ const ANNUAL_PLANS = [
   {
     id: "starter_annual",
     name: "Starter Anual",
-    price: "R$ 3,74",
-    period: "/ mês (faturado R$ 44,90/ano)",
-    rate: "60 min/mês (720 min/ano)",
-    desc: "Acesso contínuo com a máxima economia para advogados individuais",
+    currency: "R$",
+    numericPrice: "3,74",
+    period: "/ mês",
+    billingNote: "R$ 44,90 faturados ao ano (economize 3 meses)",
+    capacityBadge: "720 min/ano (1 hora inteira por mês)",
+    hourlyComparison: "1 hora de audiência todo mês por R$ 3,74/mês (720 min inclusos no ano por R$ 44,90)",
+    desc: "Acesso contínuo com a máxima economia para advogados autônomos",
     color: "#06B6D4",
     features: [
       "720 minutos anuais de degravação com IA",
@@ -266,33 +297,41 @@ const ANNUAL_PLANS = [
     ],
     cta: "Assinar Starter Anual",
     popular: false,
+    badge: "Economize 3 Meses",
     href: "/login?signup=true&plan=starter_annual",
   },
   {
     id: "pro_annual",
     name: "Pro Anual Escritório",
-    price: "R$ 13,25",
-    period: "/ mês (faturado R$ 159,00/ano)",
-    rate: "300 min/mês (3.600 min/ano)",
-    desc: "A solução completa para o fluxo mensal de audiências e petições",
+    currency: "R$",
+    numericPrice: "13,25",
+    period: "/ mês",
+    billingNote: "R$ 159,00 faturados ao ano (economize R$ 55,80)",
+    capacityBadge: "3.600 min/ano (5 horas inteiras por mês)",
+    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 2,65 (5h/mês inclusas por R$ 13,25/mês no plano anual de R$ 159,00)",
+    desc: "A solução completa para o fluxo mensal de audiências, oitivas e petições",
     color: "#7C3AED",
     features: [
-      "3.600 minutos anuais com IA de alta fidelidade",
+      "3.600 minutos anuais com IA de alta fidelidade (5h/mês)",
       "Exportação para Word (.DOCX) e PDF pronta para juntada",
       "Identificação de oradores e resumos executivos com IA",
       "Prioridade máxima na fila de conversão",
       "Super economia de R$ 55,80 em relação ao avulso",
     ],
-    cta: "Assinar Pro Anual (Melhor Custo)",
+    cta: "Assinar Pro Anual (Recomendado)",
     popular: true,
+    badge: "Mais Escolhido por Escritórios",
     href: "/login?signup=true&plan=pro_annual",
   },
   {
     id: "business_annual",
     name: "Banca Anual Corporativa",
-    price: "R$ 56,58",
-    period: "/ mês (faturado R$ 679,00/ano)",
-    rate: "1.000 min/mês (12.000 min/ano)",
+    currency: "R$",
+    numericPrice: "56,58",
+    period: "/ mês",
+    billingNote: "R$ 679,00 faturados ao ano (economize R$ 279,80)",
+    capacityBadge: "12.000 min/ano (~16,6 horas por mês)",
+    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 3,39 (~16,6h/mês inclusas por R$ 56,58/mês no plano anual de R$ 679,00)",
     desc: "Para departamentos jurídicos e bancas com dezenas de advogados",
     color: "#EC4899",
     features: [
@@ -304,6 +343,7 @@ const ANNUAL_PLANS = [
     ],
     cta: "Assinar Corporativo Anual",
     popular: false,
+    badge: "Grande Volume",
     href: "/login?signup=true&plan=business_annual",
   },
 ];
@@ -345,8 +385,8 @@ export default function LegalInteractiveView() {
   // Use case tabs
   const [activeUseCase, setActiveUseCase] = useState(0);
 
-  // Pricing mode: avulso vs anual
-  const [pricingMode, setPricingMode] = useState<"avulso" | "anual">("avulso");
+  // Pricing mode: default to "anual" as requested!
+  const [pricingMode, setPricingMode] = useState<"anual" | "avulso">("anual");
 
   // FAQ accordion
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -409,6 +449,12 @@ export default function LegalInteractiveView() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Combine free plan as first column with the active tier plans
+  const currentPricingPlans = [
+    FREE_PLAN,
+    ...(pricingMode === "anual" ? ANNUAL_PLANS : PACKAGES),
+  ];
 
   return (
     <div style={{ position: "relative", width: "100%", overflowX: "hidden" }}>
@@ -1311,7 +1357,7 @@ export default function LegalInteractiveView() {
                 letterSpacing: "0.1em",
               }}
             >
-              Análise Comparativa
+              Análise Comparativa de Custos
             </span>
             <h2
               style={{
@@ -1324,7 +1370,7 @@ export default function LegalInteractiveView() {
               Chega de pagar caro ou perder horas com degravação
             </h2>
             <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px" }}>
-              Compare a degravação terceirizada manual com a Inteligência Artificial da Peguei o Texto:
+              Compare o custo real por audiência e o tempo de entrega entre os dois métodos:
             </p>
           </div>
 
@@ -1373,7 +1419,9 @@ export default function LegalInteractiveView() {
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
-                  <span><strong>R$ 2,50 a R$ 5,00 por minuto</strong> (uma audiência de 1h custa de R$ 150 a R$ 300)</span>
+                  <span>
+                    <strong>R$ 150 a R$ 300 por audiência de 1 hora</strong> cobrados por profissionais terceirizados
+                  </span>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "rgba(255, 255, 255, 0.75)" }}>
                   <span style={{ color: "#EF4444", fontWeight: 700 }}>✗</span>
@@ -1452,7 +1500,9 @@ export default function LegalInteractiveView() {
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
-                  <span><strong>A partir de R$ 0,05 por minuto</strong> (até 98% de economia financeira real)</span>
+                  <span>
+                    <strong>1 hora de audiência sai por apenas R$ 2,65 a R$ 3,58</strong> — no plano Pro com 5 horas inclusas (300 min) por R$ 17,90 (ou R$ 13,25/mês no anual), até 98% de economia
+                  </span>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
@@ -1658,7 +1708,7 @@ export default function LegalInteractiveView() {
           background: "rgba(10, 6, 18, 0.5)",
         }}
       >
-        <div className="container" style={{ maxWidth: 1160, margin: "0 auto", padding: "0 20px" }}>
+        <div className="container" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 20px" }}>
           <div style={{ textAlign: "center", marginBottom: "40px" }}>
             <span
               style={{
@@ -1681,12 +1731,12 @@ export default function LegalInteractiveView() {
             >
               Escolha como prefere transcrever
             </h2>
-            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "16px", marginTop: "8px", maxWidth: 640, margin: "8px auto 0" }}>
+            <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "16px", marginTop: "8px", maxWidth: 680, margin: "8px auto 0" }}>
               Sem surpresas cambiais e sem contratos que prendem seu escritório. 
-              Você começa com <strong>5 minutos grátis</strong> imediatos.
+              Comece com <strong>5 minutos grátis imediatos</strong> para testar na prática.
             </p>
 
-            {/* Toggle: Pacotes Avulsos vs Assinaturas Anuais */}
+            {/* Toggle: Planos Anuais (EM DESTAQUE) vs Pacotes Avulsos */}
             <div
               style={{
                 display: "inline-flex",
@@ -1694,253 +1744,256 @@ export default function LegalInteractiveView() {
                 gap: "6px",
                 background: "rgba(255, 255, 255, 0.05)",
                 padding: "6px",
-                borderRadius: "12px",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                borderRadius: "14px",
+                border: "1px solid rgba(167, 139, 250, 0.3)",
+                boxShadow: "0 4px 20px rgba(124, 58, 237, 0.15)",
                 marginTop: "28px",
               }}
             >
               <button
                 type="button"
-                onClick={() => setPricingMode("avulso")}
-                style={{
-                  padding: "8px 18px",
-                  borderRadius: "8px",
-                  fontSize: "13.5px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  border: "none",
-                  background: pricingMode === "avulso" ? "linear-gradient(135deg, #7C3AED, #6D28D9)" : "transparent",
-                  color: pricingMode === "avulso" ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)",
-                  transition: "all 0.2s",
-                }}
-              >
-                Pacotes Avulsos (Sem Mensalidade)
-              </button>
-              <button
-                type="button"
                 onClick={() => setPricingMode("anual")}
                 style={{
-                  padding: "8px 18px",
-                  borderRadius: "8px",
-                  fontSize: "13.5px",
+                  padding: "10px 22px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
                   fontWeight: 700,
                   cursor: "pointer",
                   border: "none",
-                  background: pricingMode === "anual" ? "linear-gradient(135deg, #7C3AED, #6D28D9)" : "transparent",
+                  background: pricingMode === "anual" ? "linear-gradient(135deg, #8B5CF6, #7C3AED)" : "transparent",
                   color: pricingMode === "anual" ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)",
+                  boxShadow: pricingMode === "anual" ? "0 2px 14px rgba(124, 58, 237, 0.4)" : "none",
                   transition: "all 0.2s",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
+                  gap: "8px",
                 }}
               >
-                <span>Planos Anuais Recorrentes</span>
+                <span>⭐ Planos Anuais Recorrentes</span>
                 <span
                   style={{
                     background: "rgba(16, 185, 129, 0.25)",
                     color: "#10B981",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
                     fontSize: "11px",
+                    fontWeight: 800,
                   }}
                 >
                   3 meses grátis
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setPricingMode("avulso")}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  border: "none",
+                  background: pricingMode === "avulso" ? "linear-gradient(135deg, #7C3AED, #6D28D9)" : "transparent",
+                  color: pricingMode === "avulso" ? "#FFFFFF" : "rgba(255, 255, 255, 0.7)",
+                  boxShadow: pricingMode === "avulso" ? "0 2px 14px rgba(124, 58, 237, 0.4)" : "none",
+                  transition: "all 0.2s",
+                }}
+              >
+                Pacotes Avulsos (Sem Mensalidade)
+              </button>
             </div>
           </div>
 
-          {/* Pricing Grid */}
+          {/* Pricing Grid (4 Columns: Começar Grátis + 3 Tiers) */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))",
-              gap: "28px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "20px",
+              alignItems: "stretch",
             }}
           >
-            {pricingMode === "avulso"
-              ? PACKAGES.map((plan) => (
+            {currentPricingPlans.map((plan) => (
+              <div
+                key={plan.id}
+                className="clint-card"
+                style={{
+                  borderRadius: "20px",
+                  padding: "32px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  position: "relative",
+                  border: plan.popular
+                    ? "1px solid rgba(167, 139, 250, 0.6)"
+                    : plan.id === "free"
+                    ? "1px solid rgba(16, 185, 129, 0.35)"
+                    : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: plan.popular
+                    ? "linear-gradient(rgba(22, 14, 38, 0.95), rgba(14, 9, 24, 0.98))"
+                    : plan.id === "free"
+                    ? "linear-gradient(rgba(10, 24, 18, 0.75), rgba(11, 7, 20, 0.85))"
+                    : "linear-gradient(rgba(14, 9, 24, 0.75), rgba(11, 7, 20, 0.85))",
+                  boxShadow: plan.popular
+                    ? "0 25px 60px rgba(124, 58, 237, 0.35), 0 0 25px rgba(124, 58, 237, 0.2)"
+                    : "none",
+                }}
+              >
+                {/* Top Badge */}
+                {plan.badge && (
                   <div
-                    key={plan.id}
-                    className="clint-card"
                     style={{
-                      borderRadius: "20px",
-                      padding: "36px 30px",
-                      display: "flex",
-                      flexDirection: "column",
-                      position: "relative",
-                      border: plan.popular
-                        ? "1px solid rgba(167, 139, 250, 0.55)"
-                        : "1px solid rgba(255, 255, 255, 0.08)",
+                      position: "absolute",
+                      top: "-12px",
+                      right: "20px",
+                      padding: "4px 12px",
+                      borderRadius: "999px",
                       background: plan.popular
-                        ? "linear-gradient(rgba(20, 13, 33, 0.9), rgba(14, 9, 24, 0.95))"
-                        : "linear-gradient(rgba(14, 9, 24, 0.75), rgba(11, 7, 20, 0.85))",
-                      boxShadow: plan.popular ? "0 25px 60px rgba(124, 58, 237, 0.3)" : "none",
+                        ? "linear-gradient(135deg, #8B5CF6, #7C3AED)"
+                        : plan.id === "free"
+                        ? "linear-gradient(135deg, #10B981, #059669)"
+                        : "rgba(255, 255, 255, 0.12)",
+                      color: "#FFFFFF",
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
                     }}
                   >
-                    {plan.popular && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "-12px",
-                          right: "24px",
-                          padding: "4px 14px",
-                          borderRadius: "999px",
-                          background: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
-                          color: "#FFFFFF",
-                          fontSize: "11px",
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        Mais Escolhido por Advogados
-                      </div>
-                    )}
-
-                    <div style={{ marginBottom: "20px" }}>
-                      <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
-                        {plan.name}
-                      </h3>
-                      <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", minHeight: "40px" }}>
-                        {plan.desc}
-                      </p>
-                    </div>
-
-                    <div style={{ marginBottom: "20px" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span style={{ fontSize: "36px", fontWeight: 900, color: "#FFFFFF" }}>
-                          {plan.price}
-                        </span>
-                        <span style={{ fontSize: "14px", color: "var(--text-dim, #6B6382)" }}>
-                          / {plan.period}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: "13px", color: "#10B981", fontWeight: 600, marginTop: "4px" }}>
-                        {plan.rate} • {plan.minutes}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px", flex: 1 }}>
-                      {plan.features.map((feat, idx) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", color: "rgba(255, 255, 255, 0.85)" }}>
-                          <CheckCircle2 size={16} color={plan.color} style={{ flexShrink: 0, marginTop: "2px" }} />
-                          <span>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Link
-                      href={plan.href}
-                      className={plan.popular ? "btn-primary" : "btn-secondary"}
-                      style={{
-                        padding: "14px",
-                        textAlign: "center",
-                        borderRadius: "12px",
-                        textDecoration: "none",
-                        fontWeight: 700,
-                        fontSize: "14.5px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      {plan.cta} <ArrowRight size={16} />
-                    </Link>
+                    {plan.badge}
                   </div>
-                ))
-              : ANNUAL_PLANS.map((plan) => (
+                )}
+
+                {/* Plan Header */}
+                <div style={{ marginBottom: "16px" }}>
+                  <h3 style={{ fontSize: "19px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
+                    {plan.name}
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted, #9E96B3)", minHeight: "36px", lineHeight: 1.4 }}>
+                    {plan.desc}
+                  </p>
+                </div>
+
+                {/* Price Display (R$ guaranteed on same line as number) */}
+                <div style={{ marginBottom: "16px" }}>
                   <div
-                    key={plan.id}
-                    className="clint-card"
                     style={{
-                      borderRadius: "20px",
-                      padding: "36px 30px",
                       display: "flex",
-                      flexDirection: "column",
-                      position: "relative",
-                      border: plan.popular
-                        ? "1px solid rgba(167, 139, 250, 0.55)"
-                        : "1px solid rgba(255, 255, 255, 0.08)",
-                      background: plan.popular
-                        ? "linear-gradient(rgba(20, 13, 33, 0.9), rgba(14, 9, 24, 0.95))"
-                        : "linear-gradient(rgba(14, 9, 24, 0.75), rgba(11, 7, 20, 0.85))",
-                      boxShadow: plan.popular ? "0 25px 60px rgba(124, 58, 237, 0.3)" : "none",
+                      alignItems: "baseline",
+                      gap: "4px",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {plan.popular && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "-12px",
-                          right: "24px",
-                          padding: "4px 14px",
-                          borderRadius: "999px",
-                          background: "linear-gradient(135deg, #10B981, #059669)",
-                          color: "#FFFFFF",
-                          fontSize: "11px",
-                          fontWeight: 800,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                        }}
-                      >
-                        Super Economia Anual
-                      </div>
-                    )}
-
-                    <div style={{ marginBottom: "20px" }}>
-                      <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
-                        {plan.name}
-                      </h3>
-                      <p style={{ fontSize: "13.5px", color: "var(--text-muted, #9E96B3)", minHeight: "40px" }}>
-                        {plan.desc}
-                      </p>
-                    </div>
-
-                    <div style={{ marginBottom: "20px" }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-                        <span style={{ fontSize: "36px", fontWeight: 900, color: "#FFFFFF" }}>
-                          {plan.price}
-                        </span>
-                        <span style={{ fontSize: "13px", color: "var(--text-dim, #6B6382)" }}>
-                          {plan.period}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: "13px", color: "#10B981", fontWeight: 600, marginTop: "4px" }}>
-                        {plan.rate}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px", flex: 1 }}>
-                      {plan.features.map((feat, idx) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", color: "rgba(255, 255, 255, 0.85)" }}>
-                          <CheckCircle2 size={16} color={plan.color} style={{ flexShrink: 0, marginTop: "2px" }} />
-                          <span>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Link
-                      href={plan.href}
-                      className={plan.popular ? "btn-primary" : "btn-secondary"}
+                    <span
                       style={{
-                        padding: "14px",
-                        textAlign: "center",
-                        borderRadius: "12px",
-                        textDecoration: "none",
-                        fontWeight: 700,
-                        fontSize: "14.5px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
+                        fontSize: "20px",
+                        fontWeight: 800,
+                        color: "rgba(255, 255, 255, 0.75)",
+                        whiteSpace: "nowrap",
+                        lineHeight: 1,
                       }}
                     >
-                      {plan.cta} <ArrowRight size={16} />
-                    </Link>
+                      {plan.currency}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "38px",
+                        fontWeight: 900,
+                        color: "#FFFFFF",
+                        whiteSpace: "nowrap",
+                        lineHeight: 1,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      {plan.numericPrice}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "13.5px",
+                        color: "var(--text-dim, #9E96B3)",
+                        whiteSpace: "nowrap",
+                        marginLeft: "2px",
+                      }}
+                    >
+                      {plan.period}
+                    </span>
                   </div>
-                ))}
+
+                  {plan.billingNote && (
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-dim, #6B6382)",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {plan.billingNote}
+                    </div>
+                  )}
+
+                  {/* Hourly Cost vs Capacity Comparison Box */}
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      background: plan.id === "free" ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.09)",
+                      border: plan.id === "free" ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid rgba(167, 139, 250, 0.22)",
+                      fontSize: "12px",
+                      color: plan.id === "free" ? "#A7F3D0" : "#E2D9F3",
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, color: plan.id === "free" ? "#10B981" : "#C4A4FF", marginBottom: "2px" }}>
+                      ⚡ {plan.capacityBadge}
+                    </div>
+                    <div>{plan.hourlyComparison}</div>
+                  </div>
+                </div>
+
+                {/* Features List */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px", flex: 1 }}>
+                  {plan.features.map((feat, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13.5px", color: "rgba(255, 255, 255, 0.85)" }}>
+                      <CheckCircle2 size={15} color={plan.color} style={{ flexShrink: 0, marginTop: "2px" }} />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <Link
+                  href={plan.href}
+                  className={plan.popular ? "btn-primary" : "btn-secondary"}
+                  style={{
+                    padding: "12px",
+                    textAlign: "center",
+                    borderRadius: "12px",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    background:
+                      plan.id === "free"
+                        ? "rgba(16, 185, 129, 0.18)"
+                        : plan.popular
+                        ? undefined
+                        : "rgba(255, 255, 255, 0.05)",
+                    border:
+                      plan.id === "free"
+                        ? "1px solid rgba(16, 185, 129, 0.4)"
+                        : undefined,
+                    color: plan.id === "free" ? "#10B981" : undefined,
+                  }}
+                >
+                  {plan.cta} <ArrowRight size={15} />
+                </Link>
+              </div>
+            ))}
           </div>
 
           {/* Guarantee Banner */}
@@ -2165,4 +2218,3 @@ export default function LegalInteractiveView() {
     </div>
   );
 }
-
