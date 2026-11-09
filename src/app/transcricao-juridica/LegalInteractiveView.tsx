@@ -280,7 +280,7 @@ const ANNUAL_PLANS = [
     numericPrice: "3,74",
     period: "/ mês",
     billingNote: "R$ 44,90 faturados ao ano (economize 3 meses)",
-    capacityText: "720 min /ano em degravação",
+    capacityText: "720 min/ano em degravação",
     desc: "Acesso contínuo com a máxima economia para advogados autônomos",
     color: "#06B6D4",
     features: [
@@ -302,7 +302,7 @@ const ANNUAL_PLANS = [
     numericPrice: "13,25",
     period: "/ mês",
     billingNote: "R$ 159,00 faturados ao ano (economize R$ 55,80)",
-    capacityText: "3.600 min /ano em degravação",
+    capacityText: "3.600 min/ano em degravação",
     desc: "A solução completa para o fluxo mensal de audiências, oitivas e petições",
     color: "#7C3AED",
     features: [
@@ -324,7 +324,7 @@ const ANNUAL_PLANS = [
     numericPrice: "56,58",
     period: "/ mês",
     billingNote: "R$ 679,00 faturados ao ano (economize R$ 279,80)",
-    capacityText: "12.000 min /ano em degravação",
+    capacityText: "12.000 min/ano em degravação",
     desc: "Para departamentos jurídicos e bancas com dezenas de advogados",
     color: "#EC4899",
     features: [
@@ -1813,7 +1813,7 @@ export default function LegalInteractiveView() {
                 className="clint-card"
                 style={{
                   borderRadius: "20px",
-                  padding: "32px 24px",
+                  padding: "32px 18px",
                   display: "flex",
                   flexDirection: "column",
                   position: "relative",
@@ -1929,20 +1929,24 @@ export default function LegalInteractiveView() {
                   <div
                     style={{
                       marginTop: "12px",
-                      padding: "8px 12px",
+                      padding: "6px 8px",
                       borderRadius: "8px",
                       background: plan.id === "free" ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.12)",
                       border: plan.id === "free" ? "1px solid rgba(16, 185, 129, 0.28)" : "1px solid rgba(167, 139, 250, 0.25)",
-                      fontSize: "13px",
+                      fontSize: "11.5px",
                       fontWeight: 700,
                       color: plan.id === "free" ? "#10B981" : "#C4A4FF",
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
+                      gap: "5px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
                     }}
                   >
-                    <span>⚡</span>
-                    <span>{plan.capacityText}</span>
+                    <span style={{ flexShrink: 0 }}>⚡</span>
+                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {plan.capacityText}
+                    </span>
                   </div>
                 </div>
 
