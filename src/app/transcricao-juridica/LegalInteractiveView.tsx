@@ -180,8 +180,7 @@ const FREE_PLAN = {
   numericPrice: "0",
   period: "grátis",
   billingNote: "Sem cartão de crédito",
-  capacityBadge: "5 minutos grátis imediatos",
-  hourlyComparison: "Degrave 5 min com áudio real para conferir a precisão jurídica da IA antes de contratar",
+  capacityText: "5 min grátis em degravação",
   desc: "Ideal para testar a acurácia com depoimentos reais e conferir a pontuação",
   color: "#10B981",
   features: [
@@ -206,8 +205,7 @@ const PACKAGES = [
     numericPrice: "4,90",
     period: "pagamento único",
     billingNote: "Sem cobranças recorrentes",
-    capacityBadge: "60 minutos (1 hora inteira)",
-    hourlyComparison: "Sua audiência de 1 hora sai por apenas R$ 4,90 no total (contra R$ 150 a R$ 300 do mercado manual)",
+    capacityText: "60 min em degravação",
     desc: "Perfeito para audiências esporádicas e casos específicos",
     color: "#06B6D4",
     features: [
@@ -230,8 +228,7 @@ const PACKAGES = [
     numericPrice: "17,90",
     period: "pagamento único",
     billingNote: "Sem cobranças recorrentes",
-    capacityBadge: "300 minutos (5 horas de audiências)",
-    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 3,58 (5 horas inclusas por R$ 17,90 no total)",
+    capacityText: "300 min em degravação",
     desc: "O pacote avulso mais escolhido por advogados atuantes e bancas jurídicas",
     color: "#7C3AED",
     features: [
@@ -256,8 +253,7 @@ const PACKAGES = [
     numericPrice: "79,90",
     period: "pagamento único",
     billingNote: "Sem cobranças recorrentes",
-    capacityBadge: "1.000 minutos (~16,6 horas)",
-    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 4,79 (~16,6 horas inclusas por R$ 79,90 total)",
+    capacityText: "1.000 min em degravação",
     desc: "Para escritórios com grande volume pontual de audiências de instrução e júri",
     color: "#EC4899",
     features: [
@@ -284,8 +280,7 @@ const ANNUAL_PLANS = [
     numericPrice: "3,74",
     period: "/ mês",
     billingNote: "R$ 44,90 faturados ao ano (economize 3 meses)",
-    capacityBadge: "720 min/ano (1 hora inteira por mês)",
-    hourlyComparison: "1 hora de audiência todo mês por R$ 3,74/mês (720 min inclusos no ano por R$ 44,90)",
+    capacityText: "720 min /ano em degravação",
     desc: "Acesso contínuo com a máxima economia para advogados autônomos",
     color: "#06B6D4",
     features: [
@@ -307,8 +302,7 @@ const ANNUAL_PLANS = [
     numericPrice: "13,25",
     period: "/ mês",
     billingNote: "R$ 159,00 faturados ao ano (economize R$ 55,80)",
-    capacityBadge: "3.600 min/ano (5 horas inteiras por mês)",
-    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 2,65 (5h/mês inclusas por R$ 13,25/mês no plano anual de R$ 159,00)",
+    capacityText: "3.600 min /ano em degravação",
     desc: "A solução completa para o fluxo mensal de audiências, oitivas e petições",
     color: "#7C3AED",
     features: [
@@ -330,8 +324,7 @@ const ANNUAL_PLANS = [
     numericPrice: "56,58",
     period: "/ mês",
     billingNote: "R$ 679,00 faturados ao ano (economize R$ 279,80)",
-    capacityBadge: "12.000 min/ano (~16,6 horas por mês)",
-    hourlyComparison: "Cada 1h de audiência sai por apenas R$ 3,39 (~16,6h/mês inclusas por R$ 56,58/mês no plano anual de R$ 679,00)",
+    capacityText: "12.000 min /ano em degravação",
     desc: "Para departamentos jurídicos e bancas com dezenas de advogados",
     color: "#EC4899",
     features: [
@@ -1501,7 +1494,7 @@ export default function LegalInteractiveView() {
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
                   <span style={{ color: "#10B981", fontWeight: 700 }}>✓</span>
                   <span>
-                    <strong>1 hora de audiência sai por apenas R$ 2,65 a R$ 3,58</strong> — no plano Pro com 5 horas inclusas (300 min) por R$ 17,90 (ou R$ 13,25/mês no anual), até 98% de economia
+                    <strong>1 hora de audiência sai por menos de R$ 2,97</strong>
                   </span>
                 </div>
                 <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px", color: "#FFFFFF" }}>
@@ -1932,23 +1925,24 @@ export default function LegalInteractiveView() {
                     </div>
                   )}
 
-                  {/* Hourly Cost vs Capacity Comparison Box */}
+                  {/* Quadro essencial de capacidade */}
                   <div
                     style={{
                       marginTop: "12px",
-                      padding: "10px 12px",
+                      padding: "8px 12px",
                       borderRadius: "8px",
-                      background: plan.id === "free" ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.09)",
-                      border: plan.id === "free" ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid rgba(167, 139, 250, 0.22)",
-                      fontSize: "12px",
-                      color: plan.id === "free" ? "#A7F3D0" : "#E2D9F3",
-                      lineHeight: 1.45,
+                      background: plan.id === "free" ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.12)",
+                      border: plan.id === "free" ? "1px solid rgba(16, 185, 129, 0.28)" : "1px solid rgba(167, 139, 250, 0.25)",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      color: plan.id === "free" ? "#10B981" : "#C4A4FF",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: plan.id === "free" ? "#10B981" : "#C4A4FF", marginBottom: "2px" }}>
-                      ⚡ {plan.capacityBadge}
-                    </div>
-                    <div>{plan.hourlyComparison}</div>
+                    <span>⚡</span>
+                    <span>{plan.capacityText}</span>
                   </div>
                 </div>
 
