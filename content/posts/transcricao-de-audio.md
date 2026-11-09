@@ -47,7 +47,7 @@ Antes de iniciar qualquer transcrição, é fundamental entender qual nível de 
 | :--- | :--- | :--- |
 | **1. Transcrição Natural (*Clean Verbatim*)** | Remove vícios de linguagem (*"né"*, *"tipo assim"*, *"ééé"*), repetições involuntárias e gaguejos, preservando 100% do sentido original com texto fluido. | [Atas de reuniões](/transcricao-de-reunioes), podcasts, videoaulas, artigos jornalísticos e resumos executivos. |
 | **2. Transcrição Literal (*True Verbatim*)** | Registra absolutamente todos os sons emitidos: tosses, risos, hesitações, pausas marcadas em segundos e erros gramaticais falados. | Pesquisas qualitativas de psicologia, linguística e análises de comportamento. |
-| **3. Degravação Jurídica** | Transcrição formal e juramentada de audiências, escutas telefônicas, assembleias e depoimentos com fé pública. | Processos judiciais, escritórios de advocacia e cartórios (veja nossa área de [degravação jurídica](/transcricao-juridica)). |
+| **3. Degravação Jurídica** | Transcrição formal e juramentada de audiências, escutas telefônicas, assembleias e depoimentos com fé pública. | Processos judiciais, escritórios de advocacia e cartórios (leia nosso guia completo sobre [degravação de áudio](/blog/degravacao-de-audio)). |
 
 ---
 
@@ -106,7 +106,7 @@ Pesquisadores qualitativos que realizam dezenas de entrevistas semiestruturadas 
 Registre acordos comerciais, deliberações de diretoria e alinhamentos semanais de projetos sem que ninguém da equipe precise ficar distraído anotando o que os outros dizem (saiba mais em [transcrição de reuniões](/transcricao-de-reunioes)).
 
 ### 3. Escuta e Apoio Jurídico
-Advogados utilizam a transcrição para anexar depoimentos, conversas de WhatsApp periciadas e gravações de audiências aos autos com agilidade e total sigilo de dados.
+Advogados e peritos utilizam a [degravação de áudio](/blog/degravacao-de-audio) para anexar depoimentos, conversas de WhatsApp periciadas e gravações de audiências aos autos com agilidade e total sigilo de dados.
 
 ### 4. Áudios Longos de WhatsApp
 Recebeu um áudio de 15 minutos de um cliente ou gestor com instruções complexas? Basta encaminhar o arquivo para o transcritor e ler o conteúdo em menos de 2 minutos, sublinhando as tarefas prioritárias.

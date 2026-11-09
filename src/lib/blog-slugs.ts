@@ -11,6 +11,7 @@ export const BLOG_SLUG_MAP_PT_TO_EN: Record<string, string> = {
   "como-transcrever-reunioes": "how-to-transcribe-meetings",
   "como-transcrever-video-do-youtube-em-texto": "how-to-transcribe-youtube-video-to-text",
   "como-transcrever-video-guia-definitivo": "how-to-transcribe-video-ultimate-guide",
+  "degravacao-de-audio": "verbatim-audio-transcription-guide",
   "melhores-ferramentas-para-converter-mp3-em-texto-2026": "how-to-convert-mp3-to-text",
   "melhores-ferramentas-para-transcrever-video": "best-ai-audio-to-text-converters",
   "transcrever-video-em-texto-online-gratis": "transcribe-video-to-text-online-free",
