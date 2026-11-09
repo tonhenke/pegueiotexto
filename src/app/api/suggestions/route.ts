@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthenticatedAdmin } from "@/lib/admin-auth";
 import {
   getSuggestions,
   saveSuggestion,
@@ -22,9 +23,15 @@ const CATEGORY_MAP: Record<string, string> = {
   other: "Outras Sugestões",
 };
 
-// GET: Retrieve suggestions list
+// GET: Retrieve suggestions list (Admin only)
 export async function GET(req: NextRequest) {
   try {
+    if (!isAuthenticatedAdmin(req)) {
+      return NextResponse.json(
+        { success: false, error: "Acesso restrito ao administrador." },
+        { status: 401 }
+      );
+    }
     const list = getSuggestions();
     return NextResponse.json({
       success: true,
@@ -123,6 +130,12 @@ export async function POST(req: NextRequest) {
 // PATCH: Update suggestion status (e.g. pending -> in_review -> implemented -> dismissed)
 export async function PATCH(req: NextRequest) {
   try {
+    if (!isAuthenticatedAdmin(req)) {
+      return NextResponse.json(
+        { success: false, error: "Acesso restrito ao administrador." },
+        { status: 401 }
+      );
+    }
     const body = await req.json();
     const { id, status } = body;
 
@@ -162,9 +175,15 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// DELETE: Delete suggestion
+// DELETE: Delete suggestion (Admin only)
 export async function DELETE(req: NextRequest) {
   try {
+    if (!isAuthenticatedAdmin(req)) {
+      return NextResponse.json(
+        { success: false, error: "Acesso restrito ao administrador." },
+        { status: 401 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel
@@ -120,8 +121,10 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
         try:
             import requests
             paid_amount = (session.get("amount_total") or plan_info.get("amount", 0)) / 100.0
+            internal_secret = os.getenv("ADMIN_SESSION_SECRET", "")
             requests.post(
                 "http://localhost:3000/api/admin/purchases?action=record_purchase",
+                headers={"x-internal-secret": internal_secret},
                 json={
                     "stripe_session_id": session.get("id"),
                     "buyer_email": user_email,
@@ -144,8 +147,10 @@ def verify_session(req: VerifySessionRequest, authorization: Optional[str] = Hea
     if affiliate_code and not fulfill_result.get("already_processed"):
         try:
             import requests
+            internal_secret = os.getenv("ADMIN_SESSION_SECRET", "")
             requests.post(
                 "http://localhost:3000/api/affiliates?action=record_conversion",
+                headers={"x-internal-secret": internal_secret},
                 json={
                     "affiliate_code": affiliate_code,
                     "plan_id": plan_id,

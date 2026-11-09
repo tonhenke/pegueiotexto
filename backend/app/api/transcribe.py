@@ -2,7 +2,7 @@ import uuid
 import math
 from typing import Optional
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header, Request
 from pydantic import BaseModel
 from app.config import TEMP_MEDIA_DIR
 from app.services.downloader import download_audio_from_url, download_video_from_url, try_extract_youtube_captions
@@ -499,21 +499,54 @@ def translate_endpoint(
     return res
 
 @router.get("/public/{item_id}")
-def get_public_transcription(item_id: str):
+def get_public_transcription(item_id: str, request: Request):
     """
-    Returns public reading data for a single transcription (no sensitive user info).
+    Returns public reading data for a single transcription.
+    Verifies public availability or caller ownership.
     """
-    from app.services.database import get_supabase
+    from app.services.database import get_supabase, verify_token_and_get_user
     sb = get_supabase(admin=True)
     try:
-        res = sb.table("transcriptions")\
-            .select("id, title, platform, duration_seconds, text_content, srt_content, vtt_content, created_at")\
-            .eq("id", item_id)\
-            .single()\
-            .execute()
-        if not res.data:
+        # Check if caller has auth token
+        auth_header = request.headers.get("authorization", "")
+        token = auth_header.replace("Bearer ", "").strip() if auth_header.startswith("Bearer ") else None
+        caller_user_id = None
+        if token:
+            try:
+                caller = verify_token_and_get_user(token)
+                if caller:
+                    caller_user_id = caller.get("id")
+            except Exception:
+                pass
+
+        # Try to select with is_public if column exists
+        data = None
+        try:
+            res = sb.table("transcriptions")\
+                .select("id, title, platform, duration_seconds, text_content, srt_content, vtt_content, created_at, user_id, is_public")\
+                .eq("id", item_id)\
+                .single()\
+                .execute()
+            data = res.data
+        except Exception:
+            # Fallback if is_public column doesn't exist
+            res = sb.table("transcriptions")\
+                .select("id, title, platform, duration_seconds, text_content, srt_content, vtt_content, created_at, user_id")\
+                .eq("id", item_id)\
+                .single()\
+                .execute()
+            data = res.data
+
+        if not data:
             raise HTTPException(status_code=404, detail="Transcrição não encontrada.")
-        return res.data
+
+        # Check access: if is_public is explicitly False, only owner can view
+        if data.get("is_public") is False and caller_user_id != data.get("user_id"):
+            raise HTTPException(status_code=403, detail="Esta transcrição é privada.")
+
+        # Exclude internal user_id
+        data.pop("user_id", None)
+        return data
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e

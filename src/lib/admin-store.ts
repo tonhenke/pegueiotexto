@@ -207,11 +207,10 @@ export function getSupabaseServiceKey(): string | undefined {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return process.env.SUPABASE_SERVICE_ROLE_KEY;
   }
-  try {
-    return Buffer.from("c2Jfc2VjcmV0X1Nwc3VFaDFTa3c1Rkowa1BpWEM3S3dfVHg3UHJCTEQ=", "base64").toString("utf-8");
-  } catch {
-    return undefined;
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[AdminStore] AVISO: SUPABASE_SERVICE_ROLE_KEY não configurada no ambiente.");
   }
+  return undefined;
 }
 
 export async function getUsersList(): Promise<UserRecord[]> {

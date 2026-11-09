@@ -61,6 +61,14 @@ export async function POST(request: Request) {
 
     // Action 1: Record a purchase (called from checkout webhook or backend verify)
     if (action === "record_purchase") {
+      const internalSecret = process.env.ADMIN_SESSION_SECRET;
+      const reqSecret = request.headers.get("x-internal-secret");
+      const isInternal = Boolean(internalSecret && reqSecret === internalSecret);
+
+      if (!isAuthenticatedAdmin(request) && !isInternal) {
+        return NextResponse.json({ detail: "Acesso não autorizado para registro de compras." }, { status: 401 });
+      }
+
       const {
         buyer_email,
         buyer_name,

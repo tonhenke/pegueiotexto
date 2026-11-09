@@ -3,9 +3,21 @@ import nodemailer from "nodemailer";
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.zoho.com";
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || "465", 10);
 const SMTP_USER = process.env.SMTP_USER || "contato@pegueiotexto.com.br";
-const SMTP_PASS = process.env.SMTP_PASS || "L4SRYb2jj8Rx";
+const SMTP_PASS = process.env.SMTP_PASS || "";
 const FROM_NAME = "Peguei o Texto";
 const FROM_EMAIL = `"${FROM_NAME}" <${SMTP_USER}>`;
+
+export function escapeHtml(str: unknown): string {
+  if (typeof str !== "string") {
+    return str === null || str === undefined ? "" : String(str);
+  }
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 function getTransporter() {
   if (!SMTP_PASS) {
@@ -22,7 +34,7 @@ function getTransporter() {
       pass: SMTP_PASS,
     },
     tls: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: process.env.NODE_ENV === "production",
     },
     connectionTimeout: 8000,
     greetingTimeout: 8000,
@@ -46,7 +58,7 @@ export async function sendWelcomeEmail({
     return false;
   }
 
-  const cleanName = name && name.trim() ? name.trim() : to.split("@")[0];
+  const cleanName = escapeHtml(name && name.trim() ? name.trim() : to.split("@")[0]);
 
   const html = `
     <!DOCTYPE html>
@@ -187,7 +199,8 @@ export async function sendPlanActivatedEmail({
     return false;
   }
 
-  const cleanName = name && name.trim() ? name.trim() : to.split("@")[0];
+  const cleanName = escapeHtml(name && name.trim() ? name.trim() : to.split("@")[0]);
+  const safePlanName = escapeHtml(planName);
 
   const html = `
     <!DOCTYPE html>
@@ -216,7 +229,7 @@ export async function sendPlanActivatedEmail({
           </div>
 
           <h1 style="font-size: 24px; font-weight: 800; margin: 0 0 14px; color: #ffffff; line-height: 1.3;">
-            Parabéns, ${cleanName}! O seu plano ${planName} está ativo.
+            Parabéns, ${cleanName}! O seu plano ${safePlanName} está ativo.
           </h1>
 
           <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 24px;">
@@ -228,7 +241,7 @@ export async function sendPlanActivatedEmail({
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
               <tr>
                 <td style="padding: 8px 0; color: #94a3b8;">Plano Contratado:</td>
-                <td style="padding: 8px 0; color: #ffffff; font-weight: 700; text-align: right;">${planName}</td>
+                <td style="padding: 8px 0; color: #ffffff; font-weight: 700; text-align: right;">${safePlanName}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #94a3b8;">Créditos Adicionados:</td>
@@ -328,19 +341,26 @@ export async function sendAdminPurchaseAlertEmail({
     minute: "2-digit",
   });
 
+  const safeBuyerEmail = escapeHtml(buyerEmail);
+  const safeBuyerName = escapeHtml(buyerName || "N/A");
+  const safePlanName = escapeHtml(planName);
+  const safePaymentMethod = escapeHtml((paymentMethod || "cartao").toUpperCase());
+  const safeAffiliateCode = escapeHtml(affiliateCode || "");
+  const safeStripeSessionId = escapeHtml(stripeSessionId || "N/A");
+
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff; color: #111827;">
       <h2 style="color: #059669; margin-top: 0;">🎉 Nova Compra Confirmada no Peguei o Texto!</h2>
       <p style="font-size: 15px; color: #4b5563;">Uma nova transação acabou de ser aprovada pela Stripe:</p>
       
       <div style="background: #f3f4f6; padding: 18px; border-radius: 8px; margin: 20px 0; font-size: 14px;">
-        <p style="margin: 6px 0;"><strong>👤 Cliente:</strong> ${buyerEmail} (${buyerName || "N/A"})</p>
-        <p style="margin: 6px 0;"><strong>📦 Plano:</strong> ${planName}</p>
+        <p style="margin: 6px 0;"><strong>👤 Cliente:</strong> ${safeBuyerEmail} (${safeBuyerName})</p>
+        <p style="margin: 6px 0;"><strong>📦 Plano:</strong> ${safePlanName}</p>
         <p style="margin: 6px 0;"><strong>💵 Valor:</strong> <span style="font-size: 18px; color: #059669; font-weight: 800;">${amountFormatted}</span></p>
-        <p style="margin: 6px 0;"><strong>💳 Método:</strong> ${(paymentMethod || "cartao").toUpperCase()}</p>
+        <p style="margin: 6px 0;"><strong>💳 Método:</strong> ${safePaymentMethod}</p>
         <p style="margin: 6px 0;"><strong>📅 Data:</strong> ${nowBR}</p>
-        ${affiliateCode ? `<p style="margin: 6px 0;"><strong>🤝 Afiliado:</strong> ${affiliateCode}</p>` : `<p style="margin: 6px 0;"><strong>🤝 Canal:</strong> Venda Direta / Orgânica</p>`}
-        <p style="margin: 6px 0;"><strong>🆔 Stripe Session:</strong> <code>${stripeSessionId || "N/A"}</code></p>
+        ${affiliateCode ? `<p style="margin: 6px 0;"><strong>🤝 Afiliado:</strong> ${safeAffiliateCode}</p>` : `<p style="margin: 6px 0;"><strong>🤝 Canal:</strong> Venda Direta / Orgânica</p>`}
+        <p style="margin: 6px 0;"><strong>🆔 Stripe Session:</strong> <code>${safeStripeSessionId}</code></p>
       </div>
 
       <div style="text-align: center; margin-top: 24px;">
@@ -409,6 +429,13 @@ export async function sendSuggestionNotificationEmail({
 
   const style = categoryColors[category] || categoryColors.other;
 
+  const safeTitle = escapeHtml(title);
+  const safeDescription = escapeHtml(description);
+  const safeCategoryLabel = escapeHtml(categoryLabel);
+  const safeUserName = escapeHtml(userName || "");
+  const safeUserEmail = escapeHtml(userEmail || "");
+  const safeUserId = escapeHtml(userId || "");
+
   const html = `
     <!DOCTYPE html>
     <html lang="pt-BR">
@@ -435,13 +462,13 @@ export async function sendSuggestionNotificationEmail({
           <!-- CATEGORY BADGE -->
           <div style="margin-bottom: 16px;">
             <span style="display: inline-block; background-color: ${style.bg}; color: ${style.text}; font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 9999px;">
-              ${style.icon} ${categoryLabel}
+              ${style.icon} ${safeCategoryLabel}
             </span>
           </div>
 
           <!-- TITLE -->
           <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 800; color: #ffffff; line-height: 1.35;">
-            ${title}
+            ${safeTitle}
           </h2>
 
           <!-- DESCRIPTION BOX -->
@@ -450,15 +477,15 @@ export async function sendSuggestionNotificationEmail({
               Detalhes da Sugestão / Problema:
             </div>
             <div style="font-size: 15px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">
-${description}
+${safeDescription}
             </div>
           </div>
 
           <!-- AUTHOR INFO -->
           <div style="background-color: rgba(255, 255, 255, 0.03); border-top: 1px solid #221f3f; padding-top: 16px; font-size: 13px; color: #94a3b8;">
-            <p style="margin: 4px 0;"><strong>👤 Autor:</strong> ${userName || "Não informado"} ${userEmail ? `(&lt;${userEmail}&gt;)` : "(Anônimo)"}</p>
+            <p style="margin: 4px 0;"><strong>👤 Autor:</strong> ${safeUserName || "Não informado"} ${userEmail ? `(&lt;${safeUserEmail}&gt;)` : "(Anônimo)"}</p>
             <p style="margin: 4px 0;"><strong>📅 Data:</strong> ${nowBR}</p>
-            ${userId ? `<p style="margin: 4px 0;"><strong>🆔 User ID:</strong> <code style="color: #cbd5e1;">${userId}</code></p>` : ""}
+            ${userId ? `<p style="margin: 4px 0;"><strong>🆔 User ID:</strong> <code style="color: #cbd5e1;">${safeUserId}</code></p>` : ""}
           </div>
 
           <!-- ADMIN HUB LINK -->
@@ -512,7 +539,9 @@ export async function sendSuggestionUserConfirmationEmail({
   const transporter = getTransporter();
   if (!transporter) return false;
 
-  const cleanName = userName && userName.trim() ? userName.trim() : to.split("@")[0];
+  const cleanName = escapeHtml(userName && userName.trim() ? userName.trim() : to.split("@")[0]);
+  const safeTitle = escapeHtml(title);
+  const safeCategoryLabel = escapeHtml(categoryLabel);
 
   const html = `
     <!DOCTYPE html>
@@ -537,12 +566,12 @@ export async function sendSuggestionUserConfirmationEmail({
           </h2>
 
           <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6; margin: 16px 0;">
-            Recebemos com muito carinho a sua sugestão na categoria <strong>${categoryLabel}</strong>:
+            Recebemos com muito carinho a sua sugestão na categoria <strong>${safeCategoryLabel}</strong>:
           </p>
 
           <div style="background-color: #0b0a16; border-left: 4px solid #7c3aed; padding: 14px 18px; border-radius: 8px; margin: 20px 0;">
             <p style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">
-              "${title}"
+              "${safeTitle}"
             </p>
           </div>
 
@@ -598,7 +627,7 @@ export async function sendOtpEmail({
     return false;
   }
 
-  const cleanName = name && name.trim() ? name.trim() : to.split("@")[0];
+  const cleanName = escapeHtml(name && name.trim() ? name.trim() : to.split("@")[0]);
 
   const html = `
     <!DOCTYPE html>
@@ -692,7 +721,9 @@ export async function sendBonus15Email({
     return false;
   }
 
-  const cleanName = to.split("@")[0];
+  const cleanName = escapeHtml(to.split("@")[0]);
+  const safeClaimUrl = encodeURI(claimUrl);
+  const safeTo = escapeHtml(to);
 
   const html = `
     <!DOCTYPE html>
@@ -740,13 +771,13 @@ export async function sendBonus15Email({
 
           <!-- ACTION BUTTON -->
           <div style="text-align: center; margin: 32px 0 24px;">
-            <a href="${claimUrl}" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); color: #ffffff; padding: 16px 36px; font-size: 16px; font-weight: 800; text-decoration: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45); letter-spacing: -0.01em;">
+            <a href="${safeClaimUrl}" style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); color: #ffffff; padding: 16px 36px; font-size: 16px; font-weight: 800; text-decoration: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45); letter-spacing: -0.01em;">
               Ativar Meus 15 Minutos Grátis →
             </a>
           </div>
 
           <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; text-align: center; margin: 0;">
-            🔒 <em>Importante:</em> O benefício de 15 minutos é vinculado a este e-mail (${to}) e será creditado no seu saldo assim que você criar sua senha pelo link acima.
+            🔒 <em>Importante:</em> O benefício de 15 minutos é vinculado a este e-mail (${safeTo}) e será creditado no seu saldo assim que você criar sua senha pelo link acima.
           </p>
 
         </div>

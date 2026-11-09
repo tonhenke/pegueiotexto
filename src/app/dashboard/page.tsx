@@ -158,16 +158,6 @@ export default function DashboardPage() {
               setPaymentSuccess(
                 `🎉 Pagamento confirmado com sucesso! O plano ${activePlan.toUpperCase()}${addedText} foi ativado. Seu saldo atual é de ${activeCredits} minutos.`
               );
-
-              // Client fallback in case Supabase RLS blocked server anon write
-              if (verifyData.rls_fallback_needed) {
-                await supabase.from("profiles").upsert({
-                  id: user.id,
-                  credits_minutes: activeCredits,
-                  plan: activePlan,
-                  updated_at: new Date().toISOString(),
-                });
-              }
             }
           } catch (e) {
             console.error("Erro na verificação da sessão Stripe:", e);
@@ -208,25 +198,6 @@ export default function DashboardPage() {
                 setPaymentSuccess(
                   `🎉 Pagamento confirmado com sucesso! O plano ${activePlan.toUpperCase()}${addedText} foi ativado. Seu novo saldo é de ${activeCredits} minutos.`
                 );
-              }
-
-              // Update profiles table safely with fallback if 'plan' column does not exist yet
-              try {
-                const { error: upsertErr } = await supabase.from("profiles").upsert({
-                  id: user.id,
-                  credits_minutes: activeCredits,
-                  plan: activePlan,
-                  updated_at: new Date().toISOString(),
-                });
-                if (upsertErr) {
-                  await supabase.from("profiles").upsert({
-                    id: user.id,
-                    credits_minutes: activeCredits,
-                    updated_at: new Date().toISOString(),
-                  });
-                }
-              } catch (eUpsert) {
-                console.warn("Profiles upsert fallback:", eUpsert);
               }
             }
           } catch (e) {

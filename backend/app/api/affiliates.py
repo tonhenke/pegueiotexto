@@ -3,7 +3,7 @@ import sqlite3
 import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/affiliates", tags=["Affiliates"])
@@ -87,6 +87,15 @@ def init_db():
 # Initialize tables
 init_db()
 
+def verify_admin_or_internal(
+    x_admin_token: Optional[str] = None,
+    x_internal_secret: Optional[str] = None,
+):
+    expected = os.getenv("ADMIN_SESSION_SECRET", "")
+    token = x_admin_token or x_internal_secret
+    if not expected or not token or token != expected:
+        raise HTTPException(status_code=401, detail="Acesso restrito ao administrador ou serviço autorizado.")
+
 # Pydantic Schemas
 class RegisterSchema(BaseModel):
     user_id: str
@@ -151,7 +160,11 @@ def mature_commissions(affiliate_code: str):
     conn.close()
 
 @router.get("/list")
-def list_affiliates():
+def list_affiliates(
+    x_admin_token: Optional[str] = Header(None),
+    x_internal_secret: Optional[str] = Header(None),
+):
+    verify_admin_or_internal(x_admin_token, x_internal_secret)
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM affiliates ORDER BY created_at DESC")
@@ -259,7 +272,13 @@ def register_affiliate(payload: RegisterSchema):
     }
 
 @router.get("/me")
-def get_affiliate_me(user_id: Optional[str] = None, affiliate_code: Optional[str] = None):
+def get_affiliate_me(
+    user_id: Optional[str] = None,
+    affiliate_code: Optional[str] = None,
+    x_admin_token: Optional[str] = Header(None),
+    x_internal_secret: Optional[str] = Header(None),
+):
+    verify_admin_or_internal(x_admin_token, x_internal_secret)
     if not user_id and not affiliate_code:
         raise HTTPException(status_code=400, detail="user_id ou affiliate_code é obrigatório.")
 
@@ -320,7 +339,12 @@ def get_affiliate_me(user_id: Optional[str] = None, affiliate_code: Optional[str
     }
 
 @router.post("/status")
-def update_affiliate_status(payload: StatusUpdateSchema):
+def update_affiliate_status(
+    payload: StatusUpdateSchema,
+    x_admin_token: Optional[str] = Header(None),
+    x_internal_secret: Optional[str] = Header(None),
+):
+    verify_admin_or_internal(x_admin_token, x_internal_secret)
     conn = get_db()
     cursor = conn.cursor()
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -366,7 +390,12 @@ def track_click(payload: TrackClickSchema):
     return {"success": True, "tracked": bool(aff)}
 
 @router.post("/payout")
-def request_payout(payload: PayoutRequestSchema):
+def request_payout(
+    payload: PayoutRequestSchema,
+    x_admin_token: Optional[str] = Header(None),
+    x_internal_secret: Optional[str] = Header(None),
+):
+    verify_admin_or_internal(x_admin_token, x_internal_secret)
     clean_code = payload.affiliate_code.strip().lower()
     mature_commissions(clean_code)
 
@@ -419,7 +448,12 @@ def request_payout(payload: PayoutRequestSchema):
     }
 
 @router.post("/conversion")
-def record_conversion(payload: ConversionSchema):
+def record_conversion(
+    payload: ConversionSchema,
+    x_admin_token: Optional[str] = Header(None),
+    x_internal_secret: Optional[str] = Header(None),
+):
+    verify_admin_or_internal(x_admin_token, x_internal_secret)
     clean_code = payload.affiliate_code.strip().lower()
     conn = get_db()
     cursor = conn.cursor()

@@ -2,53 +2,18 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  ADMIN_SECRET,
+  generateAdminToken,
+  isAuthenticatedAdmin,
+} from "@/lib/admin-auth";
 
-const ADMIN_EMAIL = process.env.AFFILIATE_ADMIN_EMAIL || "tonhenke@gmail.com";
-const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "987123aA!";
-const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "peguei_o_texto_admin_sec_2026_safe";
-
-function generateAdminToken(email: string): string {
-  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-  const payload = `${email.toLowerCase().trim()}:${expiresAt}`;
-  const signature = crypto.createHmac("sha256", ADMIN_SECRET).update(payload).digest("hex");
-  return Buffer.from(`${payload}:${signature}`).toString("base64");
-}
-
-function verifyAdminToken(token: string | null | undefined): boolean {
-  if (!token) return false;
-  try {
-    const decoded = Buffer.from(token, "base64").toString("utf8");
-    const [email, expiresAtStr, signature] = decoded.split(":");
-    if (!email || !expiresAtStr || !signature) return false;
-    if (email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) return false;
-    const expiresAt = parseInt(expiresAtStr, 10);
-    if (Date.now() > expiresAt) return false;
-
-    const expectedSignature = crypto.createHmac("sha256", ADMIN_SECRET).update(`${email}:${expiresAtStr}`).digest("hex");
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
-  } catch {
-    return false;
-  }
-}
-
-function isAuthenticatedAdmin(request: Request): boolean {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const match = cookieHeader.match(/affiliate_admin_token=([^;]+)/);
-  const cookieToken = match ? decodeURIComponent(match[1]) : null;
-
-  const authHeader = request.headers.get("authorization") || "";
-  const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
-
-  const xAdminToken = request.headers.get("x-admin-token");
-
-  return (
-    verifyAdminToken(cookieToken) ||
-    verifyAdminToken(bearerToken) ||
-    verifyAdminToken(xAdminToken)
-  );
-}
-
-const AFFILIATE_SESSION_SECRET = process.env.AFFILIATE_SESSION_SECRET || "peguei_affiliate_sec_2026_auth";
+const AFFILIATE_SESSION_SECRET =
+  process.env.AFFILIATE_SESSION_SECRET ||
+  ADMIN_SECRET ||
+  (process.env.NODE_ENV === "production" ? "" : "peguei_affiliate_dev_fallback_secret");
 
 function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
   const s = salt || crypto.randomBytes(16).toString("hex");
@@ -66,6 +31,9 @@ function verifyPassword(password: string, hash: string, salt: string): boolean {
 }
 
 function generateAffiliateSessionToken(affiliateId: string, email: string): string {
+  if (!AFFILIATE_SESSION_SECRET) {
+    throw new Error("[Affiliate Auth] AFFILIATE_SESSION_SECRET não configurado.");
+  }
   const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
   const payload = `${affiliateId}:${email.toLowerCase().trim()}:${expiresAt}`;
   const signature = crypto.createHmac("sha256", AFFILIATE_SESSION_SECRET).update(payload).digest("hex");
@@ -73,7 +41,7 @@ function generateAffiliateSessionToken(affiliateId: string, email: string): stri
 }
 
 function verifyAffiliateSessionToken(token: string | null | undefined): { affiliateId: string; email: string } | null {
-  if (!token) return null;
+  if (!token || !AFFILIATE_SESSION_SECRET) return null;
   try {
     const decoded = Buffer.from(token, "base64").toString("utf8");
     const [affiliateId, email, expiresAtStr, signature] = decoded.split(":");
@@ -356,7 +324,10 @@ export async function GET(request: Request) {
       try {
         const backendRes = await fetch(`${BACKEND_URL}/api/affiliates/list`, {
           cache: "no-store",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Admin-Token": process.env.ADMIN_SESSION_SECRET || ADMIN_SECRET,
+          },
         });
         if (backendRes.ok) {
           const data = await backendRes.json();
@@ -470,12 +441,26 @@ export async function GET(request: Request) {
 
     if (action === "me") {
       const auth = getAuthenticatedAffiliate(request);
+      const isAdmin = isAuthenticatedAdmin(request);
+
+      if (!auth && !isAdmin) {
+        return NextResponse.json(
+          {
+            is_affiliate: false,
+            allowed: false,
+            requires_auth: true,
+            detail: "Autenticação necessária para consultar os dados do parceiro.",
+          },
+          { status: 401 }
+        );
+      }
+
       const affiliates = readJSON<AffiliateRecord>(AFFILIATES_FILE);
       let affiliate: AffiliateRecord | undefined = undefined;
 
       if (auth) {
         affiliate = affiliates.find((a) => a.id === auth.affiliateId || a.email.toLowerCase().trim() === auth.email.toLowerCase().trim());
-      } else if (userId || affiliateCode || emailParam) {
+      } else if (isAdmin && (userId || affiliateCode || emailParam)) {
         affiliate = affiliates.find(
           (a) =>
             (emailParam && a.email.toLowerCase().trim() === emailParam) ||
@@ -694,6 +679,10 @@ export async function POST(request: Request) {
     }
 
     if (action === "admin_sync_registration") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso administrativo não autorizado." }, { status: 401 });
+      }
+
       const { affiliate } = body;
       if (!affiliate || !affiliate.affiliate_code) {
         return NextResponse.json({ detail: "Dados inválidos." }, { status: 400 });
@@ -736,8 +725,14 @@ export async function POST(request: Request) {
 
     // 3. SOLICITAÇÃO DE SAQUE PIX (Mínimo R$ 100,00)
     if (action === "payout") {
+      const auth = getAuthenticatedAffiliate(request);
+      const isAdmin = isAuthenticatedAdmin(request);
+      if (!auth && !isAdmin) {
+        return NextResponse.json({ detail: "Autenticação necessária para solicitar saque." }, { status: 401 });
+      }
+
       const { user_id, affiliate_code } = body;
-      if (!user_id || !affiliate_code) {
+      if (!affiliate_code) {
         return NextResponse.json({ detail: "Dados incompletos." }, { status: 400 });
       }
 
@@ -751,6 +746,11 @@ export async function POST(request: Request) {
       }
 
       const affiliate = affiliates[affIndex];
+
+      // IDOR check: non-admin callers can only request payout for their own account
+      if (!isAdmin && auth && auth.affiliateId !== affiliate.id && auth.email.toLowerCase().trim() !== affiliate.email.toLowerCase().trim()) {
+        return NextResponse.json({ detail: "Acesso não autorizado para esta conta de parceiro." }, { status: 403 });
+      }
       if (affiliate.status !== "active") {
         return NextResponse.json({ detail: "Sua conta precisa estar aprovada para solicitar saques." }, { status: 403 });
       }
@@ -814,6 +814,19 @@ export async function POST(request: Request) {
       const aff = affiliates[affIndex];
       if (aff.status !== "active") {
         return NextResponse.json({ detail: "Apenas parceiros aprovados podem definir a senha de acesso." }, { status: 403 });
+      }
+
+      // If password has already been set, only allow updates from authenticated sessions or admin
+      if (aff.password_hash) {
+        const auth = getAuthenticatedAffiliate(request);
+        const isAdmin = isAuthenticatedAdmin(request);
+        const isSelf = auth && (auth.affiliateId === aff.id || auth.email.toLowerCase().trim() === aff.email.toLowerCase().trim());
+        if (!isAdmin && !isSelf) {
+          return NextResponse.json(
+            { detail: "Senha já cadastrada. Faça login no painel ou solicite redefinição autenticada." },
+            { status: 403 }
+          );
+        }
       }
 
       const { hash, salt } = hashPassword(password);
@@ -987,7 +1000,10 @@ export async function POST(request: Request) {
       try {
         fetch(`${BACKEND_URL}/api/affiliates/status`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Admin-Token": process.env.ADMIN_SESSION_SECRET || ADMIN_SECRET,
+          },
           body: JSON.stringify({ affiliate_code: cleanCode, status }),
         }).catch(() => {});
       } catch {}
@@ -1001,6 +1017,12 @@ export async function POST(request: Request) {
 
     // 5. REGISTRO DE CONVERSÃO (Chamado após compra confirmada)
     if (action === "record_conversion") {
+      const internalSecret = request.headers.get("x-internal-secret");
+      const isInternal = internalSecret && (internalSecret === (process.env.ADMIN_SESSION_SECRET || ADMIN_SECRET));
+      if (!isInternal && !isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso administrativo ou interno necessário." }, { status: 401 });
+      }
+
       const { affiliate_code, plan_id, plan_name, order_amount, stripe_session_id, buyer_email } = body;
       if (!affiliate_code || !plan_id || !order_amount) {
         return NextResponse.json({ detail: "Parâmetros incompletos." }, { status: 400 });

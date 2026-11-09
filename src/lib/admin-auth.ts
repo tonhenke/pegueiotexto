@@ -1,10 +1,13 @@
 import crypto from "crypto";
 
-export const ADMIN_EMAIL = process.env.AFFILIATE_ADMIN_EMAIL || "tonhenke@gmail.com";
-export const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "987123aA!";
-export const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "peguei_o_texto_admin_sec_2026_safe";
+export const ADMIN_EMAIL = (process.env.AFFILIATE_ADMIN_EMAIL || "tonhenke@gmail.com").toLowerCase().trim();
+export const ADMIN_PASSWORD = process.env.AFFILIATE_ADMIN_PASSWORD || "";
+export const ADMIN_SECRET = process.env.ADMIN_SESSION_SECRET || "";
 
 export function generateAdminToken(email: string): string {
+  if (!ADMIN_SECRET) {
+    throw new Error("[Admin Auth] ADMIN_SESSION_SECRET não configurado no ambiente.");
+  }
   const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
   const payload = `${email.toLowerCase().trim()}:${expiresAt}`;
   const signature = crypto.createHmac("sha256", ADMIN_SECRET).update(payload).digest("hex");
@@ -12,12 +15,12 @@ export function generateAdminToken(email: string): string {
 }
 
 export function verifyAdminToken(token: string | null | undefined): boolean {
-  if (!token) return false;
+  if (!token || !ADMIN_SECRET) return false;
   try {
     const decoded = Buffer.from(token, "base64").toString("utf8");
     const [email, expiresAtStr, signature] = decoded.split(":");
     if (!email || !expiresAtStr || !signature) return false;
-    if (email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) return false;
+    if (email.toLowerCase().trim() !== ADMIN_EMAIL) return false;
     const expiresAt = parseInt(expiresAtStr, 10);
     if (Date.now() > expiresAt) return false;
 
@@ -46,9 +49,9 @@ export function isAuthenticatedAdmin(request: Request): boolean {
 }
 
 export function verifyAdminCredentials(email: string, password: string): boolean {
-  if (!email || !password) return false;
+  if (!email || !password || !ADMIN_PASSWORD) return false;
   return (
-    email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim() &&
+    email.toLowerCase().trim() === ADMIN_EMAIL &&
     password === ADMIN_PASSWORD
   );
 }

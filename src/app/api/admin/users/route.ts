@@ -64,17 +64,21 @@ export async function POST(request: Request) {
 
     // Action 1: Record user creation or activity (called on signup / login / dashboard load)
     if (action === "record_user") {
-      const { id, email, name, plan, credits_minutes, referral_source } = body;
+      const { id, email, name, referral_source } = body;
       if (!email) {
         return NextResponse.json({ detail: "E-mail é obrigatório." }, { status: 400 });
       }
+
+      const isAdmin = isAuthenticatedAdmin(request);
+      const safePlan = isAdmin ? body.plan : undefined;
+      const safeCredits = isAdmin ? body.credits_minutes : undefined;
 
       const user = upsertUser({
         id,
         email,
         name,
-        plan,
-        credits_minutes,
+        plan: safePlan,
+        credits_minutes: safeCredits,
         referral_source,
       });
 
@@ -89,8 +93,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, user });
     }
 
-    // Action 1.5: Send welcome email manually (testing or admin resend)
+    // Action 1.5: Send welcome email manually (testing or admin resend - admin only)
     if (action === "send_welcome") {
+      if (!isAuthenticatedAdmin(request)) {
+        return NextResponse.json({ detail: "Acesso administrativo não autorizado." }, { status: 401 });
+      }
       const { email, name } = body;
       if (!email) {
         return NextResponse.json({ detail: "E-mail é obrigatório." }, { status: 400 });

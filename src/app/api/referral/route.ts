@@ -121,48 +121,37 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Find the referrer user in Supabase profiles (using privileged client to bypass RLS)
+    // 3. Find the referrer user in Supabase profiles using targeted query
     const sb = getPrivilegedSupabaseClient();
-    const { data: allProfiles } = await sb
-      .from("profiles")
-      .select("id, name, email, credits_minutes");
-
     let referrer: any = null;
-    if (allProfiles && allProfiles.length > 0) {
-      referrer = allProfiles.find(
-        (p) =>
-          p.id.toLowerCase().startsWith(cleanRef) ||
-          p.id.replace(/-/g, "").toLowerCase().startsWith(cleanRef) ||
-          (p.email && p.email.toLowerCase() === cleanRef) ||
-          (p.email && p.email.toLowerCase().split("@")[0] === cleanRef)
-      );
+
+    const { data: directProfiles } = await sb
+      .from("profiles")
+      .select("id, name, email, credits_minutes")
+      .or(`id.ilike.${cleanRef}%,email.ilike.${cleanRef}%`)
+      .limit(1);
+
+    if (directProfiles && directProfiles.length > 0) {
+      referrer = directProfiles[0];
     }
 
-    // Fallback: search in Supabase Auth users
-    if (!referrer) {
+    // Fallback: search in Supabase Auth user by ID
+    if (!referrer && cleanRef.length >= 8) {
       try {
-        const { data: authData } = await sb.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        if (authData?.users) {
-          const matchedAuth = authData.users.find(
-            (u) =>
-              u.id.toLowerCase().startsWith(cleanRef) ||
-              (u.email && u.email.toLowerCase() === cleanRef) ||
-              (u.email && u.email.toLowerCase().split("@")[0] === cleanRef)
-          );
-          if (matchedAuth) {
-            referrer = {
-              id: matchedAuth.id,
-              name:
-                matchedAuth.user_metadata?.full_name ||
-                matchedAuth.email?.split("@")[0] ||
-                "Usuário",
-              email: matchedAuth.email || "",
-              credits_minutes: 5,
-            };
-          }
+        const { data: userData } = await sb.auth.admin.getUserById(cleanRef);
+        if (userData?.user) {
+          referrer = {
+            id: userData.user.id,
+            name:
+              userData.user.user_metadata?.full_name ||
+              userData.user.email?.split("@")[0] ||
+              "Usuário",
+            email: userData.user.email || "",
+            credits_minutes: 5,
+          };
         }
       } catch (authErr) {
-        console.warn("[Referral] Fallback auth listUsers error:", authErr);
+        console.warn("[Referral] Fallback auth getUserById error:", authErr);
       }
     }
 

@@ -48,8 +48,9 @@ __pycache__/
 *.pyc
 /tmp/peguei_o_texto_media/
 
-# local data storage (allow json database seeds)
-!/data/*.json
+# local runtime data (PII protection)
+data/*.json
+!data/*.example.json
 
 # previews
 preview-*.html
