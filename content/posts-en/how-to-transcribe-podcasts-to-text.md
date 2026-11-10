@@ -131,3 +131,4 @@ Yes! Simply paste the public link into our [Transcribe YouTube Video tool](/en/t
 Leaving your podcast locked inside raw audio means forfeiting over 80% of its search potential. By integrating automated transcripts into your publishing workflow, you boost your Google rankings, empower accessibility, and fuel your content repurposing engine.
 
 Try [Peguei o Texto](/en) today and transcribe your first podcast episode in seconds!
+

@@ -144,3 +144,4 @@ Yes! Our [Audio Transcription tool](/en/blog/audio-transcription-guide) allows y
 The SRT format remains the most dependable, lightweight, and versatile captioning standard in digital media. Using accurate subtitles boosts video watch time, aids international viewers, and dramatically improves search visibility.
 
 Ready to save hours of manual typing? Generate your subtitles instantly with [Generate SRT Subtitles](/en/generate-srt-subtitles) on **Peguei o Texto**!
+

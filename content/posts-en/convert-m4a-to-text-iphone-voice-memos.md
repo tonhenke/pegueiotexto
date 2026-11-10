@@ -89,3 +89,4 @@ Yes. We strictly adhere to privacy standards. Your files are processed securely 
 Stop spending hours manually typing out lecture recordings or meeting minutes from your phone. With native M4A processing, transcribing Apple Voice Memos has never been faster.
 
 Head over to [Convert M4A to Text](/en/convert-m4a-to-text) on **Peguei o Texto** and test it out today!
+

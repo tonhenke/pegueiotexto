@@ -22,6 +22,11 @@ export const BLOG_SLUG_MAP_PT_TO_EN: Record<string, string> = {
   "converter-m4a-para-texto-gravador-iphone": "convert-m4a-to-text-iphone-voice-memos",
   "otter-ai-alternativas-em-portugues": "best-otter-ai-alternatives-2026",
   "o-que-e-arquivo-srt-como-abrir-e-usar": "what-is-an-srt-file-how-to-open-and-use",
+  "como-converter-ogg-em-texto": "how-to-convert-ogg-to-text",
+  "como-transcrever-entrevistas-para-jornalistas": "transcription-for-journalists-audio-to-news",
+  "transcricao-para-psicologos-e-terapeutas": "transcription-for-therapists-and-psychologists",
+  "diferenca-entre-srt-e-vtt-qual-usar": "srt-vs-vtt-subtitle-formats-explained",
+  "como-transformar-video-em-artigo-de-blog": "how-to-turn-videos-into-blog-posts",
 };
 
 export const BLOG_SLUG_MAP_EN_TO_PT: Record<string, string> = Object.entries(

@@ -94,3 +94,4 @@ In benchmark tests across diverse accents, background noise, and multilingual sp
 Otter.ai had its moment, but modern speech AI in 2026 offers faster turnaround, higher multilingual precision, and better flexibility without forced subscriptions or meeting bots.
 
 Try [Peguei o Texto](/en) today and experience speech-to-text done right!
+
