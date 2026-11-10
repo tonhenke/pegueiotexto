@@ -17,6 +17,11 @@ export const BLOG_SLUG_MAP_PT_TO_EN: Record<string, string> = {
   "transcrever-video-em-texto-online-gratis": "transcribe-video-to-text-online-free",
   "transcricao-de-audio": "audio-transcription-guide",
   "transcricao-de-entrevistas-academicas-tcc-e-pesquisas": "academic-interview-transcription-research-thesis",
+  "como-transcrever-podcast-em-texto": "how-to-transcribe-podcasts-to-text",
+  "como-transcrever-reels-do-instagram-em-texto": "how-to-transcribe-instagram-reels-to-text",
+  "converter-m4a-para-texto-gravador-iphone": "convert-m4a-to-text-iphone-voice-memos",
+  "otter-ai-alternativas-em-portugues": "best-otter-ai-alternatives-2026",
+  "o-que-e-arquivo-srt-como-abrir-e-usar": "what-is-an-srt-file-how-to-open-and-use",
 };
 
 export const BLOG_SLUG_MAP_EN_TO_PT: Record<string, string> = Object.entries(
