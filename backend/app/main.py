@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Peguei o Texto: API de Transcrição",
     description="Backend para transcrição de vídeos da internet, extração de áudio, Inteligência Artificial e cobrança via Stripe.",
-    version="1.0.2-patch",
+    version="1.0.3-cookies-format",
     lifespan=lifespan
 )
 
@@ -50,7 +50,7 @@ app.include_router(download_router)
 def root():
     return {
         "service": "Peguei o Texto API",
-        "version": "1.0.2-patch",
+        "version": "1.0.3-cookies-format",
         "status": "online",
         "docs": "/docs",
         "endpoints": {

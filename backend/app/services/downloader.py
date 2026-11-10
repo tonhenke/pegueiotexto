@@ -35,9 +35,13 @@ def has_ffmpeg() -> bool:
 def get_cookie_file_path() -> Optional[str]:
     """
     Checks for cookies in environment variable YOUTUBE_COOKIES or local cookies.txt.
+    Safely normalizes line endings and unescapes literal \n if present.
     """
     env_cookies = os.environ.get("YOUTUBE_COOKIES", "").strip()
     if env_cookies:
+        if "\\n" in env_cookies:
+            env_cookies = env_cookies.replace("\\n", "\n")
+        env_cookies = env_cookies.replace("\r\n", "\n").replace("\r", "\n")
         cookie_path = TEMP_MEDIA_DIR / "youtube_cookies.txt"
         cookie_path.write_text(env_cookies, encoding="utf-8")
         return str(cookie_path)
@@ -696,6 +700,7 @@ def extract_video_stream_info(url: str) -> dict:
         "no_warnings": True,
         "extract_flat": False,
         "remote_components": ["ejs:github"],
+        "format": "all",
     }
     if shutil.which("node"):
         base_opts["js_runtimes"] = {"node": {}}
