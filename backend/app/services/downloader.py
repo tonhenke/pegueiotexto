@@ -121,8 +121,10 @@ def download_audio_from_url(url: str) -> dict:
         }]
 
     # Progressive extraction strategies across multiple player clients
-    # Pure android client completely bypasses datacenter bot checks and SABR blocks
+    # visionos and combined clients cleanly bypass SABR blocks and datacenter bot checks
     strategies = [
+        {"player_client": ["visionos", "android", "ios", "web"]},
+        {"player_client": ["visionos"]},
         {"player_client": ["android"]},
         {"player_client": ["ios"]},
         None,
@@ -475,7 +477,7 @@ def try_extract_youtube_captions(url: str, preferred_language: Optional[str] = N
         "no_warnings": True,
         "extract_flat": False,
         "remote_components": ["ejs:github"],
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "extractor_args": {"youtube": {"player_client": ["visionos", "android", "web"]}},
     }
     if shutil.which("node"):
         opts["js_runtimes"] = {"node": {}}
@@ -602,10 +604,15 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
     file_id = str(uuid.uuid4())
     output_template = str(TEMP_MEDIA_DIR / f"video_{file_id}.%(ext)s")
 
+    if has_ffmpeg():
+        video_format = f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]/best[ext=mp4]/best"
+    else:
+        video_format = f"best[height<={max_height}][ext=mp4]/best[ext=mp4]/best[height<={max_height}]/best"
+
     base_opts = {
         "outtmpl": output_template,
-        "format": f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]/best[ext=mp4]/best",
-        "merge_output_format": "mp4",
+        "format": video_format,
+        "merge_output_format": "mp4" if has_ffmpeg() else None,
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -631,6 +638,8 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
         base_opts["cookiefile"] = cookie_file
 
     strategies = [
+        {"player_client": ["visionos", "android", "ios", "web"]},
+        {"player_client": ["visionos"]},
         {"player_client": ["android"]},
         {"player_client": ["ios"]},
         None,
@@ -703,6 +712,8 @@ def extract_video_stream_info(url: str) -> dict:
     info = None
     last_err = None
     strategies = [
+        {"player_client": ["visionos", "android", "ios", "web"]},
+        {"player_client": ["visionos"]},
         {"player_client": ["android"]},
         {"player_client": ["ios"]},
         None,
