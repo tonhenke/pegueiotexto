@@ -696,8 +696,8 @@ function LoginForm() {
               >
                 {previewData?.exceeds_free
                   ? isEn
-                    ? `Your free signup gives you 5 free minutes to test. Since this media is ${previewData.total_minutes} minutes, you will be able to unlock the remainder by adding extra minutes or upgrading in 1 click inside your dashboard.`
-                    : `Seu cadastro inclui 5 minutos grátis para você testar. Como este arquivo possui ${previewData.total_minutes} minutos, você poderá desbloquear o restante adquirindo créditos avulsos ou plano com 1 clique no painel.`
+                    ? `Your free signup gives you 25 free minutes (renews every 7 days). Since this media is ${previewData.total_minutes} minutes, you will be able to unlock the remainder by adding extra minutes or upgrading in 1 click inside your dashboard.`
+                    : `Seu cadastro inclui 25 minutos grátis para você testar (renováveis a cada 7 dias). Como este arquivo possui ${previewData.total_minutes} minutos, você poderá desbloquear o restante adquirindo créditos avulsos ou plano com 1 clique no painel.`
                   : isEn
                   ? "Complete your free signup to unlock the full transcript, AI executive summary, and export subtitles (.SRT) right away."
                   : "Conclua seu cadastro grátis ao lado para destravar a transcrição completa, o resumo executivo de IA e exportar legendas (.SRT)."}
@@ -764,8 +764,8 @@ function LoginForm() {
                   ? "Sign in to access your transcription dashboard"
                   : "Entre para acessar suas transcrições"
                 : isEn
-                ? "5 free minutes upon signup. No credit card required."
-                : "5 minutos grátis no cadastro. Sem cartão de crédito."}
+                ? "25 free minutes upon signup (renews every 7 days). No credit card required."
+                : "25 minutos grátis no cadastro renováveis a cada 7 dias. Sem cartão de crédito."}
             </p>
           </div>
 
@@ -833,8 +833,8 @@ function LoginForm() {
               </div>
               <p style={{ margin: 0, fontSize: "13px", color: "#E2E8F0", lineHeight: 1.5 }}>
                 {isEn
-                  ? "You were invited! Sign up now to receive 15 minutes (5 min base + 10 min bonus gift)."
-                  : "Você foi convidado! Crie sua conta grátis agora e ganhe 15 minutos (5 min cadastro + 10 min de presente)."}
+                  ? "You were invited! Sign up now to receive 35 minutes (25 min base + 10 min bonus gift)."
+                  : "Você foi convidado! Crie sua conta grátis agora e ganhe 35 minutos (25 min cadastro + 10 min de presente)."}
               </p>
             </div>
           )}

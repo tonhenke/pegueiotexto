@@ -8,7 +8,7 @@ import { Sparkles, CheckCircle2, Zap, Shield, FileText, ArrowRight, Mic, Smartph
 export const metadata: Metadata = {
   title: "Converter M4A em Texto Online Grátis com IA | Peguei o Texto",
   description:
-    "Converta áudios M4A e gravações do iPhone em texto em segundos com Inteligência Artificial. Transcrição com 98% de precisão em português, pontuação perfeita e exportação para Word (.DOCX), PDF e TXT. 5 minutos grátis!",
+    "Converta áudios M4A e gravações do iPhone em texto em segundos com Inteligência Artificial. Transcrição com 98% de precisão em português, pontuação perfeita e exportação para Word (.DOCX), PDF e TXT. 25 minutos grátis toda semana!",
   keywords: [
     "converter m4a em texto",
     "transcrever gravador do iphone",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Converter Áudio M4A do iPhone em Texto com IA | Peguei o Texto",
-    description: "Converta gravações de voz M4A do iPhone e Mac em texto com pontuação completa em segundos. Teste 5 minutos grátis!",
+    description: "Converta gravações de voz M4A do iPhone e Mac em texto com pontuação completa em segundos. Teste 25 minutos grátis toda semana!",
     url: "https://pegueiotexto.com.br/converter-m4a-em-texto",
   },
 };
@@ -118,7 +118,7 @@ export default function ConverterM4aEmTextoPage() {
                 <CheckCircle2 size={14} color="#10B981" /> Exportação para Word (.DOCX) e PDF
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-muted)" }}>
-                <CheckCircle2 size={14} color="#10B981" /> 5 minutos grátis imediatos
+                <CheckCircle2 size={14} color="#10B981" /> 25 min grátis semanais
               </span>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function ConverterM4aEmTextoPage() {
             Converta suas gravações M4A em texto agora
           </h2>
           <p style={{ fontSize: "16px", color: "var(--text-muted)", marginBottom: "32px", lineHeight: 1.6 }}>
-            Cadastre-se gratuitamente e receba 5 minutos grátis para testar o serviço.
+            Cadastre-se gratuitamente e receba 25 minutos grátis para testar o serviço, renováveis toda semana.
           </p>
           <Link href="/login?signup=true" className="btn-primary" style={{ padding: "14px 32px", fontSize: "16px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
             Começar Gratuitamente <ArrowRight size={18} />

@@ -66,19 +66,19 @@ export default function DashboardPage() {
           .eq("id", user.id)
           .single();
 
-        let activeCredits = 5;
+        let activeCredits = 25;
         let activePlan = "gratuito";
 
         if (profileData) {
           setProfile(profileData);
-          activeCredits = profileData.credits_minutes ?? 5;
+          activeCredits = profileData.credits_minutes ?? 25;
           if (profileData.plan) {
             activePlan = String(profileData.plan).trim().toLowerCase();
           }
         } else {
           setProfile({
             name: user.user_metadata?.full_name || user.email?.split("@")[0],
-            credits_minutes: 5,
+            credits_minutes: 25,
             plan: "gratuito",
           });
         }
@@ -184,13 +184,15 @@ export default function DashboardPage() {
                 activePlan = String(syncData.plan).trim().toLowerCase();
                 setCurrentPlan(activePlan);
               }
-              if (syncData.credits_minutes !== undefined && syncData.credits_minutes > activeCredits) {
+              if (typeof syncData.credits_minutes === "number") {
                 activeCredits = syncData.credits_minutes;
               }
               setProfile((prev: any) => ({
                 ...prev,
                 credits_minutes: activeCredits,
                 plan: activePlan,
+                days_until_renewal: syncData.days_until_renewal,
+                next_free_renewal: syncData.next_free_renewal,
               }));
 
               if (syncData.fulfilled_now) {
@@ -450,7 +452,7 @@ export default function DashboardPage() {
     return matchesQuery && matchesPlatform;
   });
 
-  const credits = profile?.credits_minutes ?? 5;
+  const credits = profile?.credits_minutes ?? 25;
   const userName = profile?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Visitante";
   const totalTranscriptions = history.length;
   const totalMinutesTranscribed = history.reduce((acc, curr) => acc + (curr.minutes_deducted || 0), 0);
@@ -515,7 +517,7 @@ export default function DashboardPage() {
     },
     gratuito: {
       label: isEn ? "Free" : "Gratuito",
-      badge: isEn ? "5 min trial" : "5 min de teste",
+      badge: isEn ? "25 min / week" : "25 min / semana",
       color: "#94A3B8",
       bg: "rgba(255, 255, 255, 0.03)",
       border: "var(--border-subtle)",
@@ -682,6 +684,29 @@ export default function DashboardPage() {
                     {isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} ${isEn ? "min remaining" : "min restantes"}`}
                   </span>
                 </div>
+
+                {!isPaidUser && typeof profile?.days_until_renewal === "number" && (
+                  <div
+                    title={isEn ? "Free balance restores to 25 min every 7 days" : "O saldo gratuito é renovado para 25 min a cada 7 dias"}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "6px",
+                      background: "rgba(16, 185, 129, 0.08)",
+                      border: "1px solid rgba(16, 185, 129, 0.25)",
+                      borderRadius: "100px",
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      color: "#10B981",
+                      fontWeight: 600
+                    }}
+                  >
+                    <Clock size={13} />
+                    <span>
+                      {profile.days_until_renewal === 0
+                        ? (isEn ? "Renews today (25 min)" : "Renova hoje (25 min)")
+                        : (isEn ? `Renova em ${profile.days_until_renewal}d (25 min)` : `Renova em ${profile.days_until_renewal} dias (25 min)`)}
+                    </span>
+                  </div>
+                )}
 
                 {!isUnlimited && (
                   <Link href={isEn ? "/en/pricing" : "/precos"} className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>

@@ -303,7 +303,9 @@ def sync_user_status(
         "credits_added": minutes_added_total,
         "is_paid": active_info["is_paid"] or bool(latest_plan and latest_plan != "gratuito"),
         "fulfilled_now": fulfilled_any,
-        "rls_fallback_needed": rls_fallback
+        "rls_fallback_needed": rls_fallback,
+        "days_until_renewal": active_info.get("days_until_renewal"),
+        "next_free_renewal": active_info.get("next_free_renewal")
     }
 
 @router.get("/user-plan")

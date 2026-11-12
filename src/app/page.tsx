@@ -689,14 +689,14 @@ const CLINT_HTML = `
                 <span class="plan-price">R$&nbsp;0</span>
                 <span class="plan-period">/ grátis</span>
               </div>
-              <div class="plan-billing-detail">Gratuito para sempre</div>
+              <div class="plan-billing-detail">Renova toda semana</div>
 
               <div class="plan-minutes-pill" style="color:#10B981; border: 1px solid rgba(16,185,129,0.3);">
-                ⏱️ 5 min para começar
+                ⏱️ 25 min / semana
               </div>
 
               <ul class="plan-features-list">
-                <li><span style="color:#10B981;">✓</span> 5 minutos grátis imediatos no cadastro</li>
+                <li><span style="color:#10B981;">✓</span> 25 minutos grátis renováveis a cada 7 dias</li>
                 <li><span style="color:#10B981;">✓</span> YouTube, Reels, TikTok e +1.700 sites</li>
                 <li><span style="color:#10B981;">✓</span> Download do texto em arquivo .TXT</li>
                 <li><span style="color:#10B981;">✓</span> Sem necessidade de cartão de crédito</li>
@@ -905,7 +905,7 @@ const CLINT_HTML = `
               <span class="faq-icon">+</span>
             </div>
             <div class="faq-answer">
-              Não! Novos usuários recebem 5 minutos de transcrição totalmente gratuitos no cadastro sem precisar inserir nenhum dado de cartão de crédito. É só colar o link ou subir o arquivo para conferir a qualidade.
+              Não! Novos usuários recebem 25 minutos de transcrição totalmente gratuitos no cadastro sem precisar inserir nenhum dado de cartão de crédito, renováveis a cada 7 dias. É só colar o link ou subir o arquivo para conferir a qualidade.
             </div>
           </div>
 
@@ -956,7 +956,7 @@ const CLINT_HTML = `
             <span class="gradient-text">digitando o que pode ser automatizado?</span>
           </h2>
           <p class="cta-desc">
-            Junte-se a milhares de criadores, jornalistas, acadêmicos e empresas. Comece com 5 minutos gratuitos hoje mesmo.
+            Junte-se a milhares de criadores, jornalistas, acadêmicos e empresas. Comece com 25 minutos gratuitos renováveis a cada 7 dias.
           </p>
           <div class="cta-buttons-row">
             <a href="/login?signup=true" class="btn-primary" style="padding: 16px 36px; font-size: 16px;" onclick="handleStartFree(event)">

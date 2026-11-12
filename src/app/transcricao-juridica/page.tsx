@@ -6,7 +6,7 @@ import LegalInteractiveView from "./LegalInteractiveView";
 export const metadata: Metadata = {
   title: "Transcrição Automática para Advogados — Depoimentos, Oitivas e Audiências com IA | Peguei o Texto",
   description:
-    "Degrave audiências judiciais do PJe Mídias, oitivas e depoimentos em minutos com Inteligência Artificial. Identificação de oradores, timestamps para juntada aos autos, exportação em Word (.DOCX) e sigilo absoluto. Teste 5 minutos grátis!",
+    "Degrave audiências judiciais do PJe Mídias, oitivas e depoimentos em minutos com Inteligência Artificial. Identificação de oradores, timestamps para juntada aos autos, exportação em Word (.DOCX) e sigilo absoluto. Teste 25 minutos grátis toda semana!",
   keywords: [
     "transcricao de audiencias judiciais",
     "degravacao de audiencia",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Transcrição Automática para Advogados — Audiências e Oitivas com IA | Peguei o Texto",
     description:
-      "Elimine a transcrição manual no seu escritório. Converta áudios e vídeos de audiências judiciais em texto com timestamps e exportação Word (.DOCX). Teste 5 minutos grátis!",
+      "Elimine a transcrição manual no seu escritório. Converta áudios e vídeos de audiências judiciais em texto com timestamps e exportação Word (.DOCX). Teste 25 minutos grátis toda semana!",
     url: "https://pegueiotexto.com.br/transcricao-juridica",
     siteName: "Peguei o Texto",
     type: "website",
@@ -61,7 +61,7 @@ const juridicoSchema = {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "BRL",
-        "description": "5 minutos grátis para novos advogados no cadastro",
+        "description": "25 minutos grátis renováveis a cada 7 dias para advogados",
       },
       "aggregateRating": {
         "@type": "AggregateRating",

@@ -147,7 +147,7 @@ export async function POST(request: Request) {
               userData.user.email?.split("@")[0] ||
               "Usuário",
             email: userData.user.email || "",
-            credits_minutes: 5,
+            credits_minutes: 25,
           };
         }
       } catch (authErr) {
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
 
     // 4. Award credits:
     // +10 minutes to the referrer
-    const referrerCurrentCredits = Number(referrer.credits_minutes ?? 5);
+    const referrerCurrentCredits = Number(referrer.credits_minutes ?? 25);
     const referrerNewCredits = referrerCurrentCredits + 10;
     await sb
       .from("profiles")
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
     } catch {}
 
     // +10 minutes to the new invited user
-    let newBalance = 15; // default 5 free + 10 referral bonus
+    let newBalance = 35; // default 25 free + 10 referral bonus
     const { data: invitedProfile } = await sb
       .from("profiles")
       .select("id, credits_minutes, email, name")
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       .single();
 
     if (invitedProfile) {
-      const invitedCurrentCredits = Number(invitedProfile.credits_minutes ?? 5);
+      const invitedCurrentCredits = Number(invitedProfile.credits_minutes ?? 25);
       newBalance = invitedCurrentCredits + 10;
       await sb
         .from("profiles")

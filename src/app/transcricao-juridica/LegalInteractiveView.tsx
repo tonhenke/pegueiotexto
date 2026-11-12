@@ -180,18 +180,18 @@ const FREE_PLAN = {
   numericPrice: "0",
   period: "grátis",
   billingNote: "Sem cartão de crédito",
-  capacityText: "5 min grátis em degravação",
+  capacityText: "25 min / semana em degravação",
   desc: "Ideal para testar a acurácia com depoimentos reais e conferir a pontuação",
   color: "#10B981",
   features: [
-    "5 minutos grátis imediatos no cadastro",
+    "25 minutos grátis renováveis a cada 7 dias",
     "Sem necessidade de cartão de crédito",
     "Suporte a PJe Mídias, Zoom, Teams, MP4 e MP3",
     "Identificação e separação de oradores",
     "Player sincronizado com áudio e timestamps",
     "Sigilo profissional e deleção automática",
   ],
-  cta: "Testar 5 Minutos Grátis",
+  cta: "Testar 25 Minutos Grátis",
   popular: false,
   badge: "Teste Sem Cartão",
   href: "/login?signup=true",
@@ -708,7 +708,7 @@ export default function LegalInteractiveView() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "#E2D9F3" }}>
               <Award size={17} color="#F59E0B" />
-              <span>5 minutos grátis imediatos no cadastro</span>
+              <span>25 minutos grátis renováveis a cada 7 dias</span>
             </div>
           </div>
 
@@ -1882,7 +1882,7 @@ export default function LegalInteractiveView() {
             </h2>
             <p style={{ color: "var(--text-muted, #9E96B3)", fontSize: "15px", marginTop: "8px", maxWidth: 680, margin: "8px auto 0" }}>
               Sem surpresas cambiais e sem contratos que prendem seu escritório. 
-              Comece com <strong>5 minutos grátis imediatos</strong> para testar na prática.
+              Comece com <strong>25 minutos grátis renováveis a cada 7 dias</strong> para testar na prática.
             </p>
 
             {/* Toggle: Planos Anuais (EM DESTAQUE) vs Pacotes Avulsos */}
@@ -2271,7 +2271,7 @@ export default function LegalInteractiveView() {
                 Garantia Incondicional de Satisfação:
               </strong>{" "}
               <span style={{ color: "var(--text-muted, #9E96B3)", fontSize: "13.5px" }}>
-                Comece com 5 minutos grátis imediatos. Se adquirir um pacote e não ficar satisfeito com a precisão jurídica, devolvemos 100% do seu valor em até 7 dias.
+                Comece com 25 minutos grátis renováveis a cada 7 dias. Se adquirir um pacote e não ficar satisfeito com a precisão jurídica, devolvemos 100% do seu valor em até 7 dias.
               </span>
             </div>
           </div>
@@ -2432,7 +2432,7 @@ export default function LegalInteractiveView() {
               }}
             >
               Junte-se a advogados e bancas jurídicas que economizam dezenas de horas toda semana.
-              Crie sua conta e receba <strong>5 minutos grátis imediatos</strong> para testar em uma audiência real.
+              Crie sua conta e receba <strong>25 minutos grátis renováveis a cada 7 dias</strong> para testar em uma audiência real.
             </p>
 
             <div

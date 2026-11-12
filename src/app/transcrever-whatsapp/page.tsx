@@ -14,7 +14,7 @@ const WhatsAppIcon = ({ size = 20, color = "#25D366" }: { size?: number; color?:
 export const metadata: Metadata = {
   title: "Transcrever Áudio do WhatsApp em Texto Online Grátis com IA",
   description:
-    "Converta áudios longos do WhatsApp (.opus, .ogg, .m4a) em texto legível e pontuado em segundos. Gere resumos automáticos com IA, poupe tempo e mantenha total sigilo. 5 minutos grátis!",
+    "Converta áudios longos do WhatsApp (.opus, .ogg, .m4a) em texto legível e pontuado em segundos. Gere resumos automáticos com IA, poupe tempo e mantenha total sigilo. 25 minutos grátis toda semana!",
   keywords: [
     "transcrever audio do whatsapp",
     "como transcrever audio do whatsapp",
@@ -123,7 +123,7 @@ export default function TranscreverWhatsAppPage() {
                 <CheckCircle2 size={14} color="#10B981" /> Suporte nativo a .OPUS, .OGG e .M4A
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-muted)" }}>
-                <CheckCircle2 size={14} color="#10B981" /> 5 minutos grátis sem cartão
+                <CheckCircle2 size={14} color="#10B981" /> 25 min grátis semanais sem cartão
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-muted)" }}>
                 <CheckCircle2 size={14} color="#10B981" /> Áudio excluído imediatamente (100% sigiloso)
@@ -269,7 +269,7 @@ export default function TranscreverWhatsAppPage() {
             Pare de perder tempo ouvindo áudios longos
           </h2>
           <p style={{ fontSize: "16px", color: "var(--text-muted)", marginBottom: "32px", lineHeight: 1.6 }}>
-            Experimente agora gratuitamente. Você ganha 5 minutos imediatamente ao se cadastrar, sem precisar cadastrar cartão de crédito.
+            Experimente agora gratuitamente. Você ganha 25 minutos imediatamente ao se cadastrar, renováveis a cada 7 dias, sem precisar cadastrar cartão de crédito.
           </p>
           <Link href="/login?signup=true" className="btn-primary" style={{ padding: "14px 32px", fontSize: "16px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
             Começar a Transcrever Grátis <ArrowRight size={18} />

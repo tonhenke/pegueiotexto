@@ -105,9 +105,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Salvar perfil inicial no Supabase (5 minutos padrão ou 15 minutos se veio do bônus)
+    // 4. Salvar perfil inicial no Supabase (25 minutos padrão renováveis a cada 7 dias)
     const isBonus15 = bonus_code === "15min";
-    let initialCredits = isBonus15 ? 15 : 5;
+    let initialCredits = isBonus15 ? 35 : 25;
     const nowIso = new Date().toISOString();
 
     try {
@@ -118,10 +118,30 @@ export async function POST(request: Request) {
         plan: "gratuito",
         credits_minutes: initialCredits,
         updated_at: nowIso,
+        last_free_renewal_at: nowIso,
       });
     } catch (profErr) {
-      console.warn("[Signup] Erro ao gravar perfil:", profErr);
+      try {
+        await sb.from("profiles").upsert({
+          id: userId,
+          email: cleanEmail,
+          name: cleanName,
+          plan: "gratuito",
+          credits_minutes: initialCredits,
+          updated_at: nowIso,
+        });
+      } catch (fallbackErr) {
+        console.warn("[Signup] Erro ao gravar perfil:", fallbackErr);
+      }
     }
+
+    try {
+      await sb.from("credit_transactions").insert({
+        user_id: userId,
+        amount_minutes: initialCredits,
+        type: "initial_free_credits",
+      });
+    } catch {}
 
     // 5. Se houver código de indicação (ref_code), processar bônus
     const cleanRef = ref_code ? String(ref_code).trim().toLowerCase() : "";
@@ -143,12 +163,12 @@ export async function POST(request: Request) {
 
         if (referrer && referrer.id !== userId) {
           // +10 min para quem indicou
-          const refCredits = Number(referrer.credits_minutes ?? 5) + 10;
+          const refCredits = Number(referrer.credits_minutes ?? 25) + 10;
           await sb.from("profiles").update({ credits_minutes: refCredits, updated_at: nowIso }).eq("id", referrer.id);
           upsertUser({ id: referrer.id, email: referrer.email, name: referrer.name, credits_minutes: refCredits });
 
-          // +10 min para o novo usuário (5 + 10 = 15)
-          initialCredits = 15;
+          // +10 min para o novo usuário (25 + 10 = 35)
+          initialCredits = 35;
           await sb.from("profiles").update({ credits_minutes: initialCredits, updated_at: nowIso }).eq("id", userId);
 
           // Gravar histórico de referral

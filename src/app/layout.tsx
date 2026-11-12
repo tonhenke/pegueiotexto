@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Peguei o Texto",
   },
   description:
-    "Transcreva qualquer vídeo do YouTube, Instagram Reels, TikTok, Vimeo ou arquivo em texto em segundos com Inteligência Artificial avançada. 98% de precisão em português. 5 minutos grátis!",
+    "Transcreva qualquer vídeo do YouTube, Instagram Reels, TikTok, Vimeo ou arquivo em texto em segundos com Inteligência Artificial avançada. 98% de precisão em português. 25 minutos grátis toda semana!",
   keywords: [
     "transcrever video",
     "transcrever video do youtube",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Peguei o Texto: Transcrição de Vídeos em Segundos com IA",
-    description: "Cole o link de qualquer vídeo da internet e receba a transcrição e legendas (.SRT) prontas em segundos. 5 minutos grátis!",
+    description: "Cole o link de qualquer vídeo da internet e receba a transcrição e legendas (.SRT) prontas em segundos. 25 minutos grátis toda semana!",
     url: "https://pegueiotexto.com.br",
     siteName: "Peguei o Texto",
     type: "website",
@@ -92,7 +92,7 @@ const jsonLd = {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "BRL",
-        "description": "5 minutos grátis no cadastro para testar",
+        "description": "25 minutos grátis renováveis a cada 7 dias",
       },
     },
     {
@@ -119,7 +119,7 @@ const jsonLd = {
           "name": "Posso testar gratuitamente?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sim! Novos usuários recebem 5 minutos de transcrição gratuita automaticamente ao criar sua conta, sem necessidade de cartão de crédito.",
+            "text": "Sim! Novos usuários recebem 25 minutos de transcrição gratuita automaticamente ao criar sua conta, sem necessidade de cartão de crédito, renováveis a cada 7 dias.",
           },
         },
       ],

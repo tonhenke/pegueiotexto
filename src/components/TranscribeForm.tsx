@@ -656,11 +656,11 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
             <span>
               {isEnglish ? (
                 <>
-                  Video link restored! Your <strong>5 free minutes</strong> are ready to use. Click &quot;Transcribe Video Now&quot; below.
+                  Video link restored! Your <strong>25 free minutes</strong> are ready to use. Click &quot;Transcribe Video Now&quot; below.
                 </>
               ) : (
                 <>
-                  Link do seu vídeo recuperado! Seus <strong>5 minutos grátis</strong> já estão prontos para usar. Clique em &quot;Transcrever Vídeo Agora&quot; abaixo.
+                  Link do seu vídeo recuperado! Seus <strong>25 minutos grátis</strong> já estão prontos para usar. Clique em &quot;Transcrever Vídeo Agora&quot; abaixo.
                 </>
               )}
             </span>

@@ -110,7 +110,7 @@ export default function GerarLegendasSrtPage() {
                 <CheckCircle2 size={14} color="#10B981" /> Compatível com CapCut e Premiere
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-muted)" }}>
-                <CheckCircle2 size={14} color="#10B981" /> 5 minutos de teste grátis
+                <CheckCircle2 size={14} color="#10B981" /> 25 min grátis toda semana
               </span>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function GerarLegendasSrtPage() {
               },
               {
                 q: "Preciso pagar para gerar arquivos .SRT?",
-                a: "Não! Ao criar sua conta você recebe 5 minutos gratuitos para gerar e baixar arquivos .SRT sem nenhum custo."
+                a: "Não! Ao criar sua conta você recebe 25 minutos gratuitos para gerar e baixar arquivos .SRT sem nenhum custo, renováveis a cada 7 dias."
               }
             ].map((item, i) => (
               <div key={i} className="glass-card" style={{ padding: "24px" }}>

@@ -1,6 +1,7 @@
 import os
 import math
 from typing import Optional, Dict, Any, List
+from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 from app.config import env_path
 from dotenv import load_dotenv
@@ -59,13 +60,128 @@ def get_user_profile(user_id: str) -> Optional[Dict[str, Any]]:
         print(f"[Database] Erro ao buscar perfil ({user_id}): {e}")
     return None
 
+def ensure_free_credits_renewal(user_id: str, profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Business rule: Free accounts have a weekly non-cumulative quota of 25 minutes.
+    Every 7 days, if credits_minutes < 25, it is restored to 25 minutes.
+    Paid users (or users with >= 900000 min) are never modified.
+    """
+    sb = get_supabase(admin=True)
+    if profile is None:
+        profile = get_user_profile(user_id)
+
+    if not profile:
+        return {"credits_minutes": 25, "renewed": False, "days_until_renewal": 7, "next_free_renewal": None}
+
+    plan_id = str(profile.get("plan") or "gratuito").strip().lower()
+    user_email = str(profile.get("email") or "").strip().lower()
+    current_credits = int(profile.get("credits_minutes") if profile.get("credits_minutes") is not None else 25)
+
+    # Paid or unlimited users are exempt
+    is_paid = plan_id in ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"] or user_email == "tonhenke@gmail.com" or current_credits >= 900000
+    if is_paid:
+        return {
+            "credits_minutes": 999999 if (plan_id in ["ilimitado", "unlimited"] or current_credits >= 900000) else current_credits,
+            "renewed": False,
+            "days_until_renewal": None,
+            "next_free_renewal": None
+        }
+
+    now = datetime.now(timezone.utc)
+
+    # Determine reference date for the last renewal
+    last_renewal_dt: Optional[datetime] = None
+    if profile.get("last_free_renewal_at"):
+        try:
+            last_renewal_dt = datetime.fromisoformat(str(profile["last_free_renewal_at"]).replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    if not last_renewal_dt:
+        try:
+            tx = sb.table("credit_transactions") \
+                .select("created_at") \
+                .eq("user_id", user_id) \
+                .in_("type", ["weekly_free_renewal", "initial_free_credits"]) \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            if tx.data and len(tx.data) > 0 and tx.data[0].get("created_at"):
+                last_renewal_dt = datetime.fromisoformat(str(tx.data[0]["created_at"]).replace("Z", "+00:00"))
+        except Exception as e:
+            print(f"[Renewal] Erro ao buscar tx: {e}")
+
+    if not last_renewal_dt and profile.get("created_at"):
+        try:
+            last_renewal_dt = datetime.fromisoformat(str(profile["created_at"]).replace("Z", "+00:00"))
+        except Exception:
+            pass
+
+    if not last_renewal_dt:
+        last_renewal_dt = now
+
+    elapsed_days = (now - last_renewal_dt).total_seconds() / 86400.0
+
+    # If account was created under old 5m rule or has < 25 min and never recorded a renewal:
+    needs_initial_bump = current_credits < 25 and not profile.get("last_free_renewal_at") and elapsed_days < 7.0
+    should_renew = elapsed_days >= 7.0 or needs_initial_bump
+
+    renewed = False
+    new_credits = current_credits
+
+    if should_renew:
+        if current_credits < 25:
+            new_credits = 25
+            renewed = True
+
+            # Update profiles table
+            try:
+                sb.table("profiles").update({"credits_minutes": 25, "last_free_renewal_at": now.isoformat()}).eq("id", user_id).execute()
+            except Exception as e:
+                err_str = str(e)
+                if "last_free_renewal_at" in err_str or "42703" in err_str:
+                    try:
+                        sb.table("profiles").update({"credits_minutes": 25}).eq("id", user_id).execute()
+                    except Exception as e2:
+                        print(f"[Renewal] Erro ao atualizar profiles credits: {e2}")
+                else:
+                    print(f"[Renewal] Erro ao atualizar profiles: {e}")
+
+            # Record in credit_transactions
+            try:
+                sb.table("credit_transactions").insert({
+                    "user_id": user_id,
+                    "amount_minutes": 25 - current_credits,
+                    "type": "weekly_free_renewal"
+                }).execute()
+            except Exception as e:
+                print(f"[Renewal] Erro ao registrar credit_transaction: {e}")
+
+        # Advance renewal reference date to now
+        last_renewal_dt = now
+        elapsed_days = 0.0
+
+    days_until_renewal = max(0, int(math.ceil(7.0 - elapsed_days)))
+    next_renewal_iso = (last_renewal_dt + timedelta(days=7)).isoformat()
+
+    return {
+        "credits_minutes": new_credits,
+        "renewed": renewed,
+        "days_until_renewal": days_until_renewal,
+        "next_free_renewal": next_renewal_iso
+    }
+
 def get_user_active_plan(user_id: str) -> Dict[str, Any]:
     """
     Determines user's active plan by checking profiles.plan or recent credit_transactions.
+    Also ensures weekly free credits renewal for free tier accounts.
     """
     sb = get_supabase(admin=True)
     profile = get_user_profile(user_id)
-    credits = int(profile.get("credits_minutes", 5)) if profile else 5
+
+    # Ensure lazy free credits renewal
+    renewal = ensure_free_credits_renewal(user_id, profile)
+    credits = renewal["credits_minutes"]
 
     plan_id = "gratuito"
     if profile and profile.get("plan"):
@@ -108,7 +224,9 @@ def get_user_active_plan(user_id: str) -> Dict[str, Any]:
         "plan_name": plan_names.get(plan_id, "Ilimitado" if is_unlimited else plan_id.capitalize()),
         "credits_minutes": 999999 if is_unlimited else credits,
         "is_paid": plan_id in ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual", "ilimitado", "unlimited"],
-        "is_unlimited": is_unlimited
+        "is_unlimited": is_unlimited,
+        "days_until_renewal": renewal.get("days_until_renewal"),
+        "next_free_renewal": renewal.get("next_free_renewal")
     }
 
 def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, Any]:
@@ -118,18 +236,34 @@ def check_and_deduct_credits(user_id: str, duration_seconds: int) -> Dict[str, A
     sb = get_supabase(admin=True)
     profile = get_user_profile(user_id)
     if not profile:
-        # Auto-create profile if missing with 5 free initial credits
+        # Auto-create profile if missing with 25 free initial credits
+        now_iso = datetime.now(timezone.utc).isoformat()
         try:
             sb.table("profiles").insert({
                 "id": user_id,
-                "credits_minutes": 5,
+                "credits_minutes": 25,
                 "email": "",
-                "plan": "gratuito"
+                "plan": "gratuito",
+                "last_free_renewal_at": now_iso
             }).execute()
-            profile = {"id": user_id, "credits_minutes": 5, "plan": "gratuito"}
-        except Exception as e:
-            print(f"[Database] Erro ao criar perfil padrão: {e}")
-            profile = {"id": user_id, "credits_minutes": 5, "plan": "gratuito"}
+            profile = {"id": user_id, "credits_minutes": 25, "plan": "gratuito", "last_free_renewal_at": now_iso}
+        except Exception:
+            try:
+                sb.table("profiles").insert({
+                    "id": user_id,
+                    "credits_minutes": 25,
+                    "email": "",
+                    "plan": "gratuito"
+                }).execute()
+                profile = {"id": user_id, "credits_minutes": 25, "plan": "gratuito"}
+            except Exception as e:
+                print(f"[Database] Erro ao criar perfil padrão: {e}")
+                profile = {"id": user_id, "credits_minutes": 25, "plan": "gratuito"}
+    else:
+        # Ensure lazy free credits renewal before checking balance
+        renewal = ensure_free_credits_renewal(user_id, profile)
+        if renewal.get("renewed"):
+            profile["credits_minutes"] = renewal["credits_minutes"]
 
     current_balance = int(profile.get("credits_minutes", 0))
     user_plan = str(profile.get("plan", "")).lower().strip()
@@ -246,7 +380,7 @@ def add_user_credits(
 
     # 3. Direct table update / upsert
     profile = get_user_profile(user_id)
-    current_balance = int(profile.get("credits_minutes", 5)) if profile else 5
+    current_balance = int(profile.get("credits_minutes", 25)) if profile else 25
     new_balance = current_balance + minutes_to_add
 
     update_data = {

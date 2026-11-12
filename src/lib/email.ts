@@ -91,7 +91,7 @@ export async function sendWelcomeEmail({
           </h1>
 
           <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 20px;">
-            Sua conta foi criada com sucesso! Para você já começar a aproveitar, acabamos de liberar <strong>5 minutos de transcrição gratuita</strong> no seu saldo.
+            Sua conta foi criada com sucesso! Para você já começar a aproveitar, acabamos de liberar <strong>25 minutos de transcrição gratuita</strong> no seu saldo, renováveis a cada 7 dias.
           </p>
 
           <!-- HIGHLIGHT BOX -->
@@ -164,7 +164,7 @@ export async function sendWelcomeEmail({
     const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to,
-      subject: "🎉 Bem-vindo ao Peguei o Texto! Seus 5 minutos grátis estão liberados",
+      subject: "🎉 Bem-vindo ao Peguei o Texto! Seus 25 minutos grátis estão liberados",
       html,
     });
     console.log(`[Email] Boas-vindas enviado com sucesso para ${to} (MessageId: ${info.messageId})`);
@@ -660,7 +660,7 @@ export async function sendOtpEmail({
           </h1>
 
           <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 24px;">
-            Para validar seu e-mail e <strong>liberar seus 5 minutos grátis</strong> de transcrição no Peguei o Texto, insira o código de segurança abaixo:
+            Para validar seu e-mail e <strong>liberar seus 25 minutos grátis</strong> de transcrição no Peguei o Texto, insira o código de segurança abaixo:
           </p>
 
           <!-- OTP CODE BOX -->

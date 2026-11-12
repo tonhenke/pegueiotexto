@@ -713,7 +713,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
           border: "1px solid rgba(156, 163, 175, 0.3)",
         }}
       >
-        <Sparkles size={12} color="#9CA3AF" /> Gratuito (5 min)
+        <Sparkles size={12} color="#9CA3AF" /> Gratuito (25 min / semana)
       </span>
     );
   };
@@ -1595,7 +1595,7 @@ export default function AdminHub({ initialTab = "usuarios" }: Props) {
                               fontSize: "14px",
                             }}
                           >
-                            <option value="gratuito">Gratuito (5 min)</option>
+                            <option value="gratuito">Gratuito (25 min / semana)</option>
                             <option value="starter">Starter (60 min)</option>
                             <option value="starter_annual">Starter Anual (720 min)</option>
                             <option value="pro">Pro (180 min)</option>

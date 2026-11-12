@@ -8,7 +8,7 @@ import { Sparkles, CheckCircle2, Zap, Shield, FileText, ArrowRight, Briefcase, U
 export const metadata: Metadata = {
   title: "Transcrição de Reuniões e Ata Automática com IA | Peguei o Texto",
   description:
-    "Transcreva reuniões do Google Meet, Zoom e Microsoft Teams em segundos. Gere atas executivas automáticas com IA, resumo dos pontos centrais e plano de ação com tarefas e prazos. 5 minutos grátis!",
+    "Transcreva reuniões do Google Meet, Zoom e Microsoft Teams em segundos. Gere atas executivas automáticas com IA, resumo dos pontos centrais e plano de ação com tarefas e prazos. 25 minutos grátis toda semana!",
   keywords: [
     "transcricao de reunioes online",
     "gerar ata de reuniao automatica com ia",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Transcrição de Reuniões e Ata com IA | Peguei o Texto",
-    description: "Nunca mais perca tempo redigindo atas manuais. Transcreva reuniões e gere planos de ação em segundos com IA. Teste 5 minutos grátis!",
+    description: "Nunca mais perca tempo redigindo atas manuais. Transcreva reuniões e gere planos de ação em segundos com IA. Teste 25 minutos grátis toda semana!",
     url: "https://pegueiotexto.com.br/transcricao-de-reunioes",
   },
 };
@@ -120,7 +120,7 @@ export default function TranscricaoDeReunioesPage() {
                 <CheckCircle2 size={14} color="#10B981" /> Ata em tópicos e Plano de Ação automático
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--text-muted)" }}>
-                <CheckCircle2 size={14} color="#10B981" /> 5 minutos grátis imediatos
+                <CheckCircle2 size={14} color="#10B981" /> 25 min grátis toda semana
               </span>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function TranscricaoDeReunioesPage() {
             Crie sua próxima ata de reunião em segundos
           </h2>
           <p style={{ fontSize: "16px", color: "var(--text-muted)", marginBottom: "32px", lineHeight: 1.6 }}>
-            Cadastre-se gratuitamente e receba 5 minutos para testar a transcrição da sua equipe agora mesmo.
+            Cadastre-se gratuitamente e receba 25 minutos para testar a transcrição da sua equipe agora mesmo, renováveis toda semana.
           </p>
           <Link href="/login?signup=true" className="btn-primary" style={{ padding: "14px 32px", fontSize: "16px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px" }}>
             Gerar Ata Grátis <ArrowRight size={18} />

@@ -12,14 +12,15 @@ const freePlan = {
   name: "Gratuito",
   displayPrice: "R$ 0",
   displayPeriod: "/ grátis",
-  billingDetail: "Gratuito para sempre",
+  billingDetail: "Renova toda semana",
   installment: "Sem necessidade de cartão",
   savings: "Sem cartão",
-  minutes: "5 min para começar",
-  desc: "Ideal para testar a qualidade e transcrever seus primeiros vídeos",
+  minutes: "25 min / semana",
+  desc: "Ideal para testar a qualidade com 25 minutos renovados a cada 7 dias",
   color: "#10B981",
   features: [
-    "5 minutos grátis imediatos no cadastro",
+    "25 minutos grátis renováveis a cada 7 dias",
+    "Saldo restaurado para 25 min toda semana",
     "Suporte a YouTube, Instagram, TikTok e +1.700 sites",
     "Transcrição de alta precisão com Inteligência Artificial",
     "Download do texto em arquivo .TXT",
@@ -187,7 +188,7 @@ const annualSubscriptions = [
 const faqs = [
   {
     q: "O que está incluso no plano gratuito?",
-    a: "Ao criar sua conta, você recebe 5 minutos grátis automaticamente para testar qualquer transcrição de vídeo ou áudio, sem precisar cadastrar cartão de crédito. Além disso, pelo nosso programa de indicação, você ganha mais 10 minutos a cada amigo que criar conta com o seu link.",
+    a: "Ao criar sua conta, você recebe 25 minutos grátis automaticamente para testar qualquer transcrição de vídeo ou áudio, renováveis a cada 7 dias, sem precisar cadastrar cartão de crédito. Além disso, pelo nosso programa de indicação, você ganha mais 10 minutos a cada amigo que criar conta com o seu link.",
   },
   {
     q: "Como funciona a assinatura anual com desconto?",
