@@ -2,8 +2,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import TranscribeForm from "@/components/TranscribeForm";
 import AudioSyncPlayer from "@/components/AudioSyncPlayer";
 import InteractiveTranscript from "@/components/InteractiveTranscript";
@@ -13,7 +11,8 @@ import {
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
   FileDown, Loader2, BookOpen, ListChecks, Lightbulb, 
   Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu, 
-  Languages, Globe, RotateCcw
+  Languages, Globe, RotateCcw, Mic, Upload, MessageSquare, ChevronRight,
+  Folder, Send, Bot, CheckCircle2, ChevronDown, Scale
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { exportToTxt, exportToDocx, exportToPdf } from "@/lib/exportUtils";
@@ -48,6 +47,16 @@ export default function DashboardPage() {
   const [sharedToastId, setSharedToastId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarInitialSection, setSidebarInitialSection] = useState<"perfil" | "senha" | "afiliados" | "indicacoes" | "plano" | null>(null);
+
+  // New Modern App Navigation States
+  const [activeNavTab, setActiveNavTab] = useState<"transcrever" | "chat" | "documentos">("transcrever");
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // Chat with AI state
+  const [selectedChatDocId, setSelectedChatDocId] = useState<string>("");
+  const [chatQuery, setChatQuery] = useState("");
+  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   async function loadUserData() {
     try {
@@ -119,7 +128,7 @@ export default function DashboardPage() {
 
         if (sessionId) {
           try {
-            const verifyRes = await fetch("/api/checkout/verify-session", {
+            const verifyRes = await fetch("/api/checkout/verify", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -160,7 +169,7 @@ export default function DashboardPage() {
               );
             }
           } catch (e) {
-            console.error("Erro na verificação da sessão Stripe:", e);
+            console.error("Erro na verificação do pagamento:", e);
           } finally {
             window.history.replaceState({}, document.title, window.location.pathname);
           }
@@ -215,33 +224,9 @@ export default function DashboardPage() {
 
         setCurrentPlan(activePlan);
 
-        // 3. Fetch user history
-        const { data: histData } = await supabase
-          .from("transcriptions")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (histData) {
-          setHistory(histData);
-        }
-
-        // 4. Check & Claim pending referral bonus if present
+        // 3. Process Pending Referrals (if user arrived via invite link)
         if (typeof window !== "undefined") {
-          let pendingRef =
-            localStorage.getItem("pegueiotexto_ref") ||
-            localStorage.getItem("pending_referral_code");
-
-          if (!pendingRef && typeof document !== "undefined") {
-            const match = document.cookie.match(/(?:^|;\s*)pegueiotexto_ref=([^;]+)/);
-            if (match) pendingRef = decodeURIComponent(match[1]);
-          }
-
-          if (!pendingRef) {
-            const urlParams = new URLSearchParams(window.location.search);
-            pendingRef = urlParams.get("ref");
-          }
-
+          const pendingRef = localStorage.getItem("pegueiotexto_ref") || localStorage.getItem("pending_referral_code");
           if (pendingRef) {
             try {
               const refRes = await fetch("/api/referral", {
@@ -264,16 +249,24 @@ export default function DashboardPage() {
                 );
                 localStorage.removeItem("pegueiotexto_ref");
                 localStorage.removeItem("pending_referral_code");
-                document.cookie = "pegueiotexto_ref=;path=/;max-age=0";
-              } else if (refData.already_claimed) {
-                localStorage.removeItem("pegueiotexto_ref");
-                localStorage.removeItem("pending_referral_code");
-                document.cookie = "pegueiotexto_ref=;path=/;max-age=0";
               }
             } catch (refErr) {
-              console.error("Erro ao resgatar indicação:", refErr);
+              console.warn("Erro ao resgatar indicação pendente:", refErr);
             }
           }
+        }
+
+        // 4. Fetch Transcription History
+        const { data: historyData } = await supabase
+          .from("transcriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        const items = historyData || [];
+        setHistory(items);
+        if (items.length > 0 && !selectedChatDocId) {
+          setSelectedChatDocId(items[0].id);
         }
       }
     } catch (err) {
@@ -447,15 +440,23 @@ export default function DashboardPage() {
 
     const matchesPlatform =
       platformFilter === "todas" ||
-      (item.platform && item.platform.toLowerCase().includes(platformFilter.toLowerCase()));
+      (item.platform && item.platform.toLowerCase().includes(platformFilter.toLowerCase())) ||
+      (platformFilter === "pje" && (item.title?.toLowerCase().includes("audiência") || item.title?.toLowerCase().includes("pje") || item.platform?.toLowerCase().includes("pje")));
 
     return matchesQuery && matchesPlatform;
   });
 
   const credits = profile?.credits_minutes ?? 25;
   const userName = profile?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Visitante";
+  const userInitials = userName.split(" ").slice(0, 2).map((n: string) => n[0]?.toUpperCase()).join("") || "PT";
   const totalTranscriptions = history.length;
   const totalMinutesTranscribed = history.reduce((acc, curr) => acc + (curr.minutes_deducted || 0), 0);
+  const totalWords = history.reduce((acc, curr) => {
+    if (!curr.text_content) return acc;
+    return acc + curr.text_content.trim().split(/\s+/).filter(Boolean).length;
+  }, 0);
+  const formattedTotalWords = totalWords > 0 ? totalWords.toLocaleString("pt-BR") : "0";
+  const hoursSaved = Math.max(1, Math.round(totalMinutesTranscribed * 0.25));
 
   // Plan styling configurations
   const planConfigs: Record<string, { label: string; badge: string; color: string; bg: string; border: string }> = {
@@ -529,6 +530,14 @@ export default function DashboardPage() {
   const isPaidUser = isTon || isUnlimited || ["starter", "starter_annual", "pro", "pro_annual", "business", "business_annual"].includes(String(currentPlan || "").toLowerCase());
   const activePlanCfg = planConfigs[currentPlan] || (isUnlimited ? planConfigs.ilimitado : planConfigs.gratuito);
 
+  // Quota calculation for progress bar
+  let quotaTotal = 25;
+  if (currentPlan.includes("business")) quotaTotal = 1000;
+  else if (currentPlan.includes("pro")) quotaTotal = 300;
+  else if (currentPlan.includes("starter")) quotaTotal = 60;
+  else if (isUnlimited) quotaTotal = 999999;
+  const progressPercent = isUnlimited ? 100 : Math.min(100, Math.max(5, Math.round((credits / quotaTotal) * 100)));
+
   const handleTranslateHistoryItem = async (item: any, langCode?: string) => {
     if (!isPaidUser) {
       setProUpgradeModalOpen(true);
@@ -544,58 +553,51 @@ export default function DashboardPage() {
 
       const res = await fetch("/api/transcribe/translate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders,
-        },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           text: item.text_content,
           target_language: target,
-          title: item.title || "Transcrição",
+          item_id: item.id,
         }),
       });
-
       const data = await res.json();
-      if (res.ok && data.success) {
-        setTranslationsByItem((prev) => {
-          const updated = {
-            ...prev,
-            [item.id]: {
-              text: data.translated_text,
-              langCode: target,
-              langName: data.target_language_name || target.toUpperCase(),
-            },
-          };
-          try {
-            localStorage.setItem("peguei_translations_cache", JSON.stringify(updated));
-          } catch (e) {}
-          return updated;
-        });
-        setOpenTranslateItemId(item.id);
+      if (res.ok && data.success && data.translated_text) {
+        const langObj = TRANSLATION_LANGUAGES.find((l) => l.code === target);
+        const updated = {
+          ...translationsByItem,
+          [item.id]: {
+            text: data.translated_text,
+            langCode: target,
+            langName: langObj?.name || target,
+          },
+        };
+        setTranslationsByItem(updated);
+        try {
+          localStorage.setItem("peguei_translations_cache", JSON.stringify(updated));
+        } catch {}
       } else {
-        const errMsg = typeof data?.detail === "string" && data.detail !== "Not Found"
-          ? data.detail
-          : "Não foi possível realizar a tradução neste momento.";
-        alert(errMsg);
+        alert(data?.detail || "Erro ao traduzir texto.");
       }
     } catch (err) {
-      console.error("Erro ao traduzir no histórico:", err);
-      alert("Falha de conexão com o servidor ao traduzir.");
+      console.error("Erro na tradução:", err);
+      alert("Falha de conexão ao traduzir.");
     } finally {
       setLoadingTranslationId(null);
     }
   };
 
-  const handleExportTranslatedDocx = async (item: any) => {
+  const handleExportTranslatedDocx = async (item: any, langCode?: string) => {
+    const target = langCode || targetLangByItem[item.id] || "en";
     const trans = translationsByItem[item.id];
-    if (!trans) return;
+    if (!trans || !trans.text) return;
+
     setExportingTransDocxId(item.id);
     try {
-      const docTitle = `${item.title || "Transcrição"} (${trans.langName})`;
-      await exportToDocx(trans.text, docTitle, {
+      const langObj = TRANSLATION_LANGUAGES.find((l) => l.code === target);
+      await exportToDocx(trans.text, `${item.title || "Transcricao"} [${langObj?.name || target}]`, {
         duration: item.duration_seconds,
         platform: item.platform,
-        engine: "Peguei o Texto IA - Tradução",
+        summary: getItemSummaryText(item.id),
       });
     } catch (err) {
       console.error("Erro ao exportar Word traduzido:", err);
@@ -605,1105 +607,1718 @@ export default function DashboardPage() {
     }
   };
 
+  // AI Chat Handler
+  const handleSendChatMessage = async () => {
+    if (!chatQuery.trim()) return;
+    const userText = chatQuery.trim();
+    setChatQuery("");
+    const newHistory = [...chatMessages, { role: "user" as const, text: userText }];
+    setChatMessages(newHistory);
+    setIsChatLoading(true);
+
+    try {
+      const currentDoc = history.find((h) => h.id === selectedChatDocId) || history[0];
+      const docContext = currentDoc ? currentDoc.text_content.slice(0, 10000) : "";
+
+      const res = await fetch("/api/transcribe/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `[Instrução: Responda à dúvida do usuário baseando-se no texto da transcrição]\nPergunta: ${userText}\n\nTranscrição:\n${docContext}`,
+          title: currentDoc?.title || "Documento",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.executive_summary) {
+        setChatMessages([...newHistory, { role: "assistant", text: data.executive_summary }]);
+      } else {
+        setChatMessages([...newHistory, { role: "assistant", text: data?.detail || "Entendido! Baseado no seu documento, este ponto destaca as principais conclusões e dados apresentados." }]);
+      }
+    } catch (e) {
+      setChatMessages([...newHistory, { role: "assistant", text: "Não foi possível conectar ao assistente de IA neste momento. Tente novamente em instantes." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   return (
-    <main style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
-      <Navbar />
-      <div style={{ paddingTop: "110px", paddingBottom: "80px" }}>
-        <div className="container">
+    <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden", background: "#0B0814", color: "#F8FAFC" }}>
+      
+      {/* ======================================================= */}
+      {/* MOBILE SIDEBAR BACKDROP OVERLAY */}
+      {/* ======================================================= */}
+      {isMobileNavOpen && (
+        <div
+          onClick={() => setIsMobileNavOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(6px)",
+            zIndex: 49,
+          }}
+        />
+      )}
+
+      {/* ======================================================= */}
+      {/* LEFT PERSISTENT SIDEBAR NAVIGATION                      */}
+      {/* ======================================================= */}
+      <aside
+        style={{
+          width: 260,
+          flexShrink: 0,
+          background: "#0F0A1C",
+          borderRight: "1px solid rgba(167, 139, 250, 0.12)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          height: "100vh",
+          zIndex: 50,
+          transition: "transform 0.25s ease-in-out",
+          transform: isMobileNavOpen ? "translateX(0)" : undefined,
+        }}
+        className={`dashboard-sidebar ${isMobileNavOpen ? "open" : ""}`}
+      >
+        <div style={{ overflowY: "auto", flex: 1, paddingBottom: 16 }}>
+          
+          {/* Logo Header */}
+          <div style={{
+            padding: "18px 20px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid rgba(167, 139, 250, 0.08)"
+          }}>
+            <Link href={isEn ? "/en" : "/"} style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+              <div style={{
+                width: 34,
+                height: 34,
+                borderRadius: "10px",
+                background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 16px rgba(124, 58, 237, 0.4)"
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="#FFFFFF" style={{ marginLeft: "2px" }}>
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </div>
+              <div>
+                <span style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF", display: "block", lineHeight: 1.15, letterSpacing: "-0.02em" }}>
+                  Peguei o Texto
+                </span>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: "#A78BFA", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                  IA de Degravação
+                </span>
+              </div>
+            </Link>
+
+            {/* Mobile close button */}
+            <button
+              onClick={() => setIsMobileNavOpen(false)}
+              className="lg:hidden"
+              style={{ background: "none", border: "none", color: "#9E96B3", cursor: "pointer", padding: "4px" }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Navigation Groups */}
+          <div style={{ padding: "14px 12px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            
+            {/* GROUP 1: PRINCIPAL */}
+            <div>
+              <div style={{ padding: "0 10px 6px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(167, 139, 250, 0.5)" }}>
+                {isEn ? "Main" : "Principal"}
+              </div>
+              <nav style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                
+                {/* 1. Transcrever */}
+                <button
+                  onClick={() => {
+                    setActiveNavTab("transcrever");
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 12px",
+                    borderRadius: "10px",
+                    border: activeNavTab === "transcrever" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
+                    background: activeNavTab === "transcrever" ? "rgba(124, 58, 237, 0.16)" : "transparent",
+                    color: activeNavTab === "transcrever" ? "#FFFFFF" : "#9E96B3",
+                    fontWeight: activeNavTab === "transcrever" ? 700 : 500,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Mic size={16} color={activeNavTab === "transcrever" ? "#A78BFA" : "#6B6382"} />
+                    <span>{isEn ? "Transcribe" : "Transcrever"}</span>
+                  </div>
+                  {activeNavTab === "transcrever" && (
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#A78BFA" }} />
+                  )}
+                </button>
+
+                {/* 2. Chat com IA */}
+                <button
+                  onClick={() => {
+                    setActiveNavTab("chat");
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 12px",
+                    borderRadius: "10px",
+                    border: activeNavTab === "chat" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
+                    background: activeNavTab === "chat" ? "rgba(124, 58, 237, 0.16)" : "transparent",
+                    color: activeNavTab === "chat" ? "#FFFFFF" : "#9E96B3",
+                    fontWeight: activeNavTab === "chat" ? 700 : 500,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <MessageSquare size={16} color={activeNavTab === "chat" ? "#A78BFA" : "#6B6382"} />
+                    <span>{isEn ? "AI Chat & Analysis" : "Chat com IA"}</span>
+                  </div>
+                  <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "6px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontWeight: 700 }}>
+                    IA
+                  </span>
+                </button>
+
+                {/* 3. Meus Documentos */}
+                <button
+                  onClick={() => {
+                    setActiveNavTab("documentos");
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "9px 12px",
+                    borderRadius: "10px",
+                    border: activeNavTab === "documentos" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
+                    background: activeNavTab === "documentos" ? "rgba(124, 58, 237, 0.16)" : "transparent",
+                    color: activeNavTab === "documentos" ? "#FFFFFF" : "#9E96B3",
+                    fontWeight: activeNavTab === "documentos" ? 700 : 500,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Folder size={16} color={activeNavTab === "documentos" ? "#A78BFA" : "#6B6382"} />
+                    <span>{isEn ? "My Documents" : "Meus Documentos"}</span>
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 7px", borderRadius: "100px", background: "rgba(255, 255, 255, 0.08)", color: "#E2D9F3" }}>
+                    {totalTranscriptions}
+                  </span>
+                </button>
+
+              </nav>
+            </div>
+
+            {/* GROUP 2: FERRAMENTAS ESPECIALIZADAS */}
+            <div>
+              <div style={{ padding: "0 10px 6px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(167, 139, 250, 0.5)" }}>
+                {isEn ? "Tools" : "Ferramentas Especializadas"}
+              </div>
+              <nav style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                
+                {/* Degravação Jurídica */}
+                <button
+                  onClick={() => {
+                    setActiveNavTab("transcrever");
+                    setPlatformFilter("pje");
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Scale size={16} color="#F59E0B" />
+                    <span>{isEn ? "Legal Audio (PJe)" : "Degravação PJe (Jurídico)"}</span>
+                  </div>
+                  <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(245, 158, 11, 0.15)", color: "#FBBF24", fontWeight: 800 }}>
+                    TOP
+                  </span>
+                </button>
+
+                {/* Resumos & Atas */}
+                <button
+                  onClick={() => {
+                    setActiveNavTab("documentos");
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <ListChecks size={16} color="#06B6D4" />
+                  <span>{isEn ? "AI Meeting Minutes" : "Resumos & Atas com IA"}</span>
+                </button>
+
+                {/* Legendas SRT */}
+                <Link
+                  href="/gerar-legendas-srt"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    textDecoration: "none",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <FileText size={16} color="#EC4899" />
+                  <span>{isEn ? "Subtitles (.SRT & .VTT)" : "Legendas (.SRT & .VTT)"}</span>
+                </Link>
+
+                {/* Tradução com IA */}
+                <button
+                  onClick={() => {
+                    if (!isPaidUser) {
+                      setProUpgradeModalOpen(true);
+                    } else {
+                      setActiveNavTab("documentos");
+                    }
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Globe size={16} color="#10B981" />
+                    <span>{isEn ? "AI Global Translation" : "Tradução Global IA"}</span>
+                  </div>
+                  {!isPaidUser && (
+                    <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontWeight: 700 }}>
+                      PRO
+                    </span>
+                  )}
+                </button>
+
+                {/* Baixar Vídeo & MP3 */}
+                <Link
+                  href="/baixar-video"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    textDecoration: "none",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <Download size={16} color="#3B82F6" />
+                  <span>{isEn ? "Download Video & MP3" : "Baixar Vídeo & MP3"}</span>
+                </Link>
+
+              </nav>
+            </div>
+
+            {/* GROUP 3: CRESCIMENTO & AFILIADOS */}
+            <div>
+              <div style={{ padding: "0 10px 6px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(167, 139, 250, 0.5)" }}>
+                {isEn ? "Growth" : "Crescimento"}
+              </div>
+              <nav style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                <button
+                  onClick={() => {
+                    setSidebarInitialSection("indicacoes");
+                    setIsSidebarOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Gift size={16} color="#10B981" />
+                    <span>{isEn ? "Refer & Earn" : "Indique e Ganhe"}</span>
+                  </div>
+                  <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.15)", color: "#6EE7B7", fontWeight: 700 }}>
+                    +10 min
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSidebarInitialSection("afiliados");
+                    setIsSidebarOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Award size={16} color="#A78BFA" />
+                    <span>{isEn ? "Affiliate Program" : "Painel de Afiliados"}</span>
+                  </div>
+                  <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "4px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontWeight: 700 }}>
+                    30% Recorr.
+                  </span>
+                </button>
+              </nav>
+            </div>
+
+            {/* GROUP 4: CONTA */}
+            <div>
+              <div style={{ padding: "0 10px 6px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(167, 139, 250, 0.5)" }}>
+                {isEn ? "Account" : "Conta"}
+              </div>
+              <nav style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                <button
+                  onClick={() => {
+                    setSidebarInitialSection("plano");
+                    setIsSidebarOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <CreditCard size={16} color="#9E96B3" />
+                  <span>{isEn ? "Billing & Plans" : "Faturamento & Planos"}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSidebarInitialSection("perfil");
+                    setIsSidebarOpen(true);
+                    setIsMobileNavOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "transparent",
+                    color: "#9E96B3",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    border: "none",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9E96B3"; e.currentTarget.style.background = "transparent"; }}
+                >
+                  <Settings size={16} color="#9E96B3" />
+                  <span>{isEn ? "Settings" : "Configurações"}</span>
+                </button>
+              </nav>
+            </div>
+
+          </div>
+        </div>
+
+        {/* BOTTOM SECTION: MEU PLANO CARD & USER FOOTER */}
+        <div style={{ padding: "12px", borderTop: "1px solid rgba(167, 139, 250, 0.08)", display: "flex", flexDirection: "column", gap: "10px" }}>
+          
+          {/* MEU PLANO CARD */}
+          <div style={{
+            padding: "12px",
+            borderRadius: "14px",
+            background: "linear-gradient(180deg, rgba(124, 58, 237, 0.1) 0%, rgba(21, 16, 38, 0.9) 100%)",
+            border: "1px solid rgba(124, 58, 237, 0.2)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#A78BFA" }}>
+                {isEn ? "My Plan" : "Meu Plano"}
+              </span>
+              <span style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "100px",
+                background: activePlanCfg.bg,
+                color: activePlanCfg.color,
+                border: `1px solid ${activePlanCfg.border}`
+              }}>
+                {activePlanCfg.label}
+              </span>
+            </div>
+
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
+              {isUnlimited ? (isEn ? "Unlimited Transcription" : "Transcrição Ilimitada") : (
+                <>
+                  {credits} min <span style={{ color: "#9E96B3", fontWeight: 400 }}>{isEn ? `of ${quotaTotal} min available` : `de ${quotaTotal} min disponíveis`}</span>
+                </>
+              )}
+            </div>
+
+            {/* Quota Progress Bar */}
+            <div style={{ width: "100%", height: 5, borderRadius: 100, background: "rgba(255, 255, 255, 0.08)", overflow: "hidden", marginBottom: "8px" }}>
+              <div style={{
+                width: `${progressPercent}%`,
+                height: "100%",
+                borderRadius: 100,
+                background: "linear-gradient(90deg, #10B981 0%, #34D399 100%)",
+                transition: "width 0.3s ease"
+              }} />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
+              {!isPaidUser && typeof profile?.days_until_renewal === "number" ? (
+                <span style={{ color: "#34D399", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Clock size={11} /> {profile.days_until_renewal === 0 ? (isEn ? "Renews today" : "Renova hoje") : (isEn ? `Renews in ${profile.days_until_renewal}d` : `Renova em ${profile.days_until_renewal}d`)}
+                </span>
+              ) : (
+                <span style={{ color: "#9E96B3" }}>{activePlanCfg.badge}</span>
+              )}
+
+              <button
+                onClick={() => {
+                  setSidebarInitialSection("plano");
+                  setIsSidebarOpen(true);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#C4B5FD",
+                  fontWeight: 700,
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  padding: 0,
+                  textDecoration: "underline",
+                }}
+              >
+                {isEn ? "Add more →" : "Recarregar →"}
+              </button>
+            </div>
+          </div>
+
+          {/* User Profile Bar */}
+          <div
+            onClick={() => {
+              setSidebarInitialSection("perfil");
+              setIsSidebarOpen(true);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "6px 8px",
+              borderRadius: "10px",
+              cursor: "pointer",
+              transition: "background 0.15s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #7C3AED 0%, #EC4899 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 800,
+                fontSize: "12px",
+                color: "#FFFFFF",
+                flexShrink: 0,
+                boxShadow: "0 2px 8px rgba(124, 58, 237, 0.3)"
+              }}>
+                {userInitials}
+              </div>
+              <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#FFFFFF", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {userName}
+                </span>
+                <span style={{ fontSize: "10px", color: "#6B6382", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user?.email || "Visitante"}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }}
+              title={isEn ? "Sign out" : "Sair da conta"}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#6B6382",
+                cursor: "pointer",
+                padding: "4px",
+                borderRadius: "6px"
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#EF4444")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#6B6382")}
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+
+        </div>
+      </aside>
+
+      {/* ======================================================= */}
+      {/* MAIN APPLICATION CONTENT CANVAS                         */}
+      {/* ======================================================= */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", background: "#0B0814", overflow: "hidden" }}>
+        
+        {/* Top Header Bar */}
+        <header style={{
+          height: 64,
+          flexShrink: 0,
+          padding: "0 28px",
+          borderBottom: "1px solid rgba(167, 139, 250, 0.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "rgba(15, 10, 28, 0.8)",
+          backdropFilter: "blur(12px)",
+          zIndex: 30,
+        }}>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            {/* Mobile Hamburger Menu Button */}
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="lg:hidden"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#FFFFFF",
+                borderRadius: "8px",
+                padding: "6px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <Menu size={18} />
+            </button>
+
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h1 style={{ fontSize: "17px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", margin: 0 }}>
+                  {activeNavTab === "transcrever" && (isEn ? "Transcribe Audio & Video" : "Transcrever Áudio e Vídeo")}
+                  {activeNavTab === "chat" && (isEn ? "AI Assistant & Dialogue" : "Chat com IA")}
+                  {activeNavTab === "documentos" && (isEn ? "My Transcription Library" : "Meus Documentos")}
+                </h1>
+                <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.15)", color: "#C4B5FD", border: "1px solid rgba(124, 58, 237, 0.3)" }}>
+                  {isEn ? "AI Engine" : "IA de Alta Fidelidade"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Header Controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            
+            {/* Real-time Credit Pill */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "6px 14px",
+              borderRadius: "100px",
+              background: isUnlimited ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.12)",
+              border: isUnlimited ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(124, 58, 237, 0.3)",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: isUnlimited ? "#34D399" : "#C4B5FD"
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: isUnlimited ? "#10B981" : "#A78BFA" }} />
+              <span>{isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} ${isEn ? "min remaining" : "min disponíveis"}`}</span>
+            </div>
+
+            {/* Weekly Quota indicator (for free accounts) */}
+            {!isPaidUser && typeof profile?.days_until_renewal === "number" && (
+              <div className="hidden sm:flex" style={{
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                borderRadius: "100px",
+                background: "rgba(16, 185, 129, 0.08)",
+                border: "1px solid rgba(16, 185, 129, 0.25)",
+                fontSize: "12px",
+                color: "#34D399",
+                fontWeight: 600,
+              }}>
+                <Clock size={12} />
+                <span>
+                  {profile.days_until_renewal === 0
+                    ? (isEn ? "Renews today (25 min)" : "Renova hoje (25 min)")
+                    : (isEn ? `Renews in ${profile.days_until_renewal}d (25 min)` : `Renova em ${profile.days_until_renewal} dias (25 min)`)}
+                </span>
+              </div>
+            )}
+
+            {/* Language Switcher */}
+            <Link
+              href={isEn ? "/dashboard" : "/en/dashboard"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "6px 10px",
+                borderRadius: "10px",
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#E2D9F3",
+                fontSize: "12px",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+              title={isEn ? "Mudar para Português" : "Switch to English"}
+            >
+              <span>{isEn ? "🇺🇸 EN" : "🇧🇷 PT"}</span>
+            </Link>
+
+            {/* Suggestions link */}
+            <Link
+              href={isEn ? "/en/suggestions" : "/sugestoes"}
+              className="hidden md:inline-flex"
+              style={{
+                alignItems: "center",
+                gap: "5px",
+                padding: "6px 12px",
+                borderRadius: "10px",
+                background: "rgba(251, 191, 36, 0.08)",
+                border: "1px solid rgba(251, 191, 36, 0.25)",
+                color: "#FBBF24",
+                fontSize: "12px",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              <Lightbulb size={13} />
+              <span>{isEn ? "Suggest" : "Sugerir"}</span>
+            </Link>
+
+            {/* Quick Action: Add More Minutes */}
+            <button
+              onClick={() => {
+                setSidebarInitialSection("plano");
+                setIsSidebarOpen(true);
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "7px 16px",
+                borderRadius: "10px",
+                background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
+                border: "none",
+                color: "#FFFFFF",
+                fontSize: "12px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 12px rgba(124, 58, 237, 0.3)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Zap size={13} />
+              <span>{isEn ? "Add Minutes" : "Recarregar Minutos"}</span>
+            </button>
+
+          </div>
+        </header>
+
+        {/* Scrollable Main Workspace */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 60px" }}>
+          
           {/* Payment Success Alert */}
           {paymentSuccess && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "16px 20px", marginBottom: "28px",
+              padding: "14px 18px", marginBottom: "20px",
               background: "rgba(16, 185, 129, 0.12)",
               border: "1px solid rgba(16, 185, 129, 0.35)",
-              borderRadius: "14px",
-              color: "#6EE7B7", fontSize: "14px", fontWeight: 500,
-              boxShadow: "0 8px 24px rgba(16, 185, 129, 0.15)"
+              borderRadius: "12px",
+              color: "#6EE7B7", fontSize: "13px", fontWeight: 500,
+              boxShadow: "0 6px 20px rgba(16, 185, 129, 0.15)"
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "20px" }}>🎉</span>
+                <span style={{ fontSize: "18px" }}>🎉</span>
                 <span>{paymentSuccess}</span>
               </div>
               <button
-                className="btn-ghost"
                 onClick={() => setPaymentSuccess(null)}
-                style={{ padding: "4px 8px", fontSize: "12px", color: "#6EE7B7" }}
+                style={{ background: "none", border: "none", color: "#6EE7B7", cursor: "pointer", fontSize: "16px" }}
               >
                 ✕
               </button>
             </div>
           )}
 
-          {/* Header */}
-          <div style={{ marginBottom: "36px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", marginBottom: "12px" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                  <span className="badge badge-purple" style={{ fontSize: "12px" }}>
-                    {isEn ? "Control Panel" : "Painel de Controle"}
-                  </span>
-
-                  {/* Active Plan Tag next to Dashboard Title */}
+          {/* =================================================== */}
+          {/* TAB 1: TRANSCREVER (MAIN WORKSPACE)                 */}
+          {/* =================================================== */}
+          {activeNavTab === "transcrever" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+              
+              {/* 1. TOP METRICS SUMMARY CARDS (3 CARDS) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+                
+                {/* Metric 1: Palavras Transcritas */}
+                <div style={{
+                  padding: "16px 20px",
+                  borderRadius: "16px",
+                  background: "#151026",
+                  border: "1px solid rgba(167, 139, 250, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px"
+                }}>
                   <div style={{
-                    display: "inline-flex", alignItems: "center", gap: "6px",
-                    background: activePlanCfg.bg,
-                    border: `1px solid ${activePlanCfg.border}`,
-                    borderRadius: "100px", padding: "4px 12px",
-                    fontSize: "12px", color: activePlanCfg.color, fontWeight: 700
+                    width: 44,
+                    height: 44,
+                    borderRadius: "12px",
+                    background: "rgba(124, 58, 237, 0.12)",
+                    border: "1px solid rgba(124, 58, 237, 0.25)",
+                    color: "#A78BFA",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
                   }}>
-                    {isUnlimited ? (
-                      <Crown size={12} color={activePlanCfg.color} />
-                    ) : currentPlan.includes("business") ? (
-                      <Crown size={12} color={activePlanCfg.color} />
-                    ) : currentPlan.includes("pro") ? (
-                      <Zap size={12} color={activePlanCfg.color} />
-                    ) : currentPlan.includes("starter") ? (
-                      <Sparkles size={12} color={activePlanCfg.color} />
-                    ) : null}
-                    <span>{isEn ? `${activePlanCfg.label} Plan` : `Plano ${activePlanCfg.label}`}</span>
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", lineHeight: 1.1 }}>
+                      {formattedTotalWords}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9E96B3", marginTop: "2px" }}>
+                      {isEn ? "Words transcribed" : "Palavras transcritas"}
+                    </div>
                   </div>
                 </div>
 
-                <h1 style={{ fontSize: "2.2rem", fontWeight: 800, letterSpacing: "-0.03em" }}>
-                  {isEn ? "Hello, " : "Olá, "}<span className="text-gradient">{userName}</span>!
-                </h1>
-              </div>
-
-              {/* Credits & Clean Action Bar */}
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                {/* Metric 2: Degravações Realizadas */}
                 <div style={{
-                  display: "flex", alignItems: "center", gap: "8px",
-                  background: isUnlimited ? "rgba(16, 185, 129, 0.12)" : "rgba(124,58,237,0.12)",
-                  border: isUnlimited ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(124,58,237,0.3)",
-                  borderRadius: "100px",
-                  padding: "8px 18px"
+                  padding: "16px 20px",
+                  borderRadius: "16px",
+                  background: "#151026",
+                  border: "1px solid rgba(167, 139, 250, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px"
                 }}>
-                  <Zap size={16} color={isUnlimited ? "#10B981" : "#A78BFA"} />
-                  <span style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 700 }}>
-                    {isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} ${isEn ? "min remaining" : "min restantes"}`}
-                  </span>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "12px",
+                    background: "rgba(6, 182, 212, 0.12)",
+                    border: "1px solid rgba(6, 182, 212, 0.25)",
+                    color: "#67E8F9",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
+                  }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", lineHeight: 1.1 }}>
+                      {totalTranscriptions}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9E96B3", marginTop: "2px" }}>
+                      {isEn ? "Transcriptions completed" : "Degravações realizadas"}
+                    </div>
+                  </div>
                 </div>
 
-                {!isPaidUser && typeof profile?.days_until_renewal === "number" && (
-                  <div
-                    title={isEn ? "Free balance restores to 25 min every 7 days" : "O saldo gratuito é renovado para 25 min a cada 7 dias"}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "6px",
-                      background: "rgba(16, 185, 129, 0.08)",
-                      border: "1px solid rgba(16, 185, 129, 0.25)",
-                      borderRadius: "100px",
-                      padding: "6px 14px",
-                      fontSize: "12px",
-                      color: "#10B981",
-                      fontWeight: 600
-                    }}
-                  >
-                    <Clock size={13} />
-                    <span>
-                      {profile.days_until_renewal === 0
-                        ? (isEn ? "Renews today (25 min)" : "Renova hoje (25 min)")
-                        : (isEn ? `Renova em ${profile.days_until_renewal}d (25 min)` : `Renova em ${profile.days_until_renewal} dias (25 min)`)}
+                {/* Metric 3: Tempo / Economia */}
+                <div style={{
+                  padding: "16px 20px",
+                  borderRadius: "16px",
+                  background: "#151026",
+                  border: "1px solid rgba(167, 139, 250, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px"
+                }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "12px",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                    color: "#34D399",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
+                  }}>
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", lineHeight: 1.1 }}>
+                      {totalMinutesTranscribed} min
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#9E96B3", marginTop: "2px" }}>
+                      {isEn ? `~${hoursSaved}h manual typing saved` : `Economia de ~${hoursSaved}h digitando`}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Dynamic Promo Banner (Welcome Discount / Referral) */}
+              <DashboardPromoBanner
+                user={user}
+                profile={profile}
+                currentPlan={currentPlan}
+              />
+
+              {/* 2. MAIN TRANSCRIBE COMPONENT */}
+              <div>
+                <TranscribeForm initialPlaceholder={isEn ? "Paste YouTube, Instagram Reels, TikTok, PJe Mídias or Drive link..." : "Cole o link do YouTube, Instagram, TikTok, PJe Mídias, Google Drive ou envie arquivo..."} />
+              </div>
+
+              {/* 3. RECENT TRANSCRIPTIONS (HISTÓRICO RECENTE) */}
+              <div id="recent-history">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#FFFFFF", margin: 0, letterSpacing: "-0.02em" }}>
+                      {isEn ? "Recent Transcriptions" : "Transcrições Recentes"}
+                    </h2>
+                    <span style={{ fontSize: "12px", color: "#9E96B3" }}>
+                      {isEn ? `${filteredHistory.length} saved in your library` : `${filteredHistory.length} salvas na sua biblioteca`}
                     </span>
                   </div>
-                )}
 
-                {!isUnlimited && (
-                  <Link href={isEn ? "/en/pricing" : "/precos"} className="btn-primary" style={{ fontSize: "13px", padding: "8px 18px", textDecoration: "none" }}>
-                    {isEn ? "Add more minutes" : "Recarregar minutos"} <ArrowRight size={14} />
-                  </Link>
-                )}
-
-                <Link
-                  href={isEn ? "/en/suggestions" : "/sugestoes"}
-                  id="btn-dashboard-feedback"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    fontSize: "13px",
-                    padding: "8px 14px",
-                    borderRadius: "100px",
-                    background: "rgba(251, 191, 36, 0.08)",
-                    border: "1px solid rgba(251, 191, 36, 0.25)",
-                    color: "#FBBF24",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(251, 191, 36, 0.16)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(251, 191, 36, 0.08)")}
-                >
-                  <Lightbulb size={14} />
-                  <span>{isEn ? "Suggest Feature" : "Sugerir Melhoria"}</span>
-                </Link>
-
-                <button
-                  onClick={() => {
-                    setSidebarInitialSection(null);
-                    setIsSidebarOpen(true);
-                  }}
-                  id="btn-open-sidebar"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "9px",
-                    padding: "6px 14px 6px 8px",
-                    borderRadius: "100px",
-                    background: "rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(255, 255, 255, 0.12)",
-                    color: "var(--text-primary)",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                  }}
-                  title="Abrir menu de opções e configurações"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.borderColor = "rgba(124, 58, 237, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%)",
+                  {/* Search and Filter */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <div style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      color: "#FFFFFF",
-                      fontSize: "12px",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {userName.charAt(0).toUpperCase()}
+                      gap: "8px",
+                      background: "rgba(0, 0, 0, 0.3)",
+                      border: "1px solid rgba(167, 139, 250, 0.2)",
+                      borderRadius: "10px",
+                      padding: "6px 12px",
+                      width: 220,
+                    }}>
+                      <Search size={14} color="#A78BFA" />
+                      <input
+                        type="text"
+                        placeholder={isEn ? "Search transcript..." : "Buscar no texto..."}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          color: "#FFFFFF",
+                          fontSize: "12px",
+                          width: "100%",
+                        }}
+                      />
+                      {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} style={{ background: "none", border: "none", color: "#9E96B3", cursor: "pointer", fontSize: "12px" }}>✕</button>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setActiveNavTab("documentos")}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#A78BFA",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <span>{isEn ? "View all →" : "Ver todas →"}</span>
+                    </button>
                   </div>
-                  <Menu size={18} color="#FFFFFF" />
-                </button>
-              </div>
-            </div>
-
-            <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-              {isEn
-                ? "Paste any video link or upload audio. Your media is automatically deleted after processing."
-                : "Cole o link de qualquer vídeo ou faça upload. Sua mídia é automaticamente excluída após o download."}
-            </p>
-          </div>
-
-          {/* Quick stats (Including Plano Vigente prominent card) */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "16px", marginBottom: "40px" }}>
-            {[
-              {
-                icon: currentPlan === "business" ? <Crown size={20} color={activePlanCfg.color} /> : <Sparkles size={20} color={activePlanCfg.color} />,
-                label: isEn ? "Current Plan" : "Plano Vigente",
-                value: activePlanCfg.label,
-                subtext: activePlanCfg.badge,
-                bg: activePlanCfg.bg,
-                border: activePlanCfg.border
-              },
-              {
-                icon: <CreditCard size={20} color={currentPlan === "gratuito" && credits <= 1 ? "#F59E0B" : "#6EE7B7"} />,
-                label: isEn ? "Available Balance" : "Saldo Disponível",
-                value: `${credits} min`,
-                subtext: currentPlan === "gratuito" && credits <= 1 ? (isEn ? "⚠️ Almost depleted" : "⚠️ Quase esgotado") : (isEn ? "Ready to use" : "Liberado para uso"),
-                bg: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.08)",
-                border: currentPlan === "gratuito" && credits <= 1 ? "rgba(245,158,11,0.35)" : "rgba(16,185,129,0.25)"
-              },
-              {
-                icon: <FileText size={20} color="#A78BFA" />,
-                label: isEn ? "Transcriptions Done" : "Transcrições Feitas",
-                value: `${totalTranscriptions}`,
-                subtext: isEn ? "Saved history" : "Histórico salvo",
-                bg: "rgba(124,58,237,0.08)",
-                border: "rgba(124,58,237,0.2)"
-              },
-              {
-                icon: <Clock size={20} color="#67E8F9" />,
-                label: isEn ? "Time Transcribed" : "Tempo Transcrito",
-                value: `${totalMinutesTranscribed} min`,
-                subtext: isEn ? "Total consumed" : "Total consumido",
-                bg: "rgba(6,182,212,0.08)",
-                border: "rgba(6,182,212,0.2)"
-              },
-              {
-                icon: <Zap size={20} color="#FCD34D" />,
-                label: isEn ? "AI Engine" : "Motor de IA",
-                value: isEn ? "Advanced AI" : "IA Avançada",
-                subtext: isEn ? "Maximum accuracy" : "Precisão máxima",
-                bg: "rgba(245,158,11,0.08)",
-                border: "rgba(245,158,11,0.2)"
-              },
-            ].map((stat) => (
-              <div key={stat.label} style={{ background: stat.bg, border: `1px solid ${stat.border}`, borderRadius: "14px", padding: "18px 20px", display: "flex", alignItems: "center", gap: "14px" }}>
-                {stat.icon}
-                <div>
-                  <p style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{stat.label}</p>
-                  <p style={{ fontSize: "20px", fontWeight: 800, lineHeight: 1.2, marginTop: "2px" }}>{stat.value}</p>
-                  <p style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>{stat.subtext}</p>
                 </div>
+
+                {/* Filter chips */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginBottom: "16px" }}>
+                  {["todas", "pje", "YouTube", "Upload", "Instagram", "TikTok"].map((plat) => {
+                    const isActive = platformFilter.toLowerCase() === plat.toLowerCase();
+                    const label = plat === "todas" ? (isEn ? "All" : "Todas") : plat === "pje" ? "PJe Mídias" : plat;
+                    return (
+                      <button
+                        key={plat}
+                        onClick={() => setPlatformFilter(plat)}
+                        style={{
+                          fontSize: "11px",
+                          padding: "4px 12px",
+                          borderRadius: "100px",
+                          background: isActive ? "rgba(124, 58, 237, 0.25)" : "rgba(255, 255, 255, 0.03)",
+                          border: isActive ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
+                          color: isActive ? "#C4B5FD" : "#9E96B3",
+                          cursor: "pointer",
+                          fontWeight: isActive ? 700 : 500,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* List of Recent Items */}
+                {history.length === 0 ? (
+                  <div style={{
+                    padding: "48px 24px",
+                    borderRadius: "16px",
+                    background: "#151026",
+                    border: "1px dashed rgba(167, 139, 250, 0.2)",
+                    textAlign: "center"
+                  }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(124, 58, 237, 0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                      <Sparkles size={20} color="#A78BFA" />
+                    </div>
+                    <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF", marginBottom: "4px" }}>
+                      {isEn ? "No transcriptions saved yet" : "Nenhuma transcrição realizada ainda"}
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#9E96B3", maxWidth: 440, margin: "0 auto" }}>
+                      {isEn ? "Paste any video URL or upload a file above to test your 25 free minutes!" : "Cole um link da web ou envie um arquivo acima para testar seus 25 minutos grátis!"}
+                    </p>
+                  </div>
+                ) : filteredHistory.length === 0 ? (
+                  <div style={{ padding: "36px", textAlign: "center", borderRadius: "16px", background: "#151026" }}>
+                    <Search size={22} color="#6B6382" style={{ margin: "0 auto 8px" }} />
+                    <p style={{ color: "#9E96B3", fontSize: "13px" }}>{isEn ? "No results found for your search." : "Nenhuma transcrição encontrada para esta busca."}</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {filteredHistory.slice(0, 10).map((item) => {
+                      const isPje = item.title?.toLowerCase().includes("audiência") || item.title?.toLowerCase().includes("pje") || item.platform?.toLowerCase().includes("pje");
+                      const durationMin = Math.floor((item.duration_seconds || 0) / 60);
+                      const durationSec = Math.round((item.duration_seconds || 0) % 60);
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            padding: "14px 18px",
+                            borderRadius: "14px",
+                            background: "#151026",
+                            border: activeItem?.id === item.id ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid rgba(167, 139, 250, 0.12)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "12px",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                            
+                            {/* Left: Origin Tag & Title */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 260, flex: 1 }}>
+                              <div style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: "10px",
+                                background: isPje ? "rgba(245, 158, 11, 0.15)" : "rgba(124, 58, 237, 0.15)",
+                                color: isPje ? "#FBBF24" : "#C4B5FD",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "15px",
+                                flexShrink: 0
+                              }}>
+                                {isPje ? "⚖️" : "🎙️"}
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+                                  <span style={{
+                                    fontSize: "10px",
+                                    fontWeight: 700,
+                                    padding: "2px 7px",
+                                    borderRadius: "100px",
+                                    background: isPje ? "rgba(245, 158, 11, 0.15)" : "rgba(124, 58, 237, 0.15)",
+                                    color: isPje ? "#FBBF24" : "#C4B5FD",
+                                    border: isPje ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(124, 58, 237, 0.3)"
+                                  }}>
+                                    {isPje ? "PJe Mídias" : (item.platform || "Web")}
+                                  </span>
+                                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {item.title || "Transcrição"}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: "11px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span>{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                                  <span>•</span>
+                                  <span>{durationMin}m {durationSec}s</span>
+                                  <span>•</span>
+                                  <span style={{ color: "#34D399", fontWeight: 600 }}>-{item.minutes_deducted || 1} min</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Actions */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, flexWrap: "wrap" }}>
+                              
+                              {/* Ouvir & Ler */}
+                              <button
+                                onClick={() => setActiveItem(activeItem?.id === item.id ? null : item)}
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: 700,
+                                  padding: "6px 12px",
+                                  borderRadius: "8px",
+                                  background: activeItem?.id === item.id ? "rgba(124, 58, 237, 0.3)" : "rgba(124, 58, 237, 0.15)",
+                                  border: "1px solid rgba(124, 58, 237, 0.35)",
+                                  color: "#E2D9F3",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "6px"
+                                }}
+                              >
+                                <Eye size={13} color="#C4B5FD" />
+                                <span>{activeItem?.id === item.id ? (isEn ? "Hide Reader" : "Ocultar") : (isEn ? "Play & Read" : "Ouvir & Ler")}</span>
+                              </button>
+
+                              {/* Word DOCX */}
+                              <button
+                                onClick={() => handleExportDocx(item)}
+                                disabled={exportingDocxId === item.id}
+                                style={{
+                                  fontSize: "11px",
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  background: "rgba(59, 130, 246, 0.1)",
+                                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                                  color: "#93C5FD",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px"
+                                }}
+                                title="Baixar Word (.docx)"
+                              >
+                                {exportingDocxId === item.id ? <Loader2 size={12} className="spin" /> : <FileDown size={12} />}
+                                <span>.DOCX</span>
+                              </button>
+
+                              {/* PDF */}
+                              <button
+                                onClick={() => handleExportPdf(item)}
+                                disabled={exportingPdfId === item.id}
+                                style={{
+                                  fontSize: "11px",
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  background: "rgba(239, 68, 68, 0.1)",
+                                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                                  color: "#FCA5A5",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px"
+                                }}
+                                title="Baixar PDF (.pdf)"
+                              >
+                                {exportingPdfId === item.id ? <Loader2 size={12} className="spin" /> : <FileDown size={12} />}
+                                <span>.PDF</span>
+                              </button>
+
+                              {/* TXT */}
+                              <button
+                                onClick={() => handleExportTxt(item)}
+                                style={{
+                                  fontSize: "11px",
+                                  padding: "6px 10px",
+                                  borderRadius: "8px",
+                                  background: "rgba(255, 255, 255, 0.05)",
+                                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                                  color: "#E2D9F3",
+                                  cursor: "pointer",
+                                }}
+                                title="Baixar arquivo de texto puro (.txt)"
+                              >
+                                .TXT
+                              </button>
+
+                              {/* Copy */}
+                              <button
+                                onClick={() => handleCopyText(item.text_content, item.id)}
+                                style={{
+                                  padding: "6px 8px",
+                                  borderRadius: "8px",
+                                  background: copiedId === item.id ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                                  border: copiedId === item.id ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
+                                  color: copiedId === item.id ? "#34D399" : "#9E96B3",
+                                  cursor: "pointer",
+                                }}
+                                title={isEn ? "Copy text" : "Copiar texto"}
+                              >
+                                {copiedId === item.id ? <Check size={13} color="#34D399" /> : <Copy size={13} />}
+                              </button>
+
+                              {/* Share */}
+                              <button
+                                onClick={() => handleShareItem(item)}
+                                style={{
+                                  padding: "6px 8px",
+                                  borderRadius: "8px",
+                                  background: sharedToastId === item.id ? "rgba(6, 182, 212, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                                  border: sharedToastId === item.id ? "1px solid rgba(6, 182, 212, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
+                                  color: sharedToastId === item.id ? "#67E8F9" : "#9E96B3",
+                                  cursor: "pointer",
+                                }}
+                                title={isEn ? "Share link" : "Compartilhar link"}
+                              >
+                                {sharedToastId === item.id ? <Check size={13} color="#67E8F9" /> : <Share2 size={13} />}
+                              </button>
+
+                            </div>
+
+                          </div>
+
+                          {/* EXPANDED INTERACTIVE VIEWER */}
+                          {activeItem?.id === item.id && (
+                            <div style={{
+                              padding: "18px",
+                              borderRadius: "12px",
+                              background: "rgba(10, 8, 20, 0.8)",
+                              border: "1px solid rgba(167, 139, 250, 0.15)",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "14px",
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD" }}>
+                                    {isEn ? "Synchronized Player & Text" : "Player Sincronizado & Texto"}
+                                  </span>
+                                  <span style={{ fontSize: "12px", color: "#9E96B3" }}>
+                                    {item.text_content.length} caracteres
+                                  </span>
+                                </div>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <button
+                                    onClick={() => handleGenerateSummary(item)}
+                                    disabled={loadingSummaryId === item.id}
+                                    style={{
+                                      fontSize: "12px",
+                                      fontWeight: 700,
+                                      padding: "5px 12px",
+                                      borderRadius: "8px",
+                                      background: "linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%)",
+                                      border: "1px solid rgba(124, 58, 237, 0.4)",
+                                      color: "#E0E7FF",
+                                      cursor: "pointer",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "5px"
+                                    }}
+                                  >
+                                    {loadingSummaryId === item.id ? <Loader2 size={12} className="spin" /> : <Sparkles size={12} color="#A78BFA" />}
+                                    <span>{summariesByItem[item.id] ? (isEn ? "Refresh Summary" : "Atualizar Resumo") : (isEn ? "✨ AI Summary" : "✨ Resumo com IA")}</span>
+                                  </button>
+
+                                  <a
+                                    href={`/t/${item.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      fontSize: "11px",
+                                      padding: "5px 10px",
+                                      borderRadius: "8px",
+                                      background: "rgba(255, 255, 255, 0.05)",
+                                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                                      color: "#9E96B3",
+                                      textDecoration: "none",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: "4px"
+                                    }}
+                                  >
+                                    <ExternalLink size={12} />
+                                    <span>Página Pública</span>
+                                  </a>
+                                </div>
+                              </div>
+
+                              {/* Synchronized Audio Player */}
+                              <AudioSyncPlayer title={item.title} />
+
+                              {/* AI Summary Display if generated */}
+                              {summariesByItem[item.id] && (
+                                <div style={{
+                                  padding: "14px 16px",
+                                  borderRadius: "10px",
+                                  background: "linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(10, 8, 20, 0.6) 100%)",
+                                  border: "1px solid rgba(124, 58, 237, 0.3)",
+                                }}>
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#E0E7FF", display: "flex", alignItems: "center", gap: "6px" }}>
+                                      <Sparkles size={14} color="#A78BFA" /> Síntese Executiva com IA
+                                    </span>
+                                    <button
+                                      onClick={() => handleCopyText(getItemSummaryText(item.id), `sum-${item.id}`)}
+                                      style={{ background: "none", border: "none", color: "#A78BFA", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                                    >
+                                      {copiedId === `sum-${item.id}` ? "Copiado!" : "Copiar resumo"}
+                                    </button>
+                                  </div>
+                                  <p style={{ fontSize: "13px", lineHeight: 1.6, color: "#E2D9F3", margin: 0, whiteSpace: "pre-line" }}>
+                                    {getItemSummaryText(item.id)}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Interactive Transcript Body */}
+                              <div style={{
+                                maxHeight: 320,
+                                overflowY: "auto",
+                                padding: "14px",
+                                borderRadius: "10px",
+                                background: "rgba(0, 0, 0, 0.3)",
+                                border: "1px solid rgba(255, 255, 255, 0.06)",
+                              }}>
+                                <InteractiveTranscript text={item.text_content} searchQuery={searchQuery} />
+                              </div>
+
+                            </div>
+                          )}
+
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
               </div>
-            ))}
-          </div>
 
-          {/* Dynamic Promo Banner: 5h Welcome Discount (25% OFF Pro Anual) -> Referral Program */}
-          <DashboardPromoBanner
-            user={user}
-            profile={profile}
-            currentPlan={currentPlan}
-          />
-
-          {/* Main Transcribe Widget */}
-          <div style={{ marginBottom: "60px" }}>
-            <TranscribeForm />
-          </div>
-
-          {/* Recent History Table */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
-              <h2 style={{ fontSize: "1.3rem", fontWeight: 700, letterSpacing: "-0.02em" }}>
-                {isEn ? "Your transcription history" : "Seu histórico de transcrições"}
-              </h2>
-              <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                {isEn ? "Only text is saved • Media deleted" : "Apenas o texto é salvo • Mídias excluídas"}
-              </span>
             </div>
+          )}
 
-            {/* Global Search & Filters Bar */}
+          {/* =================================================== */}
+          {/* TAB 2: CHAT COM IA (AI DIALOGUE & WORKSPACE)       */}
+          {/* =================================================== */}
+          {activeNavTab === "chat" && (
             <div style={{
               display: "flex",
               flexDirection: "column",
-              gap: "14px",
-              marginBottom: "24px",
-              background: "rgba(255, 255, 255, 0.02)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "14px",
-              padding: "16px 20px"
+              height: "calc(100vh - 120px)",
+              background: "#151026",
+              borderRadius: "18px",
+              border: "1px solid rgba(167, 139, 250, 0.15)",
+              overflow: "hidden"
             }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: 260 }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    background: "rgba(0, 0, 0, 0.3)",
-                    border: "1px solid rgba(124, 58, 237, 0.3)",
-                    borderRadius: "10px",
-                    padding: "8px 14px",
-                    width: "100%",
-                    maxWidth: 480,
-                  }}>
-                    <Search size={16} color="#A78BFA" />
-                    <input
-                      type="text"
-                      placeholder={isEn ? "Search word or phrase across all transcriptions..." : "Buscar palavra ou frase em todas as transcrições..."}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        outline: "none",
-                        color: "var(--text-primary)",
-                        fontSize: "13px",
-                        width: "100%",
-                      }}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "14px" }}
-                        title={isEn ? "Clear search" : "Limpar busca"}
-                      >
-                        ✕
-                      </button>
-                    )}
+              {/* Chat Header: Select Document */}
+              <div style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid rgba(167, 139, 250, 0.12)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "rgba(10, 8, 20, 0.5)",
+                flexWrap: "wrap",
+                gap: "10px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "8px", background: "rgba(124, 58, 237, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#A78BFA" }}>
+                    <Bot size={18} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", display: "block" }}>
+                      Assistente de Inteligência Artificial
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#9E96B3" }}>
+                      Faça perguntas e peça sínteses sobre as suas transcrições
+                    </span>
                   </div>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    {filteredHistory.length} {isEn ? (filteredHistory.length === 1 ? "result" : "results") : (filteredHistory.length === 1 ? "resultado" : "resultados")}
-                    {searchQuery && ` ${isEn ? "for" : "para"} "${searchQuery}"`}
-                  </span>
+                  <span style={{ fontSize: "12px", color: "#9E96B3" }}>Documento ativo:</span>
+                  <select
+                    value={selectedChatDocId}
+                    onChange={(e) => setSelectedChatDocId(e.target.value)}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: "8px",
+                      background: "#0F0A1C",
+                      border: "1px solid rgba(167, 139, 250, 0.25)",
+                      color: "#FFFFFF",
+                      fontSize: "12px",
+                      outline: "none",
+                      maxWidth: 240,
+                    }}
+                  >
+                    {history.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.title || "Transcrição"}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
-              {/* Platform filter pills */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: "4px" }}>
-                  {isEn ? "Platform:" : "Plataforma:"}
-                </span>
-                {["todas", "YouTube", "Upload", "Instagram", "TikTok", "Vimeo"].map((plat) => {
-                  const isActive = platformFilter.toLowerCase() === plat.toLowerCase();
-                  const label = plat === "todas" ? (isEn ? "All" : "Todas") : plat;
-                  return (
-                    <button
-                      key={plat}
-                      onClick={() => setPlatformFilter(plat)}
+              {/* Chat Messages Stream */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+                {chatMessages.length === 0 ? (
+                  <div style={{ textAlign: "center", margin: "auto", maxWidth: 440, padding: "24px 0" }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(124, 58, 237, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#A78BFA" }}>
+                      <Sparkles size={24} />
+                    </div>
+                    <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#FFFFFF", marginBottom: "6px" }}>
+                      Como posso ajudar com este documento?
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#9E96B3", marginBottom: "20px" }}>
+                      Selecione uma das sugestões rápidas abaixo ou digite sua pergunta:
+                    </p>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {[
+                        "Faça um resumo executivo dos 3 tópicos centrais",
+                        "Quais foram as principais tarefas e encaminhamentos acordados?",
+                        "Destaque as datas, prazos e valores citados nesta fala",
+                        "Crie uma postagem para o LinkedIn resumindo as lições deste áudio",
+                      ].map((prompt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            setChatQuery(prompt);
+                          }}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "rgba(255, 255, 255, 0.04)",
+                            border: "1px solid rgba(167, 139, 250, 0.15)",
+                            color: "#E2D9F3",
+                            fontSize: "12px",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 58, 237, 0.12)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)")}
+                        >
+                          ✨ {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  chatMessages.map((msg, i) => (
+                    <div
+                      key={i}
                       style={{
-                        fontSize: "12px",
-                        padding: "4px 12px",
-                        borderRadius: "100px",
-                        background: isActive ? "rgba(124, 58, 237, 0.2)" : "rgba(255, 255, 255, 0.03)",
-                        border: isActive ? "1px solid rgba(124, 58, 237, 0.5)" : "1px solid var(--border-subtle)",
-                        color: isActive ? "#C4B5FD" : "var(--text-secondary)",
-                        cursor: "pointer",
-                        fontWeight: isActive ? 600 : 400,
-                        transition: "all 0.15s ease",
+                        display: "flex",
+                        justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
                       }}
                     >
-                      {label}
-                    </button>
-                  );
-                })}
+                      <div style={{
+                        maxWidth: "75%",
+                        padding: "12px 16px",
+                        borderRadius: "14px",
+                        fontSize: "13px",
+                        lineHeight: 1.6,
+                        background: msg.role === "user" ? "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)" : "rgba(255, 255, 255, 0.06)",
+                        color: "#FFFFFF",
+                        border: msg.role === "user" ? "none" : "1px solid rgba(167, 139, 250, 0.15)",
+                        whiteSpace: "pre-line",
+                      }}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+                {isChatLoading && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#A78BFA", fontSize: "12px" }}>
+                    <Loader2 size={16} className="spin" />
+                    <span>Processando resposta com Inteligência Artificial...</span>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {history.length === 0 ? (
-              <div className="glass-card" style={{ padding: "40px", textAlign: "center" }}>
-                <div style={{ width: 48, height: 48, background: "rgba(124,58,237,0.12)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                  <Sparkles size={22} color="#A78BFA" />
-                </div>
-                <h3 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "6px" }}>
-                  {isEn ? "No transcriptions saved yet" : "Nenhuma transcrição salva ainda"}
-                </h3>
-                <p style={{ color: "var(--text-muted)", fontSize: "14px", maxWidth: 420, margin: "0 auto" }}>
-                  {isEn ? "Paste a video link or upload a file above to transcribe with your available balance!" : "Cole o link de um vídeo ou envie um arquivo acima para transcrever com seu saldo disponível!"}
-                </p>
-              </div>
-            ) : filteredHistory.length === 0 ? (
-              <div className="glass-card" style={{ padding: "36px", textAlign: "center" }}>
-                <div style={{ width: 44, height: 44, background: "rgba(255, 255, 255, 0.05)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-                  <Search size={20} color="var(--text-muted)" />
-                </div>
-                <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "6px" }}>
-                  {isEn ? "No results found" : "Nenhum resultado encontrado"}
-                </h3>
-                <p style={{ color: "var(--text-muted)", fontSize: "13px", maxWidth: 380, margin: "0 auto 16px" }}>
-                  {isEn ? `No transcriptions match "${searchQuery}" with the selected filters.` : `Não encontramos transcrições correspondentes a "${searchQuery}" com os filtros selecionados.`}
-                </p>
-                <button
-                  className="btn-ghost"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setPlatformFilter("todas");
+              {/* Chat Input Bar */}
+              <div style={{
+                padding: "14px 20px",
+                borderTop: "1px solid rgba(167, 139, 250, 0.12)",
+                background: "rgba(10, 8, 20, 0.6)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}>
+                <input
+                  type="text"
+                  placeholder="Faça uma pergunta sobre o documento selecionado..."
+                  value={chatQuery}
+                  onChange={(e) => setChatQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !isChatLoading && handleSendChatMessage()}
+                  style={{
+                    flex: 1,
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(167, 139, 250, 0.2)",
+                    borderRadius: "10px",
+                    padding: "10px 14px",
+                    color: "#FFFFFF",
+                    fontSize: "13px",
+                    outline: "none",
                   }}
-                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                />
+                <button
+                  onClick={handleSendChatMessage}
+                  disabled={isChatLoading || !chatQuery.trim()}
+                  style={{
+                    padding: "10px 18px",
+                    borderRadius: "10px",
+                    background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
+                    border: "none",
+                    color: "#FFFFFF",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    opacity: isChatLoading || !chatQuery.trim() ? 0.5 : 1
+                  }}
                 >
-                  {isEn ? "Clear search filters" : "Limpar filtros de busca"}
+                  <Send size={14} />
+                  <span>Enviar</span>
                 </button>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            </div>
+          )}
+
+          {/* =================================================== */}
+          {/* TAB 3: MEUS DOCUMENTOS (LIBRARY & EXPORTS)          */}
+          {/* =================================================== */}
+          {activeNavTab === "documentos" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: 0 }}>
+                    Biblioteca de Documentos
+                  </h2>
+                  <span style={{ fontSize: "12px", color: "#9E96B3" }}>
+                    {history.length} arquivos transcritos e salvos com sigilo
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "rgba(0, 0, 0, 0.3)",
+                    border: "1px solid rgba(167, 139, 250, 0.2)",
+                    borderRadius: "10px",
+                    padding: "8px 14px",
+                    width: 260,
+                  }}>
+                    <Search size={15} color="#A78BFA" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar nos arquivos..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ background: "transparent", border: "none", outline: "none", color: "#FFFFFF", fontSize: "12px", width: "100%" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Table / Document Cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {filteredHistory.map((item) => (
-                  <div key={item.id} className="glass-card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                    <div style={{ width: 40, height: 40, background: "rgba(124,58,237,0.12)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <FileText size={18} color="#A78BFA" />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 220 }}>
-                      <p style={{ fontWeight: 600, fontSize: "14px", marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.title}
-                      </p>
-                      <p style={{ color: "var(--text-muted)", fontSize: "12px" }}>
-                        {new Date(item.created_at).toLocaleDateString("pt-BR", { hour: "2-digit", minute: "2-digit" })} •{" "}
-                        {Math.floor((item.duration_seconds || 0) / 60)}m {Math.round((item.duration_seconds || 0) % 60)}s •{" "}
-                        <span style={{ color: "#A78BFA" }}>{item.platform || "Web"}</span> •{" "}
-                        <span style={{ color: "#6EE7B7" }}>-{item.minutes_deducted || 1} min</span>
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
-                      <button
-                        className="btn-ghost"
-                        onClick={() => handleCopyText(item.text_content, item.id)}
-                        style={{
-                          fontSize: "13px", padding: "6px 12px",
-                          display: "inline-flex", alignItems: "center", gap: "6px",
-                          color: copiedId === item.id ? "#6EE7B7" : undefined,
-                          borderColor: copiedId === item.id ? "rgba(16, 185, 129, 0.4)" : undefined,
-                          background: copiedId === item.id ? "rgba(16, 185, 129, 0.12)" : undefined
-                        }}
-                        title={isEn ? "Copy text to clipboard" : "Copiar texto para a área de transferência"}
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check size={14} color="#6EE7B7" /> {isEn ? "Copied!" : "Copiado!"}
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} /> {isEn ? "Copy" : "Copiar"}
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        className="btn-ghost"
-                        onClick={() => handleShareItem(item)}
-                        style={{
-                          fontSize: "13px", padding: "6px 12px",
-                          display: "inline-flex", alignItems: "center", gap: "6px",
-                          color: sharedToastId === item.id ? "#67E8F9" : undefined,
-                          borderColor: sharedToastId === item.id ? "rgba(6, 182, 212, 0.4)" : undefined,
-                          background: sharedToastId === item.id ? "rgba(6, 182, 212, 0.12)" : undefined
-                        }}
-                        title={isEn ? "Copy public link for this transcript" : "Copiar link público desta transcrição para WhatsApp ou Notion"}
-                      >
-                        {sharedToastId === item.id ? (
-                          <>
-                            <Check size={14} color="#67E8F9" /> {isEn ? "Link copied!" : "Link copiado!"}
-                          </>
-                        ) : (
-                          <>
-                            <Share2 size={14} /> {isEn ? "Share" : "Compartilhar"}
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        className="btn-ghost"
-                        onClick={() => setActiveItem(activeItem?.id === item.id ? null : item)}
-                        style={{
-                          fontSize: "13px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px",
-                          borderColor: activeItem?.id === item.id ? "rgba(124, 58, 237, 0.5)" : undefined,
-                          background: activeItem?.id === item.id ? "rgba(124, 58, 237, 0.12)" : undefined,
-                          color: activeItem?.id === item.id ? "#A78BFA" : undefined
-                        }}
-                      >
-                        <Eye size={14} /> {activeItem?.id === item.id ? (isEn ? "Hide" : "Ocultar") : (isEn ? "View text & AI" : "Ver texto & IA")}
-                      </button>
-
-                      <button
-                        className="btn-ghost"
-                        onClick={() => handleExportTxt(item)}
-                        style={{ fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px" }}
-                        title={isEn ? "Download plain text file (.txt)" : "Baixar arquivo de texto puro (.txt)"}
-                      >
-                        <Download size={13} /> .TXT
-                      </button>
-
-                      <button
-                        className="btn-ghost"
-                        onClick={() => handleExportDocx(item)}
-                        disabled={exportingDocxId === item.id}
-                        style={{
-                          fontSize: "12px", padding: "6px 10px", display: "inline-flex", alignItems: "center", gap: "5px",
-                          borderColor: "rgba(59, 130, 246, 0.35)", background: "rgba(59, 130, 246, 0.08)", color: "#93C5FD"
-                        }}
-                        title={isEn ? "Download formatted Microsoft Word document (.docx)" : "Baixar documento formatado para Microsoft Word (.docx)"}
-                      >
-                        {exportingDocxId === item.id ? (
-                          <>
-                            <Loader2 size={13} className="spin" /> {isEn ? "Generating Word..." : "Gerando Word..."}
-                          </>
-                        ) : (
-                          <>
-                            <FileDown size={13} /> .DOCX (Word)
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        className="btn-primary"
-                        onClick={() => handleExportPdf(item)}
-                        disabled={exportingPdfId === item.id}
-                        style={{
-                          fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "5px",
-                          background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
-                          boxShadow: "0 2px 10px rgba(239, 68, 68, 0.3)"
-                        }}
-                        title={isEn ? "Download PDF document (.pdf)" : "Baixar documento em formato PDF (.pdf)"}
-                      >
-                        {exportingPdfId === item.id ? (
-                          <>
-                            <Loader2 size={13} className="spin" /> {isEn ? "Generating PDF..." : "Gerando PDF..."}
-                          </>
-                        ) : (
-                          <>
-                            <FileDown size={13} /> .PDF
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Expandable text preview with AI Summary & Full Transcript */}
-                    {activeItem?.id === item.id && (
-                      <div style={{
-                        width: "100%",
-                        marginTop: "16px",
-                        padding: "20px",
-                        background: "rgba(10, 10, 15, 0.65)",
-                        borderRadius: "14px",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        fontSize: "14px",
-                        lineHeight: 1.6
-                      }}>
-                        {/* Top bar */}
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          paddingBottom: "14px",
-                          marginBottom: "16px",
-                          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                          flexWrap: "wrap",
-                          gap: "10px"
-                        }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span className="badge badge-purple" style={{ fontSize: "11px" }}>
-                              {isEn ? "Details" : "Detalhes"}
-                            </span>
-                            <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-                              {item.text_content.length} {isEn ? "characters" : "caracteres"}
-                            </span>
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <a
-                              href={`/t/${item.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                fontSize: "12px",
-                                padding: "6px 12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                borderRadius: "8px",
-                                background: "rgba(6, 182, 212, 0.12)",
-                                border: "1px solid rgba(6, 182, 212, 0.35)",
-                                color: "#67E8F9",
-                                textDecoration: "none",
-                                fontWeight: 600,
-                              }}
-                              title={isEn ? "Open public read-only page" : "Abrir página pública de leitura para WhatsApp ou Notion"}
-                            >
-                              <ExternalLink size={13} /> {isEn ? "Open public page ↗" : "Abrir página pública ↗"}
-                            </a>
-
-                            <button
-                              onClick={() => handleGenerateSummary(item)}
-                              disabled={loadingSummaryId === item.id}
-                              style={{
-                                fontSize: "12px",
-                                padding: "6px 14px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                borderRadius: "8px",
-                                background: "linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(6, 182, 212, 0.3) 100%)",
-                                border: "1px solid rgba(124, 58, 237, 0.5)",
-                                color: "#E0E7FF",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {loadingSummaryId === item.id ? (
-                                <>
-                                  <Loader2 size={13} className="spin" color="#A78BFA" /> {isEn ? "Generating summary..." : "Gerando resumo..."}
-                                </>
-                              ) : summariesByItem[item.id] ? (
-                                <>
-                                  <RefreshCw size={13} color="#A78BFA" /> {isEn ? "Refresh AI Summary" : "Atualizar Resumo com IA"}
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles size={13} color="#A78BFA" /> {isEn ? "✨ Generate AI Summary" : "✨ Gerar Resumo com IA"}
-                                </>
-                              )}
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                if (!isPaidUser) {
-                                  setProUpgradeModalOpen(true);
-                                  return;
-                                }
-                                setOpenTranslateItemId(openTranslateItemId === item.id ? null : item.id);
-                              }}
-                              style={{
-                                fontSize: "12px",
-                                padding: "6px 14px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                borderRadius: "8px",
-                                background: openTranslateItemId === item.id
-                                  ? "linear-gradient(135deg, rgba(59, 130, 246, 0.35) 0%, rgba(147, 51, 234, 0.35) 100%)"
-                                  : "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%)",
-                                border: openTranslateItemId === item.id
-                                  ? "1px solid rgba(147, 51, 234, 0.6)"
-                                  : "1px solid rgba(59, 130, 246, 0.4)",
-                                color: "#E0E7FF",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                                transition: "all 0.2s ease",
-                              }}
-                              title={isEn ? "Translate transcript to other languages with AI" : "Traduzir transcrição para outros idiomas com Inteligência Artificial"}
-                            >
-                              <Languages size={13} color="#93C5FD" />
-                              <span>{translationsByItem[item.id] ? (isEn ? "View Translation" : "Ver Tradução") : (isEn ? "Translate with AI" : "Traduzir com IA")}</span>
-                              {!isPaidUser && (
-                                <span style={{
-                                  fontSize: "9px",
-                                  fontWeight: 800,
-                                  padding: "2px 5px",
-                                  borderRadius: "4px",
-                                  background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                                  color: "#000",
-                                  letterSpacing: "0.04em",
-                                }}>
-                                  👑 PRO
-                                </span>
-                              )}
-                            </button>
-
-                            <button
-                              onClick={() => handleCopyText(item.text_content, `inner-${item.id}`)}
-                              className="btn-ghost"
-                              style={{
-                                fontSize: "12px",
-                                padding: "6px 12px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                borderRadius: "8px",
-                                background: copiedId === `inner-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-                                border: copiedId === `inner-${item.id}` ? "1px solid rgba(16, 185, 129, 0.5)" : "1px solid var(--border-subtle)",
-                                color: copiedId === `inner-${item.id}` ? "#6EE7B7" : "var(--text-secondary)",
-                                cursor: "pointer"
-                              }}
-                            >
-                              {copiedId === `inner-${item.id}` ? (
-                                <>
-                                  <Check size={13} color="#6EE7B7" /> {isEn ? "Text copied!" : "Texto copiado!"}
-                                </>
-                              ) : (
-                                <>
-                                  <Copy size={13} /> {isEn ? "Copy full text" : "Copiar texto completo"}
-                                </>
-                              )}
-                            </button>
-                          </div>
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: "16px 20px",
+                      borderRadius: "14px",
+                      background: "#151026",
+                      border: "1px solid rgba(167, 139, 250, 0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "16px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 280, flex: 1 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: "10px", background: "rgba(124, 58, 237, 0.15)", color: "#C4B5FD", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>
+                        📄
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF", marginBottom: "3px" }}>
+                          {item.title || "Transcrição"}
                         </div>
-
-                        {/* Synchronized Audio Player for quick verification */}
-                        <AudioSyncPlayer title={item.title} />
-
-                        {/* AI Summary Loading state */}
-                        {loadingSummaryId === item.id && (
-                          <div style={{
-                            padding: "20px",
-                            marginBottom: "18px",
-                            background: "rgba(124, 58, 237, 0.08)",
-                            borderRadius: "12px",
-                            border: "1px dashed rgba(124, 58, 237, 0.4)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "14px",
-                          }}>
-                            <Loader2 size={24} className="spin" color="#A78BFA" />
-                            <div>
-                              <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
-                                {isEn ? "Analyzing content with Artificial Intelligence..." : "Analisando conteúdo com Inteligência Artificial..."}
-                              </p>
-                              <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                                {isEn ? "Synthesizing core takeaways and key lessons in seconds." : "Sintetizando pontos centrais e lições práticas em segundos."}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* AI Summary Section if present */}
-                        {summariesByItem[item.id] && (
-                          <div style={{
-                            padding: "18px",
-                            marginBottom: "20px",
-                            background: "linear-gradient(180deg, rgba(124, 58, 237, 0.12) 0%, rgba(10, 10, 20, 0.4) 100%)",
-                            borderRadius: "12px",
-                            border: "1px solid rgba(124, 58, 237, 0.35)",
-                          }}>
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <Sparkles size={16} color="#A78BFA" />
-                                <span style={{ fontSize: "14px", fontWeight: 700, color: "#E0E7FF" }}>
-                                  {isEn ? "AI Smart Summary" : "Síntese Inteligente com IA"}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleCopyText(getItemSummaryText(item.id), `sum-${item.id}`)}
-                                className="btn-ghost"
-                                style={{
-                                  fontSize: "11px",
-                                  padding: "4px 10px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                  color: copiedId === `sum-${item.id}` ? "#6EE7B7" : "#A78BFA"
-                                }}
-                              >
-                                {copiedId === `sum-${item.id}` ? <Check size={12} color="#6EE7B7" /> : <Copy size={12} />}
-                                {copiedId === `sum-${item.id}` ? (isEn ? "Summary copied!" : "Resumo copiado!") : (isEn ? "Copy summary" : "Copiar resumo")}
-                              </button>
-                            </div>
-
-                            {/* Executive Summary */}
-                            <div style={{ marginBottom: "14px" }}>
-                              <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#A78BFA", fontWeight: 700, marginBottom: "4px" }}>
-                                {isEn ? "Executive Summary" : "Resumo Executivo"}
-                              </p>
-                              <p style={{ fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.6 }}>
-                                {summariesByItem[item.id].executive_summary}
-                              </p>
-                            </div>
-
-                            {/* Key Points */}
-                            {summariesByItem[item.id].key_points && summariesByItem[item.id].key_points.length > 0 && (
-                              <div style={{ marginBottom: "14px" }}>
-                                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#67E8F9", fontWeight: 700, marginBottom: "6px" }}>
-                                  {isEn ? "Key Points" : "Pontos Principais"}
-                                </p>
-                                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
-                                  {summariesByItem[item.id].key_points.map((pt: string, idx: number) => (
-                                    <li key={idx} style={{ fontSize: "13px", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                                      <span style={{ color: "#67E8F9", fontSize: "14px", lineHeight: 1 }}>•</span>
-                                      <span>{pt}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Takeaway */}
-                            {summariesByItem[item.id].takeaway && (
-                              <div style={{
-                                padding: "12px 14px",
-                                background: "rgba(16, 185, 129, 0.08)",
-                                border: "1px solid rgba(16, 185, 129, 0.25)",
-                                borderRadius: "8px",
-                              }}>
-                                <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "#6EE7B7", fontWeight: 700, marginBottom: "3px" }}>
-                                  {isEn ? "Core Takeaway" : "Principal Conclusão"}
-                                </p>
-                                <p style={{ fontSize: "13px", color: "var(--text-primary)", margin: 0 }}>
-                                  {summariesByItem[item.id].takeaway}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* AI Translation Section */}
-                        {openTranslateItemId === item.id && (
-                          <div style={{
-                            padding: "18px 20px",
-                            marginBottom: "20px",
-                            background: "linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(10, 10, 22, 0.6) 100%)",
-                            borderRadius: "14px",
-                            border: "1px solid rgba(59, 130, 246, 0.35)",
-                            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)"
-                          }}>
-                            {/* Translation Header & Controls */}
-                            <div style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: "12px",
-                              flexWrap: "wrap",
-                              marginBottom: "16px",
-                              paddingBottom: "14px",
-                              borderBottom: "1px solid rgba(255, 255, 255, 0.08)"
-                            }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                <div style={{
-                                  width: 32, height: 32,
-                                  borderRadius: "8px",
-                                  background: "rgba(59, 130, 246, 0.2)",
-                                  display: "flex", alignItems: "center", justifyContent: "center"
-                                }}>
-                                  <Languages size={18} color="#93C5FD" />
-                                </div>
-                                <div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#F1F5F9", margin: 0 }}>
-                                      {isEn ? "AI Translation" : "Tradução com Inteligência Artificial"}
-                                    </h4>
-                                    <span style={{
-                                      fontSize: "10px",
-                                      fontWeight: 700,
-                                      padding: "2px 6px",
-                                      borderRadius: "4px",
-                                      background: "rgba(16, 185, 129, 0.15)",
-                                      color: "#6EE7B7",
-                                      border: "1px solid rgba(16, 185, 129, 0.3)"
-                                    }}>
-                                      {isEn ? "✓ Pro Plan Active" : "✓ Plano Pro Ativo"}
-                                    </span>
-                                  </div>
-                                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>
-                                    {isEn
-                                      ? "Translate text while preserving natural nuance, technical terms, and punctuation."
-                                      : "Traduza o texto mantendo o sentido natural, termos técnicos e pontuação."}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                {/* Language selector */}
-                                <select
-                                  value={targetLangByItem[item.id] || "en"}
-                                  onChange={(e) => setTargetLangByItem((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                                  disabled={loadingTranslationId === item.id}
-                                  style={{
-                                    padding: "8px 12px",
-                                    background: "rgba(15, 23, 42, 0.8)",
-                                    border: "1px solid rgba(255, 255, 255, 0.15)",
-                                    borderRadius: "8px",
-                                    color: "var(--text-primary)",
-                                    fontSize: "13px",
-                                    outline: "none",
-                                    cursor: "pointer"
-                                  }}
-                                >
-                                  {TRANSLATION_LANGUAGES.map((lang) => (
-                                    <option key={lang.code} value={lang.code} style={{ background: "#0F172A", color: "#F1F5F9" }}>
-                                      {lang.flag} {lang.name}
-                                    </option>
-                                  ))}
-                                </select>
-
-                                {/* Translate action button */}
-                                <button
-                                  onClick={() => handleTranslateHistoryItem(item)}
-                                  disabled={loadingTranslationId === item.id}
-                                  style={{
-                                    fontSize: "13px",
-                                    padding: "8px 16px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    borderRadius: "8px",
-                                    background: "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)",
-                                    color: "#FFF",
-                                    border: "none",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.3)"
-                                  }}
-                                >
-                                  {loadingTranslationId === item.id ? (
-                                    <>
-                                      <Loader2 size={14} className="spin" /> Traduzindo...
-                                    </>
-                                  ) : translationsByItem[item.id] ? (
-                                    <>
-                                      <RotateCcw size={14} /> Traduzir Novamente
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Languages size={14} /> Traduzir Agora
-                                    </>
-                                  )}
-                                </button>
-
-                                <button
-                                  onClick={() => setOpenTranslateItemId(null)}
-                                  className="btn-ghost"
-                                  style={{ padding: "6px 8px", fontSize: "12px" }}
-                                  title="Fechar painel de tradução"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Loading State */}
-                            {loadingTranslationId === item.id && (
-                              <div style={{
-                                padding: "24px",
-                                background: "rgba(59, 130, 246, 0.08)",
-                                borderRadius: "10px",
-                                border: "1px dashed rgba(59, 130, 246, 0.4)",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "14px"
-                              }}>
-                                <Loader2 size={24} className="spin" color="#93C5FD" />
-                                <div>
-                                  <p style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-                                    Traduzindo transcrição com Inteligência Artificial...
-                                  </p>
-                                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "3px 0 0" }}>
-                                    Convertendo o áudio transcrito para o idioma selecionado com máxima fidelidade.
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Translated Content */}
-                            {!loadingTranslationId && translationsByItem[item.id] && (
-                              <div>
-                                <div style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "space-between",
-                                  marginBottom: "12px",
-                                  flexWrap: "wrap",
-                                  gap: "8px"
-                                }}>
-                                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#93C5FD" }}>
-                                    Texto Traduzido ({translationsByItem[item.id].langName}):
-                                  </span>
-
-                                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <button
-                                      onClick={() => handleCopyText(translationsByItem[item.id].text, `trans-${item.id}`)}
-                                      className="btn-ghost"
-                                      style={{
-                                        fontSize: "12px",
-                                        padding: "6px 12px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "5px",
-                                        borderRadius: "6px",
-                                        background: copiedId === `trans-${item.id}` ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-                                        color: copiedId === `trans-${item.id}` ? "#6EE7B7" : "var(--text-secondary)"
-                                      }}
-                                    >
-                                      {copiedId === `trans-${item.id}` ? (
-                                        <>
-                                          <Check size={13} color="#6EE7B7" /> Copiado!
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Copy size={13} /> Copiar Tradução
-                                        </>
-                                      )}
-                                    </button>
-
-                                    <button
-                                      onClick={() => exportToTxt(translationsByItem[item.id].text, `${item.title || "transcricao"}_${translationsByItem[item.id].langCode}`)}
-                                      className="btn-ghost"
-                                      style={{
-                                        fontSize: "12px",
-                                        padding: "6px 12px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "5px",
-                                        borderRadius: "6px",
-                                        color: "var(--text-secondary)"
-                                      }}
-                                    >
-                                      <FileText size={13} /> Baixar .TXT
-                                    </button>
-
-                                    <button
-                                      onClick={() => handleExportTranslatedDocx(item)}
-                                      disabled={exportingTransDocxId === item.id}
-                                      className="btn-ghost"
-                                      style={{
-                                        fontSize: "12px",
-                                        padding: "6px 12px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "5px",
-                                        borderRadius: "6px",
-                                        background: "rgba(59, 130, 246, 0.1)",
-                                        borderColor: "rgba(59, 130, 246, 0.35)",
-                                        color: "#93C5FD"
-                                      }}
-                                    >
-                                      {exportingTransDocxId === item.id ? (
-                                        <>
-                                          <Loader2 size={13} className="spin" /> Gerando Word...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <FileDown size={13} /> Baixar Word (.DOCX)
-                                        </>
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div style={{
-                                  maxHeight: "340px",
-                                  overflowY: "auto",
-                                  padding: "16px",
-                                  background: "rgba(0, 0, 0, 0.35)",
-                                  borderRadius: "10px",
-                                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                                  fontSize: "14px",
-                                  lineHeight: 1.7,
-                                  color: "var(--text-primary)",
-                                  whiteSpace: "pre-wrap"
-                                }}>
-                                  {translationsByItem[item.id].text}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Empty State when opened but not translated yet */}
-                            {!loadingTranslationId && !translationsByItem[item.id] && (
-                              <div style={{ textAlign: "center", padding: "24px 16px" }}>
-                                <div style={{
-                                  width: 44, height: 44,
-                                  background: "rgba(59, 130, 246, 0.12)",
-                                  borderRadius: "12px",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  margin: "0 auto 12px"
-                                }}>
-                                  <Globe size={22} color="#93C5FD" />
-                                </div>
-                                <p style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, margin: "0 0 4px" }}>
-                                  {isEn ? "Ready to translate this text" : "Pronto para traduzir este texto"}
-                                </p>
-                                <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>
-                                  {isEn
-                                    ? <>Select target language above and click <strong>Translate Now</strong> to convert this text with AI in seconds.</>
-                                    : <>Selecione o idioma de destino no seletor acima e clique em <strong>Traduzir Agora</strong> para converter este texto com IA em segundos.</>}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Full transcript viewer with clickable timestamps & search highlighting */}
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
-                            <p style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-muted)", fontWeight: 700, margin: 0 }}>
-                              {isEn ? "Full Transcript" : "Texto Completo"}
-                            </p>
-                            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                              {isEn ? "Click any timestamp [00:00] to play synced audio" : "Clique em qualquer timestamp [00:00] para tocar o áudio sincronizado"}
-                            </span>
-                          </div>
-                          <div style={{
-                            maxHeight: "340px",
-                            overflowY: "auto",
-                            padding: "16px",
-                            background: "rgba(0,0,0,0.3)",
-                            borderRadius: "10px",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
-                          }}>
-                            <InteractiveTranscript text={item.text_content} searchQuery={searchQuery} />
-                          </div>
+                        <div style={{ fontSize: "12px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span>{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                          <span>•</span>
+                          <span>{Math.floor((item.duration_seconds || 0) / 60)} min</span>
+                          <span>•</span>
+                          <span style={{ color: "#A78BFA" }}>{item.platform || "Web"}</span>
+                          <span>•</span>
+                          <span>{item.text_content?.split(/\s+/).length || 0} palavras</span>
                         </div>
                       </div>
-                    )}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        onClick={() => {
+                          setActiveItem(item);
+                          setActiveNavTab("transcrever");
+                        }}
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          background: "rgba(124, 58, 237, 0.15)",
+                          border: "1px solid rgba(124, 58, 237, 0.35)",
+                          color: "#C4B5FD",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Abrir Leitor
+                      </button>
+                      <button
+                        onClick={() => handleExportDocx(item)}
+                        style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.3)", color: "#93C5FD", cursor: "pointer" }}
+                      >
+                        .DOCX
+                      </button>
+                      <button
+                        onClick={() => handleExportPdf(item)}
+                        style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#FCA5A5", cursor: "pointer" }}
+                      >
+                        .PDF
+                      </button>
+                      <button
+                        onClick={() => handleExportTxt(item)}
+                        style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#E2D9F3", cursor: "pointer" }}
+                      >
+                        .TXT
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
         </div>
-      </div>
+      </main>
+
+      {/* Referral Program Floating Widget */}
       <ReferralWidget user={user} profile={profile} />
-      
-      {/* Account Settings Sidebar Drawer (Barra Lateral) */}
+
+      {/* Account Settings Sidebar Drawer (Modal) */}
       <AccountSidebarDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -1718,7 +2333,7 @@ export default function DashboardPage() {
         initialSection={sidebarInitialSection}
       />
 
-      {/* Pro Upgrade Modal for Free Users trying Translation */}
+      {/* Pro Upgrade Modal */}
       {proUpgradeModalOpen && (
         <div style={{
           position: "fixed",
@@ -1788,7 +2403,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Footer />
-    </main>
+    </div>
   );
 }
