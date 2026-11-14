@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**/*": ["./data/**/*"],
   },
+  outputFileTracingExcludes: {
+    "*": ["backend/**/*", "**/venv/**/*"],
+  },
   async redirects() {
     return [
       {

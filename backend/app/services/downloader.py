@@ -125,14 +125,17 @@ def download_audio_from_url(url: str) -> dict:
         }]
 
     is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
-    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    # Android & Android VR mobile clients bypass SABR blocks and datacenter bot checks
+    # Crucial: do NOT send desktop user-agent, desktop impersonate, or desktop cookies to Android client!
     if is_youtube:
+        base_opts.pop("http_headers", None)
+        base_opts.pop("impersonate", None)
+        base_opts.pop("cookiefile", None)
         strategies = [
             {"player_client": ["android"]},
             {"player_client": ["android_vr"]},
             {"player_client": ["tv_embedded"]},
             {"player_client": ["visionos"]},
-            {"player_client": ["android", "visionos"]},
         ]
     else:
         strategies = [None]
@@ -648,14 +651,17 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
         base_opts["cookiefile"] = cookie_file
 
     is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
-    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    # Android & Android VR mobile clients bypass SABR blocks and datacenter bot checks
+    # Crucial: do NOT send desktop user-agent, desktop impersonate, or desktop cookies to Android client!
     if is_youtube:
+        base_opts.pop("http_headers", None)
+        base_opts.pop("impersonate", None)
+        base_opts.pop("cookiefile", None)
         strategies = [
             {"player_client": ["android"]},
             {"player_client": ["android_vr"]},
             {"player_client": ["tv_embedded"]},
             {"player_client": ["visionos"]},
-            {"player_client": ["android", "visionos"]},
         ]
     else:
         strategies = [None]
@@ -731,14 +737,17 @@ def extract_video_stream_info(url: str) -> dict:
     info = None
     last_err = None
     is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
-    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    # Android & Android VR mobile clients bypass SABR blocks and datacenter bot checks
+    # Crucial: do NOT send desktop user-agent, desktop impersonate, or desktop cookies to Android client!
     if is_youtube:
+        base_opts.pop("http_headers", None)
+        base_opts.pop("impersonate", None)
+        base_opts.pop("cookiefile", None)
         strategies = [
             {"player_client": ["android"]},
             {"player_client": ["android_vr"]},
             {"player_client": ["tv_embedded"]},
             {"player_client": ["visionos"]},
-            {"player_client": ["android", "visionos"]},
         ]
     else:
         strategies = [None]

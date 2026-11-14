@@ -55,6 +55,7 @@ export default function VideoDownloader({
       }
     }
   }, []);
+  const [downloadingVideo, setDownloadingVideo] = useState(false);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
 
   // Lead capture modal states
@@ -65,7 +66,88 @@ export default function VideoDownloader({
   const [leadError, setLeadError] = useState("");
   const [pendingDownloadUrl, setPendingDownloadUrl] = useState("");
   const [pendingDownloadType, setPendingDownloadType] = useState<"mp4" | "mp3">("mp4");
+  const [pendingDownloadFilename, setPendingDownloadFilename] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  const startActualDownload = async (
+    targetUrl: string,
+    type: "mp4" | "mp3",
+    filename: string
+  ) => {
+    if (type === "mp4") setDownloadingVideo(true);
+    if (type === "mp3") setDownloadingAudio(true);
+    setError(null);
+
+    try {
+      const isDirectExternal =
+        /^https?:\/\//i.test(targetUrl) &&
+        typeof window !== "undefined" &&
+        !targetUrl.includes(window.location.host);
+
+      if (isDirectExternal) {
+        // Direct CDN link (e.g. TikTok, Instagram direct CDN)
+        const a = document.createElement("a");
+        a.href = targetUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      // Internal route (/api/download/video or /api/download/mp3)
+      const res = await fetch(targetUrl);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(
+          errJson?.error ||
+            errJson?.detail ||
+            (isEnglish
+              ? "Download failed. Please try again."
+              : "Falha no download. Tente novamente.")
+        );
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (
+        contentType.includes("application/json") ||
+        contentType.includes("text/html")
+      ) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(
+          errJson?.error ||
+            errJson?.detail ||
+            (isEnglish
+              ? "File could not be downloaded."
+              : "Não foi possível baixar o arquivo no formato solicitado.")
+        );
+      }
+
+      // Valid media stream: download blob safely!
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30000);
+    } catch (err: any) {
+      console.error("[Download Error]:", err);
+      setError(
+        err?.message ||
+          (isEnglish
+            ? "Could not download the file."
+            : "Não foi possível baixar o arquivo.")
+      );
+    } finally {
+      if (type === "mp4") setDownloadingVideo(false);
+      if (type === "mp3") setDownloadingAudio(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -81,17 +163,33 @@ export default function VideoDownloader({
     }
   }, []);
 
-  const handleDownloadClick = (e: React.MouseEvent, targetUrl: string, type: "mp4" | "mp3" = "mp4") => {
-    const savedEmail = typeof window !== "undefined" ? localStorage.getItem("pegueiotexto_lead_email") : null;
+  const handleDownloadClick = (
+    e: React.MouseEvent,
+    targetUrl: string,
+    type: "mp4" | "mp3" = "mp4",
+    filename?: string
+  ) => {
+    e.preventDefault();
+    const cleanTitle = (videoInfo?.title || "video")
+      .replace(/[^\w\s\u00C0-\u00FF-]/gi, "")
+      .trim()
+      .slice(0, 40);
+    const finalFilename = filename || `${cleanTitle}.${type}`;
+
+    const savedEmail =
+      typeof window !== "undefined"
+        ? localStorage.getItem("pegueiotexto_lead_email")
+        : null;
     if (savedEmail || currentUser) {
       trackDownload(type);
-      return; // Permite abrir diretamente na nova aba target="_blank"
+      startActualDownload(targetUrl, type, finalFilename);
+      return;
     }
 
-    // Intercepta e abre o modal de 15 minutos
-    e.preventDefault();
+    // Intercepta e abre o modal de lead
     setPendingDownloadUrl(targetUrl);
     setPendingDownloadType(type);
+    setPendingDownloadFilename(finalFilename);
     setShowLeadModal(true);
     setLeadError("");
   };
@@ -105,9 +203,13 @@ export default function VideoDownloader({
       return;
     }
 
-    // 1. Abre imediatamente a nova aba com o vídeo pronto (sem ser bloqueado por popup blocker)
+    // 1. Inicia download seguro
     if (pendingDownloadUrl) {
-      window.open(pendingDownloadUrl, "_blank", "noopener,noreferrer");
+      startActualDownload(
+        pendingDownloadUrl,
+        pendingDownloadType,
+        pendingDownloadFilename || (pendingDownloadType === "mp3" ? "audio.mp3" : "video.mp4")
+      );
     }
 
     // 2. Salva localmente para não pedir de novo
@@ -585,45 +687,74 @@ export default function VideoDownloader({
               >
                 {/* Primary MP4 Download */}
                 {(videoInfo.video_hd_url || videoInfo.video_url) && (
-                  <a
+                  <button
                     id="btn-download-mp4"
-                    href={videoInfo.video_hd_url || videoInfo.video_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={`${videoInfo.title.slice(0, 30)}.mp4`}
-                    onClick={(e) => handleDownloadClick(e, videoInfo.video_hd_url || videoInfo.video_url || "", "mp4")}
+                    type="button"
+                    disabled={downloadingVideo}
+                    onClick={(e) =>
+                      handleDownloadClick(
+                        e,
+                        videoInfo.video_hd_url || videoInfo.video_url || "",
+                        "mp4",
+                        `${videoInfo.title.slice(0, 40)}.mp4`
+                      )
+                    }
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "8px",
                       padding: "12px 20px",
                       borderRadius: "10px",
-                      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                      background: downloadingVideo
+                        ? "rgba(16, 185, 129, 0.4)"
+                        : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                       color: "#ffffff",
                       fontSize: "14px",
                       fontWeight: 700,
-                      textDecoration: "none",
+                      border: "none",
+                      cursor: downloadingVideo ? "not-allowed" : "pointer",
                       boxShadow: "0 4px 14px rgba(16, 185, 129, 0.35)",
+                      transition: "all 0.2s ease",
                     }}
                   >
-                    <span>🎬</span>
-                    <span>{isEnglish ? "Download Video (MP4 HD)" : "Baixar Vídeo (MP4 HD)"}</span>
-                  </a>
+                    {downloadingVideo ? (
+                      <>
+                        <span
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            border: "2px solid #fff",
+                            borderTopColor: "transparent",
+                            borderRadius: "50%",
+                            animation: "spin 0.8s linear infinite",
+                            display: "inline-block",
+                          }}
+                        />
+                        <span>{isEnglish ? "Downloading video..." : "Baixando vídeo..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🎬</span>
+                        <span>{isEnglish ? "Download Video (MP4 HD)" : "Baixar Vídeo (MP4 HD)"}</span>
+                      </>
+                    )}
+                  </button>
                 )}
 
                 {/* Audio MP3 Download */}
                 {videoInfo.audio_url && (
-                  <a
+                  <button
                     id="btn-download-mp3"
-                    href={videoInfo.audio_url}
-                    download={`${videoInfo.title.slice(0, 40)}.mp3`}
-                    onClick={(e) => {
-                      handleDownloadClick(e, videoInfo.audio_url || "", "mp3");
-                      if (typeof window !== "undefined" && (localStorage.getItem("pegueiotexto_lead_email") || currentUser)) {
-                        setDownloadingAudio(true);
-                        setTimeout(() => setDownloadingAudio(false), 12000);
-                      }
-                    }}
+                    type="button"
+                    disabled={downloadingAudio}
+                    onClick={(e) =>
+                      handleDownloadClick(
+                        e,
+                        videoInfo.audio_url || "",
+                        "mp3",
+                        `${videoInfo.title.slice(0, 40)}.mp3`
+                      )
+                    }
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -639,9 +770,8 @@ export default function VideoDownloader({
                       color: "#ffffff",
                       fontSize: "14px",
                       fontWeight: 600,
-                      textDecoration: "none",
+                      cursor: downloadingAudio ? "not-allowed" : "pointer",
                       transition: "all 0.2s ease",
-                      cursor: "pointer",
                     }}
                   >
                     {downloadingAudio ? (
@@ -665,7 +795,7 @@ export default function VideoDownloader({
                         <span>{isEnglish ? "Download Audio (MP3)" : "Baixar Áudio (MP3)"}</span>
                       </>
                     )}
-                  </a>
+                  </button>
                 )}
 
                 {/* Copy direct CDN Link */}
@@ -703,18 +833,17 @@ export default function VideoDownloader({
                   </span>
                   <div style={{ display: "inline-flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
                     {videoInfo.formats.map((fmt, idx) => (
-                      <a
+                      <button
                         key={idx}
-                        href={fmt.url}
-                        target="_blank"
-                        rel="noreferrer"
+                        type="button"
                         onClick={(e) =>
                           handleDownloadClick(
                             e,
                             fmt.url,
                             fmt.ext === "mp3" || fmt.id?.includes("mp3")
                               ? "mp3"
-                              : "mp4"
+                              : "mp4",
+                            `${videoInfo.title.slice(0, 30)}_${fmt.label}.${fmt.ext || "mp4"}`
                           )
                         }
                         style={{
@@ -724,11 +853,12 @@ export default function VideoDownloader({
                           background: "rgba(255, 255, 255, 0.06)",
                           border: "1px solid rgba(255, 255, 255, 0.1)",
                           color: "#cbd5e1",
-                          textDecoration: "none",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
                         }}
                       >
                         {fmt.label}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
