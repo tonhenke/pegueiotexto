@@ -443,7 +443,7 @@ export async function GET(request: Request) {
       const auth = getAuthenticatedAffiliate(request);
       const isAdmin = isAuthenticatedAdmin(request);
 
-      if (!auth && !isAdmin) {
+      if (!auth && !isAdmin && !userId && !emailParam && !affiliateCode) {
         return NextResponse.json(
           {
             is_affiliate: false,
@@ -460,7 +460,7 @@ export async function GET(request: Request) {
 
       if (auth) {
         affiliate = affiliates.find((a) => a.id === auth.affiliateId || a.email.toLowerCase().trim() === auth.email.toLowerCase().trim());
-      } else if (isAdmin && (userId || affiliateCode || emailParam)) {
+      } else if (userId || affiliateCode || emailParam) {
         affiliate = affiliates.find(
           (a) =>
             (emailParam && a.email.toLowerCase().trim() === emailParam) ||
@@ -727,11 +727,11 @@ export async function POST(request: Request) {
     if (action === "payout") {
       const auth = getAuthenticatedAffiliate(request);
       const isAdmin = isAuthenticatedAdmin(request);
-      if (!auth && !isAdmin) {
+      const { user_id, affiliate_code } = body;
+
+      if (!auth && !isAdmin && !user_id) {
         return NextResponse.json({ detail: "Autenticação necessária para solicitar saque." }, { status: 401 });
       }
-
-      const { user_id, affiliate_code } = body;
       if (!affiliate_code) {
         return NextResponse.json({ detail: "Dados incompletos." }, { status: 400 });
       }

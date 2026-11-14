@@ -14,7 +14,7 @@ import {
   Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu, 
   Languages, Globe, RotateCcw, Mic, Upload, MessageSquare, ChevronRight,
   Folder, Send, Bot, CheckCircle2, ChevronDown, Scale, DollarSign,
-  TrendingUp, Users, Scissors, Lock, EyeOff, Play, AlertCircle
+  TrendingUp, Users, Scissors, Lock, EyeOff, Play, AlertCircle, Layout, Bug, HelpCircle
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -35,7 +35,8 @@ export type NavTab =
   | "indicacoes" 
   | "afiliados" 
   | "faturamento" 
-  | "configuracoes";
+  | "configuracoes"
+  | "sugestoes";
 
 const TRANSLATION_LANGUAGES = [
   { code: "en", name: "Inglês (English)", flag: "🇺🇸" },
@@ -57,10 +58,10 @@ const ANNUAL_PLANS = [
     priceTotal: "R$ 44,90 faturados ao ano",
     savings: "Economize 3 meses (R$ 13,90)",
     minutes: "720 min / ano (1h inteira por mês)",
-    desc: "Acesso contínuo com a máxima economia para advogados e criadores individuais.",
+    desc: "Acesso contínuo com a máxima economia para criadores e uso individual.",
     color: "#06B6D4",
     features: [
-      "720 minutos anuais de degravação com IA",
+      "720 minutos anuais de transcrição com IA",
       "Exportação para Word (.DOCX) e PDF",
       "Player de áudio sincronizado com timestamps",
       "Diarização e separação de oradores",
@@ -76,14 +77,14 @@ const ANNUAL_PLANS = [
     priceTotal: "R$ 159,00 faturados ao ano",
     savings: "Economize R$ 55,80 (3 meses grátis)",
     minutes: "3.600 min / ano (5h inteiras por mês)",
-    desc: "O plano preferido por escritórios de advocacia, pesquisadores e criadores de conteúdo.",
+    desc: "O plano mais completo para criadores, pesquisadores, equipes e profissionais.",
     color: "#7C3AED",
-    badge: "Recomendado para Advocacia",
+    badge: "Mais Popular",
     features: [
       "3.600 minutos anuais com IA de máxima fidelidade",
-      "Degravação forense adaptada ao PJe Mídias",
-      "Exportação direta para Word (.DOCX) forense",
-      "Resumos executivos e atas com IA inclusos",
+      "Separação precisa de múltiplos oradores",
+      "Exportação direta para Word (.DOCX) e PDF formatado",
+      "Resumos executivos e sínteses com IA inclusos",
       "Tradução global para mais de 10 idiomas",
       "Legendas .SRT e .VTT sincronizadas",
       "Player interativo com timestamps exatos",
@@ -99,7 +100,7 @@ const ANNUAL_PLANS = [
     priceTotal: "R$ 679,00 faturados ao ano",
     savings: "Economize R$ 279,80 (3 meses grátis)",
     minutes: "12.000 min / ano (~16,6h por mês)",
-    desc: "Para bancas de advocacia de grande porte, empresas e agências de alto fluxo de transcrição.",
+    desc: "Para empresas, produtoras, agências e alto fluxo de transcrição.",
     color: "#EC4899",
     features: [
       "12.000 minutos anuais com prioridade de processamento",
@@ -146,7 +147,7 @@ const MONTHLY_PLANS = [
     features: [
       "300 minutos mensais de transcrição com IA",
       "Exportação para Word (.DOCX), PDF e SRT",
-      "Resumos executivos e atas com IA inclusos",
+      "Resumos executivos e sínteses com IA inclusos",
       "Diarização de oradores e timestamps exatos",
       "Tradução automática com IA",
     ],
@@ -174,7 +175,6 @@ const MONTHLY_PLANS = [
   },
 ];
 
-// Helper to generate SRT string from transcription text if not in DB
 function generateSrtFromText(text: string, totalDurationSeconds: number = 60): string {
   if (!text) return "";
   const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
@@ -227,7 +227,6 @@ export default function DashboardPage() {
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("todas");
-  const [sharedToastId, setSharedToastId] = useState<string | null>(null);
 
   // Central Navigation Tab State
   const [activeNavTab, setActiveNavTab] = useState<NavTab>("transcrever");
@@ -268,7 +267,28 @@ export default function DashboardPage() {
   const [affiliatePayoutAmount, setAffiliatePayoutAmount] = useState("");
   const [affiliatePayoutLoading, setAffiliatePayoutLoading] = useState(false);
   const [affiliatePayoutMsg, setAffiliatePayoutMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [affiliateJoinLoading, setAffiliateJoinLoading] = useState(false);
+
+  // Affiliate Registration Form State (for non-affiliates)
+  const [regFullName, setRegFullName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regCpfCnpj, setRegCpfCnpj] = useState("");
+  const [regPixKeyType, setRegPixKeyType] = useState("cpf");
+  const [regPixKey, setRegPixKey] = useState("");
+  const [regChannelType, setRegChannelType] = useState("instagram");
+  const [regChannelUrl, setRegChannelUrl] = useState("");
+  const [regAffiliateCode, setRegAffiliateCode] = useState("");
+  const [regSubmitting, setRegSubmitting] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccess, setRegSuccess] = useState<string | null>(null);
+
+  // Suggestions state
+  const [sugCategory, setSugCategory] = useState<string>("features");
+  const [sugTitle, setSugTitle] = useState("");
+  const [sugDescription, setSugDescription] = useState("");
+  const [sugLoading, setSugLoading] = useState(false);
+  const [sugSuccess, setSugSuccess] = useState(false);
+  const [sugError, setSugError] = useState<string | null>(null);
 
   // Billing & Plans state
   const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">("annual");
@@ -295,9 +315,6 @@ export default function DashboardPage() {
 
   // Translations cache by item
   const [translationsByItem, setTranslationsByItem] = useState<Record<string, { text: string; langCode: string; langName: string }>>({});
-  const [targetLangByItem, setTargetLangByItem] = useState<Record<string, string>>({});
-  const [loadingTranslationId, setLoadingTranslationId] = useState<string | null>(null);
-  const [exportingTransDocxId, setExportingTransDocxId] = useState<string | null>(null);
 
   async function loadUserData() {
     try {
@@ -326,6 +343,7 @@ export default function DashboardPage() {
           }
           if (profileData.name) {
             setConfigName(profileData.name);
+            setRegFullName(profileData.name);
           }
         } else {
           setProfile({
@@ -333,11 +351,13 @@ export default function DashboardPage() {
             credits_minutes: 25,
             plan: "gratuito",
           });
-          setConfigName(user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+          const initialN = user.user_metadata?.full_name || user.email?.split("@")[0] || "";
+          setConfigName(initialN);
+          setRegFullName(initialN);
         }
 
-        // Referral source attribution fallback
         if (user.email) {
+          setRegEmail(user.email);
           const userMetaRef = user.user_metadata?.referral_code_used;
           const refSource =
             (userMetaRef ? `convite_${userMetaRef}` : "") ||
@@ -408,7 +428,7 @@ export default function DashboardPage() {
   }
 
   const loadAffiliateData = async (activeUser: any) => {
-    if (!activeUser?.id) return;
+    if (!activeUser?.id && !activeUser?.email) return;
     try {
       setAffiliateLoading(true);
       const query = activeUser.email
@@ -416,7 +436,7 @@ export default function DashboardPage() {
         : `user_id=${activeUser.id}`;
       const res = await fetch(`/api/affiliates?action=me&${query}`);
       const data = await res.json();
-      if (data.is_affiliate) {
+      if (data.is_affiliate && data.affiliate) {
         setAffiliateData(data.affiliate);
         setAffiliateMetrics(data.metrics || null);
         setAffiliateConversions(data.conversions || []);
@@ -425,6 +445,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error("Erro ao carregar afiliado:", err);
+      setAffiliateData(null);
     } finally {
       setAffiliateLoading(false);
     }
@@ -433,7 +454,6 @@ export default function DashboardPage() {
   useEffect(() => {
     loadUserData();
 
-    // Check query params for tab switching or payment alerts
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") as NavTab;
@@ -452,7 +472,6 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Update selected doc text when selected translation doc changes
   useEffect(() => {
     if (selectedTranslationDocId && selectedTranslationDocId !== "manual") {
       const doc = history.find((h) => h.id === selectedTranslationDocId);
@@ -473,7 +492,6 @@ export default function DashboardPage() {
     window.location.href = isEn ? "/en" : "/";
   };
 
-  // Helper values
   const credits = profile?.credits_minutes ?? 25;
   const isPaidUser = currentPlan !== "gratuito";
   const isUnlimited = currentPlan === "ilimitado";
@@ -485,7 +503,7 @@ export default function DashboardPage() {
         return { label: "Starter", color: "#06B6D4", bg: "rgba(6, 182, 212, 0.12)", border: "rgba(6, 182, 212, 0.3)", quota: 720, badge: "Assinante Starter" };
       case "pro":
       case "pro_annual":
-        return { label: "Pro Jurídico", color: "#A78BFA", bg: "rgba(124, 58, 237, 0.15)", border: "rgba(124, 58, 237, 0.35)", quota: 3600, badge: "Recomendado para Advocacia" };
+        return { label: "Pro", color: "#A78BFA", bg: "rgba(124, 58, 237, 0.15)", border: "rgba(124, 58, 237, 0.35)", quota: 3600, badge: "Assinante Pro" };
       case "business":
       case "business_annual":
         return { label: "Business", color: "#EC4899", bg: "rgba(236, 72, 153, 0.15)", border: "rgba(236, 72, 153, 0.35)", quota: 12000, badge: "Assinante VIP" };
@@ -601,7 +619,7 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error("Erro na tradução:", err);
-      alert("Falha de conexão ao comunicar com o serviço de tradução com IA.");
+      alert("Falha de conexão com o serviço de tradução.");
     } finally {
       setIsTranslating(false);
     }
@@ -653,38 +671,59 @@ export default function DashboardPage() {
   const handleShareAffiliateWhatsApp = () => {
     if (!affiliateUrl) return;
     const msg = encodeURIComponent(
-      `Conheça o Peguei o Texto! A melhor IA para degravação jurídica e transcrição de áudios e vídeos com 99,4% de precisão: ${affiliateUrl}`
+      `Conheça o Peguei o Texto! A melhor IA para transcrição de áudios e vídeos com 99,4% de precisão e exportação completa: ${affiliateUrl}`
     );
     window.open(`https://api.whatsapp.com/send?text=${msg}`, "_blank");
   };
 
-  const handleJoinAffiliate = async () => {
-    if (!user) return;
-    setAffiliateJoinLoading(true);
+  const handleApplyAffiliate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRegError(null);
+    setRegSuccess(null);
+
+    if (!regFullName.trim() || !regEmail.trim() || !regPhone.trim() || !regCpfCnpj.trim() || !regPixKey.trim()) {
+      setRegError("Por favor, preencha todos os campos obrigatórios para enviar sua candidatura.");
+      return;
+    }
+
+    const cleanCode = regAffiliateCode.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "") || (user?.id ? user.id.slice(0, 8) : "parceiro");
+
+    setRegSubmitting(true);
     try {
       const res = await fetch("/api/affiliates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "register",
-          user_id: user.id,
-          name: userName,
-          email: user.email,
-          pix_key: affiliatePixKey || "",
+          user_id: user?.id || `user_${Date.now()}`,
+          full_name: regFullName.trim(),
+          email: regEmail.trim(),
+          phone: regPhone.trim(),
+          cpf_cnpj: regCpfCnpj.trim(),
+          pix_key_type: regPixKeyType,
+          pix_key: regPixKey.trim(),
+          pix_name: regFullName.trim(),
+          channel_type: regChannelType,
+          channel_url: regChannelUrl.trim(),
+          audience_range: "1k_10k",
+          affiliate_code: cleanCode,
         }),
       });
+
       const data = await res.json();
-      if (res.ok && data.success) {
-        alert("Parabéns! Sua conta de afiliado foi ativada com sucesso.");
-        await loadAffiliateData(user);
+      if (res.ok && (data.success || data.affiliate)) {
+        setRegSuccess("Candidatura enviada com sucesso! Atualizando seu painel de parceiro...");
+        setTimeout(async () => {
+          await loadAffiliateData(user);
+        }, 1200);
       } else {
-        alert(data?.detail || "Erro ao registrar conta de afiliado.");
+        setRegError(data?.detail || "Erro ao registrar candidatura de afiliado.");
       }
     } catch (err) {
-      console.error("Erro ao ativar afiliado:", err);
-      alert("Falha de conexão ao registrar afiliado.");
+      console.error("Erro na candidatura:", err);
+      setRegError("Falha de conexão ao enviar formulário de candidatura.");
     } finally {
-      setAffiliateJoinLoading(false);
+      setRegSubmitting(false);
     }
   };
 
@@ -708,6 +747,8 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "payout",
+          user_id: user?.id,
+          email: user?.email,
           affiliate_code: affiliateData?.affiliate_code,
           pix_key: affiliatePixKey.trim(),
           amount: val,
@@ -725,6 +766,50 @@ export default function DashboardPage() {
       setAffiliatePayoutMsg({ type: "error", text: "Falha de conexão ao solicitar saque." });
     } finally {
       setAffiliatePayoutLoading(false);
+    }
+  };
+
+  // Suggestion Handler
+  const handleSubmitSuggestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSugError(null);
+
+    if (sugTitle.trim().length < 4) {
+      setSugError("O título precisa ter pelo menos 4 caracteres.");
+      return;
+    }
+    if (sugDescription.trim().length < 12) {
+      setSugError("Por favor, descreva sua ideia ou observação com pelo menos 12 caracteres.");
+      return;
+    }
+
+    setSugLoading(true);
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: sugCategory,
+          title: sugTitle.trim(),
+          description: sugDescription.trim(),
+          user_email: user?.email || undefined,
+          user_name: userName || undefined,
+          user_id: user?.id || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setSugSuccess(true);
+        setSugTitle("");
+        setSugDescription("");
+      } else {
+        const d = await res.json();
+        setSugError(d?.detail || "Erro ao enviar sugestão.");
+      }
+    } catch (err) {
+      setSugError("Falha de conexão ao enviar sugestão.");
+    } finally {
+      setSugLoading(false);
     }
   };
 
@@ -1052,7 +1137,7 @@ export default function DashboardPage() {
               </div>
               <nav style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
                 
-                {/* Degravação Jurídica */}
+                {/* Degravação Jurídica / PJe */}
                 <button
                   onClick={() => {
                     setActiveNavTab("transcrever");
@@ -1169,12 +1254,8 @@ export default function DashboardPage() {
                     <Globe size={16} color="#10B981" />
                     <span>{isEn ? "AI Global Translation" : "Tradução Global IA"}</span>
                   </div>
-                  {activeNavTab === "traducao" ? (
+                  {activeNavTab === "traducao" && (
                     <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-                  ) : (
-                    <span style={{ fontSize: "9px", padding: "1px 5px", borderRadius: "4px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontWeight: 700 }}>
-                      PRO
-                    </span>
                   )}
                 </button>
 
@@ -1553,6 +1634,7 @@ export default function DashboardPage() {
                   {activeNavTab === "afiliados" && (isEn ? "Affiliate Partner Dashboard" : "Painel Oficial de Afiliados")}
                   {activeNavTab === "faturamento" && (isEn ? "Billing & Subscription Plans" : "Faturamento & Planos")}
                   {activeNavTab === "configuracoes" && (isEn ? "Account Settings" : "Configurações da Conta")}
+                  {activeNavTab === "sugestoes" && (isEn ? "Feedback & Feature Suggestions" : "Envie Sugestões ou Relate Problemas")}
                 </h1>
                 <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.15)", color: "#C4B5FD", border: "1px solid rgba(124, 58, 237, 0.3)" }}>
                   {isEn ? "AI Engine" : "IA de Alta Fidelidade"}
@@ -1624,26 +1706,26 @@ export default function DashboardPage() {
               <span>{isEn ? "🇺🇸 EN" : "🇧🇷 PT"}</span>
             </Link>
 
-            {/* Suggestions link */}
-            <Link
-              href={isEn ? "/en/suggestions" : "/sugestoes"}
+            {/* Suggestions button (In-dashboard!) */}
+            <button
+              onClick={() => setActiveNavTab("sugestoes")}
               className="hidden md:inline-flex"
               style={{
                 alignItems: "center",
                 gap: "5px",
                 padding: "6px 12px",
                 borderRadius: "10px",
-                background: "rgba(251, 191, 36, 0.08)",
-                border: "1px solid rgba(251, 191, 36, 0.25)",
+                background: activeNavTab === "sugestoes" ? "rgba(251, 191, 36, 0.2)" : "rgba(251, 191, 36, 0.08)",
+                border: activeNavTab === "sugestoes" ? "1px solid rgba(251, 191, 36, 0.5)" : "1px solid rgba(251, 191, 36, 0.25)",
                 color: "#FBBF24",
                 fontSize: "12px",
                 fontWeight: 600,
-                textDecoration: "none",
+                cursor: "pointer",
               }}
             >
               <Lightbulb size={13} />
               <span>{isEn ? "Suggest" : "Sugerir"}</span>
-            </Link>
+            </button>
 
             {/* Quick Action: Add More Minutes */}
             <button
@@ -2085,12 +2167,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Audio Player if URL available */}
                   {activeItem.audio_url && (
                     <AudioSyncPlayer initialAudioUrl={activeItem.audio_url} title={activeItem.title} />
                   )}
 
-                  {/* Interactive Transcript Component */}
                   <div style={{
                     maxHeight: 480,
                     overflowY: "auto",
@@ -2119,7 +2199,6 @@ export default function DashboardPage() {
           {activeNavTab === "chat" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px", height: "calc(100vh - 120px)" }}>
               
-              {/* Header Selector */}
               <div style={{
                 padding: "16px 20px",
                 borderRadius: "16px",
@@ -2137,15 +2216,14 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <div style={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF" }}>
-                      Assistente Especialista em Degravações
+                      Assistente Especialista em Transcrições & Análise
                     </div>
                     <div style={{ fontSize: "12px", color: "#9E96B3" }}>
-                      Faça perguntas, extraia resumos, questione contradições de testemunhas e analise fatos.
+                      Faça perguntas, extraia resumos, questione pontos-chave e analise fatos da sua gravação.
                     </div>
                   </div>
                 </div>
 
-                {/* Document Selector */}
                 {history.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontSize: "12px", color: "#9E96B3" }}>Documento Ativo:</span>
@@ -2177,7 +2255,6 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Chat Message Workspace */}
               <div style={{
                 flex: 1,
                 overflowY: "auto",
@@ -2193,16 +2270,16 @@ export default function DashboardPage() {
                   <div style={{ margin: "auto", textAlign: "center", maxWidth: 440, padding: "20px" }}>
                     <Sparkles size={36} color="#A78BFA" style={{ margin: "0 auto 12px" }} />
                     <div style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF", marginBottom: "6px" }}>
-                      Como posso ajudar com a sua degravação?
+                      Como posso ajudar com a sua gravação?
                     </div>
                     <p style={{ fontSize: "13px", color: "#9E96B3", lineHeight: 1.5, marginBottom: "18px" }}>
-                      Selecione um dos prompts rápidos abaixo ou digite sua pergunta sobre o depoimento ou conteúdo:
+                      Selecione um dos prompts rápidos abaixo ou digite sua pergunta sobre o conteúdo:
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       {[
-                        "Quais foram as principais contradições apontadas no depoimento?",
-                        "Crie uma ata executiva com os pontos acordados em tópicos claros.",
-                        "Identifique todos os nomes e datas citados nesta gravação."
+                        "Quais foram os principais pontos abordados nesta reunião?",
+                        "Crie uma síntese executiva com os tópicos acordados.",
+                        "Identifique todos os nomes, prazos e datas citados nesta gravação."
                       ].map((prompt, i) => (
                         <button
                           key={i}
@@ -2267,7 +2344,6 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Input Area */}
               <div style={{
                 display: "flex",
                 alignItems: "center",
@@ -2326,7 +2402,6 @@ export default function DashboardPage() {
           {activeNavTab === "documentos" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               
-              {/* Filter and Search Bar */}
               <div style={{
                 display: "flex",
                 alignItems: "center",
@@ -2379,7 +2454,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Full Documents Grid / List */}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {history
                   .filter((item) => {
@@ -2469,7 +2543,6 @@ export default function DashboardPage() {
           {activeNavTab === "legendas" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -2494,7 +2567,6 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Subtitle Mode Switcher */}
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#151026", padding: "4px", borderRadius: "10px", border: "1px solid rgba(167, 139, 250, 0.15)" }}>
                   <button
                     onClick={() => setLegendasMode("existing")}
@@ -2549,7 +2621,6 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Select Doc and Actions */}
                       <div style={{
                         padding: "18px 22px",
                         borderRadius: "16px",
@@ -2586,7 +2657,6 @@ export default function DashboardPage() {
                           </select>
                         </div>
 
-                        {/* Download Buttons */}
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <button
                             onClick={handleDownloadSrt}
@@ -2651,7 +2721,6 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      {/* Subtitle Preview Box */}
                       <div style={{
                         borderRadius: "16px",
                         background: "#080511",
@@ -2671,7 +2740,6 @@ export default function DashboardPage() {
                   )}
                 </div>
               ) : (
-                /* New Video/Audio to Subtitle */
                 <div style={{
                   padding: "24px",
                   borderRadius: "18px",
@@ -2684,7 +2752,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Supported Editors Guide */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
                 {[
                   { name: "CapCut (PC & Mobile)", desc: "Arraste o .SRT para a linha do tempo e aplique legendas animadas instantaneamente." },
@@ -2708,7 +2775,6 @@ export default function DashboardPage() {
           {activeNavTab === "traducao" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -2723,35 +2789,17 @@ export default function DashboardPage() {
                 <div style={{ maxWidth: 640 }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(16, 185, 129, 0.15)", color: "#6EE7B7", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
                     <Globe size={12} />
-                    <span>Tradução Global com Preservação de Contexto Forense</span>
+                    <span>Tradução Global com Preservação de Contexto</span>
                   </div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
                     Tradução Global com Inteligência Artificial
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
-                    Traduza transcrições inteiras ou textos para mais de 10 idiomas com máxima fidelidade terminológica e exporte em Word (.DOCX) ou texto.
+                    Traduza transcrições inteiras ou textos para mais de 10 idiomas com máxima fidelidade e exporte em Word (.DOCX) ou texto puro.
                   </p>
                 </div>
-
-                {!isPaidUser && (
-                  <div style={{
-                    padding: "10px 16px",
-                    borderRadius: "12px",
-                    background: "rgba(124, 58, 237, 0.15)",
-                    border: "1px solid rgba(124, 58, 237, 0.3)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px"
-                  }}>
-                    <Crown size={16} color="#FBBF24" />
-                    <span style={{ fontSize: "12px", color: "#E2D9F3" }}>
-                      Recurso completo dos planos <strong>Pro & Business</strong>
-                    </span>
-                  </div>
-                )}
               </div>
 
-              {/* Translation Controls Bar */}
               <div style={{
                 padding: "18px 22px",
                 borderRadius: "16px",
@@ -2764,8 +2812,6 @@ export default function DashboardPage() {
                 gap: "14px"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-                  
-                  {/* Select Doc */}
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>Origem:</span>
                     <select
@@ -2792,7 +2838,6 @@ export default function DashboardPage() {
                     </select>
                   </div>
 
-                  {/* Target Language */}
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>Traduzir Para:</span>
                     <select
@@ -2816,10 +2861,8 @@ export default function DashboardPage() {
                       ))}
                     </select>
                   </div>
-
                 </div>
 
-                {/* Translate Button */}
                 <button
                   onClick={handleTranslateNow}
                   disabled={isTranslating}
@@ -2844,10 +2887,7 @@ export default function DashboardPage() {
                 </button>
               </div>
 
-              {/* Split Translation Workspace */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px" }}>
-                
-                {/* Left Panel: Original Text */}
                 <div style={{
                   borderRadius: "16px",
                   background: "#0F0A1C",
@@ -2886,7 +2926,6 @@ export default function DashboardPage() {
                   />
                 </div>
 
-                {/* Right Panel: Translated Result */}
                 <div style={{
                   borderRadius: "16px",
                   background: "#0F0A1C",
@@ -2962,7 +3001,7 @@ export default function DashboardPage() {
                     {isTranslating ? (
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "10px", color: "#34D399" }}>
                         <Loader2 size={24} className="animate-spin" />
-                        <span>Traduzindo com precisão terminológica...</span>
+                        <span>Traduzindo com precisão...</span>
                       </div>
                     ) : (
                       translatedResultText || "O texto traduzido pela Inteligência Artificial aparecerá aqui após clicar em 'Traduzir com IA'."
@@ -2981,7 +3020,6 @@ export default function DashboardPage() {
           {activeNavTab === "downloader" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3007,7 +3045,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Embedded Video Downloader Component */}
               <div style={{
                 borderRadius: "20px",
                 background: "#0F0A1C",
@@ -3020,7 +3057,6 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {/* Quick Flow Recommendation */}
               <div style={{
                 padding: "18px 24px",
                 borderRadius: "14px",
@@ -3039,7 +3075,7 @@ export default function DashboardPage() {
                       Deseja transcrever este áudio após o download?
                     </div>
                     <div style={{ fontSize: "12px", color: "#9E96B3" }}>
-                      Basta clicar na aba <strong>Transcrever</strong> para gerar sua ata forense ou texto completo em segundos.
+                      Basta clicar na aba <strong>Transcrever</strong> para gerar sua ata ou texto completo em segundos.
                     </div>
                   </div>
                 </div>
@@ -3070,7 +3106,6 @@ export default function DashboardPage() {
           {activeNavTab === "indicacoes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3096,7 +3131,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Referral Metrics */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
                 <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(167, 139, 250, 0.12)" }}>
                   <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>Total de Convites Confirmados</div>
@@ -3114,7 +3148,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Share Box */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3200,10 +3233,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* 3 Step Visual Guide */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
                 {[
-                  { step: "1", title: "Envie seu link", desc: "Compartilhe seu link exclusivo com amigos, advogados, estudantes ou colegas de trabalho." },
+                  { step: "1", title: "Envie seu link", desc: "Compartilhe seu link exclusivo com amigos, colegas ou nas suas redes sociais." },
                   { step: "2", title: "Seu amigo se cadastra", desc: "Ele cria a conta gratuita e ganha 25 minutos imediatamente para testar degravações com IA." },
                   { step: "3", title: "Minutos automáticos", desc: "Você recebe +10 minutos instantaneamente no seu saldo para usar em qualquer transcrição." }
                 ].map((item) => (
@@ -3226,7 +3258,6 @@ export default function DashboardPage() {
           {activeNavTab === "afiliados" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3260,16 +3291,16 @@ export default function DashboardPage() {
               {affiliateLoading ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "60px", color: "#A78BFA", gap: "10px" }}>
                   <Loader2 size={24} className="animate-spin" />
-                  <span>Carregando dados de afiliado...</span>
+                  <span>Verificando status de afiliado...</span>
                 </div>
-              ) : affiliateData ? (
+              ) : affiliateData && affiliateData.status === "active" ? (
+                /* CASO 1: JÁ É AFILIADO ATIVO */
                 <>
-                  {/* Affiliate Metrics (4 Cards) */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
                     <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
                       <div style={{ fontSize: "12px", color: "#6EE7B7", marginBottom: "6px" }}>Saldo Disponível para Saque</div>
                       <div style={{ fontSize: "24px", fontWeight: 800, color: "#34D399" }}>
-                        R$ {affiliateMetrics?.available_balance ? Number(affiliateMetrics.available_balance).toFixed(2).replace(".", ",") : "0,00"}
+                        R$ {affiliateMetrics?.balance_available ? Number(affiliateMetrics.balance_available).toFixed(2).replace(".", ",") : "0,00"}
                       </div>
                     </div>
 
@@ -3295,7 +3326,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Affiliate Link Box */}
                   <div style={{
                     padding: "22px",
                     borderRadius: "16px",
@@ -3368,7 +3398,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* PIX Payout Request Form */}
                   <form
                     onSubmit={handleRequestPayout}
                     style={{
@@ -3464,65 +3493,330 @@ export default function DashboardPage() {
                     </button>
                   </form>
                 </>
-              ) : (
-                /* Activate Affiliate Account */
+              ) : affiliateData && affiliateData.status === "pending_review" ? (
+                /* CASO 2: CANDIDATURA EM ANÁLISE */
                 <div style={{
-                  padding: "48px 32px",
+                  padding: "40px 32px",
+                  borderRadius: "20px",
+                  background: "#0F0A1C",
+                  border: "1px solid rgba(251, 191, 36, 0.3)",
+                  textAlign: "center",
+                  maxWidth: 640,
+                  margin: "0 auto"
+                }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(251, 191, 36, 0.15)", color: "#FBBF24", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                    <Clock size={28} />
+                  </div>
+                  <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", marginBottom: "8px" }}>
+                    Sua Candidatura a Afiliado está em Análise
+                  </h3>
+                  <p style={{ fontSize: "14px", color: "#9E96B3", lineHeight: 1.6, marginBottom: "20px" }}>
+                    Recebemos seus dados e sua solicitação está em moderação pela nossa equipe. Você receberá um aviso assim que a afiliação for aprovada e seu painel de vendas for liberado!
+                  </p>
+
+                  <div style={{
+                    background: "#151026",
+                    borderRadius: "12px",
+                    padding: "16px",
+                    textAlign: "left",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    fontSize: "13px",
+                    color: "#E2D9F3"
+                  }}>
+                    <div><strong>Nome:</strong> {affiliateData.full_name}</div>
+                    <div><strong>E-mail:</strong> {affiliateData.email}</div>
+                    <div><strong>Código Reservado:</strong> <span style={{ color: "#C4B5FD" }}>{affiliateData.affiliate_code}</span></div>
+                    <div><strong>Status:</strong> <span style={{ color: "#FBBF24", fontWeight: 700 }}>Em Análise Manual</span></div>
+                  </div>
+                </div>
+              ) : (
+                /* CASO 3: NÃO É AFILIADO -> FLUXO DE CADASTRO / CANDIDATURA */
+                <div style={{
                   borderRadius: "20px",
                   background: "#0F0A1C",
                   border: "1px solid rgba(124, 58, 237, 0.3)",
-                  textAlign: "center",
-                  maxWidth: 600,
-                  margin: "0 auto"
+                  padding: "32px",
+                  maxWidth: 720,
+                  margin: "0 auto",
+                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4)"
                 }}>
-                  <Award size={48} color="#A78BFA" style={{ margin: "0 auto 16px" }} />
-                  <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", marginBottom: "8px" }}>
-                    Ative seu Código de Afiliado com 1 Clique
-                  </h3>
-                  <p style={{ fontSize: "14px", color: "#9E96B3", lineHeight: 1.6, marginBottom: "24px" }}>
-                    Fature 30% de comissão recorrente todos os meses por cada pessoa ou escritório que contratar o Peguei o Texto através da sua indicação.
-                  </p>
+                  <div style={{ textAlign: "center", marginBottom: "24px" }}>
+                    <div style={{ width: 50, height: 50, borderRadius: "14px", background: "linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "#FFF" }}>
+                      <Award size={26} />
+                    </div>
+                    <h3 style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", marginBottom: "6px" }}>
+                      Candidatura para o Programa Oficial de Afiliados
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#9E96B3", lineHeight: 1.5, margin: 0 }}>
+                      Preencha o formulário abaixo para se candidatar. Você terá direito a <strong>30% de comissão recorrente vitalícia</strong> em todas as mensalidades e compras geradas.
+                    </p>
+                  </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: 360, margin: "0 auto 24px" }}>
-                    <input
-                      type="text"
-                      value={affiliatePixKey}
-                      onChange={(e) => setAffiliatePixKey(e.target.value)}
-                      placeholder="Sua chave PIX para pagamentos (opcional)"
-                      style={{
-                        padding: "10px 14px",
-                        borderRadius: "10px",
-                        background: "#151026",
-                        border: "1px solid rgba(167, 139, 250, 0.25)",
-                        color: "#FFF",
-                        fontSize: "13px",
-                        outline: "none",
-                        textAlign: "center"
-                      }}
-                    />
+                  {regSuccess && (
+                    <div style={{ padding: "12px 16px", borderRadius: "12px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#6EE7B7", fontSize: "13px", marginBottom: "20px", textAlign: "center" }}>
+                      {regSuccess}
+                    </div>
+                  )}
+
+                  {regError && (
+                    <div style={{ padding: "12px 16px", borderRadius: "12px", background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#FCA5A5", fontSize: "13px", marginBottom: "20px" }}>
+                      {regError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleApplyAffiliate} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          Nome Completo *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={regFullName}
+                          onChange={(e) => setRegFullName(e.target.value)}
+                          placeholder="Ex: Pedro Henrique Silva"
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          E-mail de Contato *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={regEmail}
+                          onChange={(e) => setRegEmail(e.target.value)}
+                          placeholder="seu@email.com"
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          WhatsApp / Telefone com DDD *
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={regPhone}
+                          onChange={(e) => setRegPhone(e.target.value)}
+                          placeholder="(11) 99999-9999"
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          CPF ou CNPJ (para emissão de recibo PIX) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={regCpfCnpj}
+                          onChange={(e) => setRegCpfCnpj(e.target.value)}
+                          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          Tipo de Chave PIX *
+                        </label>
+                        <select
+                          value={regPixKeyType}
+                          onChange={(e) => setRegPixKeyType(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        >
+                          <option value="cpf">CPF</option>
+                          <option value="cnpj">CNPJ</option>
+                          <option value="email">E-mail</option>
+                          <option value="phone">Telefone / Celular</option>
+                          <option value="random">Chave Aleatória</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          Chave PIX para Recebimentos *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={regPixKey}
+                          onChange={(e) => setRegPixKey(e.target.value)}
+                          placeholder="Digite sua chave PIX..."
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          Canal Principal de Divulgação
+                        </label>
+                        <select
+                          value={regChannelType}
+                          onChange={(e) => setRegChannelType(e.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        >
+                          <option value="instagram">Instagram (Reels / Stories)</option>
+                          <option value="youtube">YouTube (Canal / Shorts)</option>
+                          <option value="tiktok">TikTok</option>
+                          <option value="blog">Blog ou Site</option>
+                          <option value="whatsapp">Grupos & WhatsApp</option>
+                          <option value="outros">Indicação Direta & Outros</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                          Link do Canal, Perfil ou Rede Social
+                        </label>
+                        <input
+                          type="text"
+                          value={regChannelUrl}
+                          onChange={(e) => setRegChannelUrl(e.target.value)}
+                          placeholder="https://instagram.com/seu_perfil ou canal"
+                          style={{
+                            width: "100%",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.2)",
+                            color: "#FFF",
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                        Código de Afiliado Desejado (Ex: seu nome ou marca)
+                      </label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "13px", color: "#6B6382" }}>pegueiotexto.com.br/?ref=</span>
+                        <input
+                          type="text"
+                          value={regAffiliateCode}
+                          onChange={(e) => setRegAffiliateCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
+                          placeholder="seunome"
+                          style={{
+                            flex: 1,
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "#151026",
+                            border: "1px solid rgba(124, 58, 237, 0.3)",
+                            color: "#C4B5FD",
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            outline: "none"
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <button
-                      onClick={handleJoinAffiliate}
-                      disabled={affiliateJoinLoading}
+                      type="submit"
+                      disabled={regSubmitting}
                       style={{
-                        padding: "12px 24px",
+                        marginTop: "8px",
+                        padding: "14px",
                         borderRadius: "12px",
                         background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
                         border: "none",
                         color: "#FFFFFF",
                         fontSize: "14px",
                         fontWeight: 700,
-                        cursor: affiliateJoinLoading ? "default" : "pointer",
-                        boxShadow: "0 4px 16px rgba(124, 58, 237, 0.4)",
+                        cursor: regSubmitting ? "default" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "8px"
+                        gap: "8px",
+                        boxShadow: "0 4px 16px rgba(124, 58, 237, 0.4)",
+                        opacity: regSubmitting ? 0.7 : 1
                       }}
                     >
-                      {affiliateJoinLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                      <span>{affiliateJoinLoading ? "Ativando..." : "Quero Ser um Afiliado Agora"}</span>
+                      {regSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Award size={16} />}
+                      <span>{regSubmitting ? "Enviando Candidatura..." : "Enviar Candidatura para Afiliado (30% Recorrente)"}</span>
                     </button>
-                  </div>
+                  </form>
                 </div>
               )}
 
@@ -3535,7 +3829,6 @@ export default function DashboardPage() {
           {activeNavTab === "faturamento" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
               
-              {/* Current Active Plan Status Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3589,7 +3882,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Billing Cycle Selector */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
                 <div style={{
                   display: "inline-flex",
@@ -3639,7 +3931,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Plans Grid */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
                 {(billingCycle === "annual" ? ANNUAL_PLANS : MONTHLY_PLANS).map((plan) => (
                   <div
@@ -3671,7 +3962,7 @@ export default function DashboardPage() {
                         letterSpacing: "0.04em",
                         boxShadow: "0 2px 10px rgba(124, 58, 237, 0.4)"
                       }}>
-                        RECOMENDADO PARA ADVOCACIA
+                        MAIS POPULAR
                       </div>
                     )}
 
@@ -3698,7 +3989,6 @@ export default function DashboardPage() {
                         )}
                       </div>
 
-                      {/* Minutes Pill */}
                       <div style={{
                         padding: "8px 12px",
                         borderRadius: "10px",
@@ -3716,7 +4006,6 @@ export default function DashboardPage() {
                         <span>{plan.minutes}</span>
                       </div>
 
-                      {/* Feature List */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginBottom: "24px" }}>
                         {plan.features.map((feat, i) => (
                           <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "12px", color: "#E2D9F3" }}>
@@ -3763,7 +4052,6 @@ export default function DashboardPage() {
           {activeNavTab === "configuracoes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: 840 }}>
               
-              {/* Header Card */}
               <div style={{
                 padding: "24px",
                 borderRadius: "18px",
@@ -3784,7 +4072,6 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Subtabs */}
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   {[
                     { id: "perfil", label: "Meu Perfil" },
@@ -3811,7 +4098,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Subtab 1: Meu Perfil */}
               {configSubtab === "perfil" && (
                 <div style={{
                   padding: "24px",
@@ -3953,7 +4239,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Subtab 2: Segurança & Senha */}
               {configSubtab === "senha" && (
                 <form
                   onSubmit={handleSavePassword}
@@ -4057,7 +4342,6 @@ export default function DashboardPage() {
                 </form>
               )}
 
-              {/* Subtab 3: Preferências */}
               {configSubtab === "preferencias" && (
                 <div style={{
                   padding: "24px",
@@ -4069,7 +4353,7 @@ export default function DashboardPage() {
                   gap: "18px"
                 }}>
                   <div style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF" }}>
-                    Preferências do Sistema de Degravação
+                    Preferências do Sistema de Transcrição
                   </div>
 
                   {prefSavedMessage && (
@@ -4082,7 +4366,7 @@ export default function DashboardPage() {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderRadius: "12px", background: "#151026" }}>
                       <div>
                         <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>Diarização Automática de Oradores</div>
-                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>Identificar quem está falando (Juiz, Advogado, Testemunha) em cada gravação</div>
+                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>Identificar quem está falando em reuniões, entrevistas ou depoimentos</div>
                       </div>
                       <input
                         type="checkbox"
@@ -4128,7 +4412,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Danger Zone: Logout */}
               <div style={{
                 padding: "20px 24px",
                 borderRadius: "16px",
@@ -4161,6 +4444,197 @@ export default function DashboardPage() {
                   Sair da Conta
                 </button>
               </div>
+
+            </div>
+          )}
+
+          {/* =================================================== */}
+          {/* TAB 11: SUGESTÕES & FEEDBACK (IN-DASHBOARD)         */}
+          {/* =================================================== */}
+          {activeNavTab === "sugestoes" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: 780 }}>
+              
+              <div style={{
+                padding: "24px",
+                borderRadius: "18px",
+                background: "linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(15, 10, 28, 0.9) 100%)",
+                border: "1px solid rgba(251, 191, 36, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "16px"
+              }}>
+                <div>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(251, 191, 36, 0.15)", color: "#FBBF24", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
+                    <Lightbulb size={12} />
+                    <span>Canal Direto com o time do Peguei o Texto</span>
+                  </div>
+                  <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
+                    Sua Sugestão ou Relato de Problema
+                  </h2>
+                  <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
+                    Sentiu falta de uma funcionalidade, quer sugerir uma melhoria ou encontrou alguma instabilidade? Conte para nós para implementarmos!
+                  </p>
+                </div>
+              </div>
+
+              {sugSuccess ? (
+                <div style={{
+                  padding: "40px 32px",
+                  borderRadius: "20px",
+                  background: "#0F0A1C",
+                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  textAlign: "center"
+                }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(16, 185, 129, 0.15)", color: "#34D399", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", marginBottom: "8px" }}>
+                    Muito obrigado pelo seu feedback!
+                  </h3>
+                  <p style={{ fontSize: "14px", color: "#9E96B3", lineHeight: 1.6, maxWidth: 480, margin: "0 auto 20px" }}>
+                    Sua mensagem foi enviada diretamente para a equipe técnica e de produto. Avaliamos todas as sugestões para as próximas atualizações.
+                  </p>
+                  <button
+                    onClick={() => setSugSuccess(false)}
+                    style={{
+                      padding: "10px 24px",
+                      borderRadius: "10px",
+                      background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
+                      border: "none",
+                      color: "#FFFFFF",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Enviar Outra Sugestão
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  padding: "28px",
+                  borderRadius: "20px",
+                  background: "#0F0A1C",
+                  border: "1px solid rgba(167, 139, 250, 0.12)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "20px"
+                }}>
+                  {sugError && (
+                    <div style={{ padding: "12px 16px", borderRadius: "12px", background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#FCA5A5", fontSize: "13px" }}>
+                      {sugError}
+                    </div>
+                  )}
+
+                  {/* Category Selector Chips */}
+                  <div>
+                    <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "8px" }}>
+                      Categoria da Sugestão:
+                    </label>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {[
+                        { id: "features", label: "💡 Nova Funcionalidade" },
+                        { id: "ux", label: "🎨 UX & Interface" },
+                        { id: "transcription", label: "🎙️ Transcrição & Áudio" },
+                        { id: "ai", label: "🤖 Inteligência Artificial" },
+                        { id: "bugs", label: "🐛 Bugs ou Erros" }
+                      ].map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSugCategory(cat.id)}
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "10px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            border: sugCategory === cat.id ? "1px solid rgba(251, 191, 36, 0.5)" : "1px solid rgba(255, 255, 255, 0.08)",
+                            background: sugCategory === cat.id ? "rgba(251, 191, 36, 0.15)" : "#151026",
+                            color: sugCategory === cat.id ? "#FBBF24" : "#9E96B3",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmitSuggestion} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                        Título Resumido da Ideia:
+                      </label>
+                      <input
+                        type="text"
+                        value={sugTitle}
+                        onChange={(e) => setSugTitle(e.target.value)}
+                        placeholder="Ex: Adicionar exportação para Notion ou suporte a áudio gravado direto"
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          borderRadius: "10px",
+                          background: "#151026",
+                          border: "1px solid rgba(167, 139, 250, 0.2)",
+                          color: "#FFF",
+                          fontSize: "13px",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
+                        Detalhes & Como isso ajudaria o seu dia a dia:
+                      </label>
+                      <textarea
+                        value={sugDescription}
+                        onChange={(e) => setSugDescription(e.target.value)}
+                        placeholder="Conte com detalhes o que você gostaria de ver ou o que aconteceu..."
+                        style={{
+                          width: "100%",
+                          height: 160,
+                          padding: "14px 16px",
+                          borderRadius: "10px",
+                          background: "#151026",
+                          border: "1px solid rgba(167, 139, 250, 0.2)",
+                          color: "#FFF",
+                          fontSize: "13px",
+                          lineHeight: 1.6,
+                          outline: "none",
+                          resize: "none"
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={sugLoading}
+                      style={{
+                        alignSelf: "flex-start",
+                        padding: "12px 28px",
+                        borderRadius: "10px",
+                        background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                        border: "none",
+                        color: "#FFFFFF",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        cursor: sugLoading ? "default" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 4px 14px rgba(245, 158, 11, 0.3)",
+                        opacity: sugLoading ? 0.7 : 1
+                      }}
+                    >
+                      {sugLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                      <span>{sugLoading ? "Enviando..." : "Enviar Sugestão"}</span>
+                    </button>
+                  </form>
+                </div>
+              )}
 
             </div>
           )}
