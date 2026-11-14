@@ -26,6 +26,12 @@ def build_content_disposition(raw_title: str, ext: str, disposition: str = "atta
 
     return f'{disposition}; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
 
+def sanitize_download_error(e: Exception) -> str:
+    msg = str(e)
+    if any(k in msg.lower() for k in ["sign in", "bot", "protect our community", "--cookies", "403"]):
+        return "Este vídeo possui proteção antibot do YouTube contra servidores em nuvem. Sugestão: cole o link na transcrição direta com legendas nativas ou envie o arquivo diretamente."
+    return msg
+
 class DownloadInfoRequest(BaseModel):
     url: str
 
@@ -44,7 +50,7 @@ def get_video_stream_info(req: DownloadInfoRequest):
     except Exception as e:
         raise HTTPException(
             status_code=422,
-            detail=f"Não foi possível extrair o vídeo fornecido: {str(e)}"
+            detail=f"Não foi possível extrair o vídeo fornecido: {sanitize_download_error(e)}"
         )
 
 @router.get("/mp3")
@@ -80,7 +86,7 @@ def download_audio_mp3(url: str = Query(..., description="URL do vídeo"), backg
     except Exception as e:
         raise HTTPException(
             status_code=422,
-            detail=f"Não foi possível extrair o áudio deste vídeo: {str(e)}"
+            detail=f"Não foi possível extrair o áudio deste vídeo: {sanitize_download_error(e)}"
         )
 
 @router.get("/video")
@@ -127,5 +133,5 @@ def download_video_mp4(
     except Exception as e:
         raise HTTPException(
             status_code=422,
-            detail=f"Não foi possível processar o vídeo fornecido: {str(e)}"
+            detail=f"Não foi possível processar o vídeo fornecido: {sanitize_download_error(e)}"
         )

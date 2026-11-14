@@ -30,10 +30,12 @@ interface VideoInfo {
 
 interface VideoDownloaderProps {
   placeholder?: string;
+  hideAds?: boolean;
 }
 
 export default function VideoDownloader({
   placeholder = "https://www.youtube.com/watch?v=..., https://www.tiktok.com/@..., reels, etc.",
+  hideAds = false,
 }: VideoDownloaderProps = {}) {
   const pathname = usePathname();
   const isEnglish = pathname?.startsWith("/en");
@@ -43,6 +45,16 @@ export default function VideoDownloader({
   const [error, setError] = useState<string | null>(null);
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const urlError = sp.get("error");
+      if (urlError) {
+        setError(decodeURIComponent(urlError));
+      }
+    }
+  }, []);
   const [downloadingAudio, setDownloadingAudio] = useState(false);
 
   // Lead capture modal states
@@ -726,15 +738,17 @@ export default function VideoDownloader({
         </div>
       )}
 
-      {/* AdSense In-Feed / Mid-Content Placement (High CTR zone) */}
-      <AdsenseBanner format="rectangle" slot="1000000002" />
+      {/* AdSense In-Feed / Mid-Content Placement (High CTR zone) - Hidden inside dashboard */}
+      {!hideAds && <AdsenseBanner format="rectangle" slot="1000000002" />}
 
-      {/* Trojan Horse Conversion Card: Convert Downloader into AI Transcription User */}
-      <TrojanHorseCard
-        videoUrl={url}
-        videoTitle={videoInfo?.title}
-        platform={videoInfo?.platform || "vídeo"}
-      />
+      {/* Trojan Horse Conversion Card: Convert Downloader into AI Transcription User - Hidden inside dashboard */}
+      {!hideAds && (
+        <TrojanHorseCard
+          videoUrl={url}
+          videoTitle={videoInfo?.title}
+          platform={videoInfo?.platform || "vídeo"}
+        />
+      )}
 
       {/* Toast Notification after unlocking download */}
       {showSuccessToast && (

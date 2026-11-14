@@ -124,15 +124,18 @@ def download_audio_from_url(url: str) -> dict:
             "preferredquality": "192",
         }]
 
-    # Progressive extraction strategies across multiple player clients
-    # visionos and combined clients cleanly bypass SABR blocks and datacenter bot checks
-    strategies = [
-        {"player_client": ["visionos", "android", "ios", "web"]},
-        {"player_client": ["visionos"]},
-        {"player_client": ["android"]},
-        {"player_client": ["ios"]},
-        None,
-    ]
+    is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
+    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    if is_youtube:
+        strategies = [
+            {"player_client": ["android"]},
+            {"player_client": ["android_vr"]},
+            {"player_client": ["tv_embedded"]},
+            {"player_client": ["visionos"]},
+            {"player_client": ["android", "visionos"]},
+        ]
+    else:
+        strategies = [None]
 
     info = None
     last_err = None
@@ -150,6 +153,9 @@ def download_audio_from_url(url: str) -> dict:
             continue
 
     if not info:
+        err_msg = str(last_err or "")
+        if "sign in" in err_msg.lower() or "bot" in err_msg.lower() or "verify" in err_msg.lower():
+            raise RuntimeError("Este vídeo do YouTube possui proteção antibot temporária em servidores de nuvem. Recomendamos usar a transcrição com legendas nativas ou enviar o arquivo diretamente.")
         raise RuntimeError(f"Não foi possível extrair informações do vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Áudio da Internet")
@@ -609,7 +615,7 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
     output_template = str(TEMP_MEDIA_DIR / f"video_{file_id}.%(ext)s")
 
     if has_ffmpeg():
-        video_format = f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]/best[ext=mp4]/best"
+        video_format = f"bestvideo[ext=mp4][height<={max_height}]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]/best[ext=mp4]/18/best"
     else:
         video_format = f"best[height<={max_height}][ext=mp4]/best[ext=mp4]/best[height<={max_height}]/best"
 
@@ -641,13 +647,18 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
     if cookie_file:
         base_opts["cookiefile"] = cookie_file
 
-    strategies = [
-        {"player_client": ["visionos", "android", "ios", "web"]},
-        {"player_client": ["visionos"]},
-        {"player_client": ["android"]},
-        {"player_client": ["ios"]},
-        None,
-    ]
+    is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
+    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    if is_youtube:
+        strategies = [
+            {"player_client": ["android"]},
+            {"player_client": ["android_vr"]},
+            {"player_client": ["tv_embedded"]},
+            {"player_client": ["visionos"]},
+            {"player_client": ["android", "visionos"]},
+        ]
+    else:
+        strategies = [None]
 
     info = None
     last_err = None
@@ -665,6 +676,9 @@ def download_video_from_url(url: str, max_height: int = 720) -> dict:
             continue
 
     if not info:
+        err_msg = str(last_err or "")
+        if "sign in" in err_msg.lower() or "bot" in err_msg.lower() or "verify" in err_msg.lower():
+            raise RuntimeError("Este vídeo do YouTube possui proteção antibot temporária em servidores de nuvem. Recomendamos usar a transcrição com legendas nativas ou enviar o arquivo diretamente.")
         raise RuntimeError(f"Não foi possível baixar o vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Vídeo da Web")
@@ -716,13 +730,18 @@ def extract_video_stream_info(url: str) -> dict:
 
     info = None
     last_err = None
-    strategies = [
-        {"player_client": ["visionos", "android", "ios", "web"]},
-        {"player_client": ["visionos"]},
-        {"player_client": ["android"]},
-        {"player_client": ["ios"]},
-        None,
-    ]
+    is_youtube = bool(re.search(r"youtube\.com|youtu\.be", url, re.I))
+    # Android & Android VR clients cleanly bypass SABR blocks and datacenter bot checks
+    if is_youtube:
+        strategies = [
+            {"player_client": ["android"]},
+            {"player_client": ["android_vr"]},
+            {"player_client": ["tv_embedded"]},
+            {"player_client": ["visionos"]},
+            {"player_client": ["android", "visionos"]},
+        ]
+    else:
+        strategies = [None]
 
     for strat in strategies:
         try:
@@ -738,6 +757,9 @@ def extract_video_stream_info(url: str) -> dict:
             continue
 
     if not info:
+        err_msg = str(last_err or "")
+        if "sign in" in err_msg.lower() or "bot" in err_msg.lower() or "verify" in err_msg.lower():
+            raise RuntimeError("Este vídeo do YouTube possui proteção antibot temporária em servidores de nuvem. Recomendamos usar a transcrição com legendas nativas ou enviar o arquivo diretamente.")
         raise RuntimeError(f"Não foi possível obter informações do vídeo: {last_err or 'Erro desconhecido'}")
 
     title = info.get("title", "Vídeo da Web")

@@ -7,6 +7,7 @@ import AudioSyncPlayer from "@/components/AudioSyncPlayer";
 import InteractiveTranscript from "@/components/InteractiveTranscript";
 import VideoDownloader from "@/components/VideoDownloader";
 import DashboardPromoBanner from "@/components/DashboardPromoBanner";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { 
   Clock, FileText, Zap, CreditCard, LogOut, ArrowRight, Download, 
   Eye, Sparkles, ShieldCheck, Crown, RefreshCw, Copy, Check, 
@@ -27,7 +28,6 @@ import {
 
 export type NavTab = 
   | "transcrever" 
-  | "chat" 
   | "documentos" 
   | "legendas" 
   | "traducao" 
@@ -232,11 +232,7 @@ export default function DashboardPage() {
   const [activeNavTab, setActiveNavTab] = useState<NavTab>("transcrever");
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  // Chat with AI state
-  const [selectedChatDocId, setSelectedChatDocId] = useState<string>("");
-  const [chatQuery, setChatQuery] = useState("");
-  const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
+
 
   // Subtitles (.SRT & .VTT) state
   const [selectedSrtDocId, setSelectedSrtDocId] = useState<string>("");
@@ -393,7 +389,6 @@ export default function DashboardPage() {
               setHistory(historyData);
               if (historyData.length > 0) {
                 setActiveItem(historyData[0]);
-                setSelectedChatDocId(historyData[0].id);
                 setSelectedSrtDocId(historyData[0].id);
                 setSelectedTranslationDocId(historyData[0].id);
               }
@@ -909,40 +904,6 @@ export default function DashboardPage() {
     }
   };
 
-  // AI Chat Handler
-  const handleSendChatMessage = async () => {
-    if (!chatQuery.trim()) return;
-    const userText = chatQuery.trim();
-    setChatQuery("");
-    const newHistory = [...chatMessages, { role: "user" as const, text: userText }];
-    setChatMessages(newHistory);
-    setIsChatLoading(true);
-
-    try {
-      const currentDoc = history.find((h) => h.id === selectedChatDocId) || history[0];
-      const docContext = currentDoc ? currentDoc.text_content.slice(0, 10000) : "";
-
-      const res = await fetch("/api/transcribe/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: `[Instrução: Responda à dúvida do usuário baseando-se no texto da transcrição]\nPergunta: ${userText}\n\nTranscrição:\n${docContext}`,
-          title: currentDoc?.title || "Documento",
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.executive_summary) {
-        setChatMessages([...newHistory, { role: "assistant", text: data.executive_summary }]);
-      } else {
-        setChatMessages([...newHistory, { role: "assistant", text: data?.detail || "Entendido! Baseado no seu documento, este ponto destaca as principais conclusões e dados apresentados." }]);
-      }
-    } catch (e) {
-      setChatMessages([...newHistory, { role: "assistant", text: "Não foi possível conectar ao assistente de IA neste momento. Tente novamente em instantes." }]);
-    } finally {
-      setIsChatLoading(false);
-    }
-  };
-
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden", background: "#0B0814", color: "#F8FAFC" }}>
       
@@ -1065,36 +1026,7 @@ export default function DashboardPage() {
                   )}
                 </button>
 
-                {/* 2. Chat com IA */}
-                <button
-                  onClick={() => {
-                    setActiveNavTab("chat");
-                    setIsMobileNavOpen(false);
-                  }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "9px 12px",
-                    borderRadius: "10px",
-                    border: activeNavTab === "chat" ? "1px solid rgba(124, 58, 237, 0.4)" : "1px solid transparent",
-                    background: activeNavTab === "chat" ? "rgba(124, 58, 237, 0.16)" : "transparent",
-                    color: activeNavTab === "chat" ? "#FFFFFF" : "#9E96B3",
-                    fontWeight: activeNavTab === "chat" ? 700 : 500,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <MessageSquare size={16} color={activeNavTab === "chat" ? "#A78BFA" : "#6B6382"} />
-                    <span>{isEn ? "AI Chat & Analysis" : "Chat com IA"}</span>
-                  </div>
-                  <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "6px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontWeight: 700 }}>
-                    IA
-                  </span>
-                </button>
+                
 
                 {/* 3. Meus Documentos */}
                 <button
@@ -1625,8 +1557,7 @@ export default function DashboardPage() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <h1 style={{ fontSize: "17px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", margin: 0 }}>
                   {activeNavTab === "transcrever" && (isEn ? "Transcribe Audio & Video" : "Transcrever Áudio e Vídeo")}
-                  {activeNavTab === "chat" && (isEn ? "AI Assistant & Dialogue" : "Chat com IA")}
-                  {activeNavTab === "documentos" && (isEn ? "My Transcription Library" : "Meus Documentos")}
+                                    {activeNavTab === "documentos" && (isEn ? "My Transcription Library" : "Meus Documentos")}
                   {activeNavTab === "legendas" && (isEn ? "Subtitles (.SRT & .VTT)" : "Gerador de Legendas (.SRT & .VTT)")}
                   {activeNavTab === "traducao" && (isEn ? "AI Global Translation" : "Tradução Global com IA")}
                   {activeNavTab === "downloader" && (isEn ? "Download Video & MP3" : "Baixar Vídeo & MP3")}
@@ -1685,26 +1616,8 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Language Switcher */}
-            <Link
-              href={isEn ? "/dashboard" : "/en/dashboard"}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                padding: "6px 10px",
-                borderRadius: "10px",
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: "#E2D9F3",
-                fontSize: "12px",
-                fontWeight: 600,
-                textDecoration: "none",
-              }}
-              title={isEn ? "Mudar para Português" : "Switch to English"}
-            >
-              <span>{isEn ? "🇺🇸 EN" : "🇧🇷 PT"}</span>
-            </Link>
+            {/* Language Switcher Dropdown */}
+            <LanguageSwitcher />
 
             {/* Suggestions button (In-dashboard!) */}
             <button
@@ -2013,11 +1926,11 @@ export default function DashboardPage() {
                               {item.title || "Transcrição de Áudio"}
                             </div>
                             <div style={{ fontSize: "12px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-                              <span>{item.platform ? item.platform.toUpperCase() : "ÁUDIO"}</span>
+                              <span>{item.platform ? item.platform.toUpperCase() : (isEn ? "AUDIO" : "ÁUDIO")}</span>
                               <span>•</span>
                               <span>{item.duration_seconds ? `${Math.ceil(item.duration_seconds / 60)} min` : "1 min"}</span>
                               <span>•</span>
-                              <span>{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                              <span>{new Date(item.created_at).toLocaleDateString(isEn ? "en-US" : "pt-BR")}</span>
                             </div>
                           </div>
                         </div>
@@ -2096,28 +2009,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <button
-                        onClick={() => {
-                          setSelectedChatDocId(activeItem.id);
-                          setActiveNavTab("chat");
-                        }}
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          padding: "7px 14px",
-                          borderRadius: "8px",
-                          background: "rgba(124, 58, 237, 0.2)",
-                          border: "1px solid rgba(124, 58, 237, 0.4)",
-                          color: "#C4B5FD",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px"
-                        }}
-                      >
-                        <MessageSquare size={13} />
-                        <span>Perguntar para IA</span>
-                      </button>
+                      
 
                       <button
                         onClick={() => {
@@ -2194,209 +2086,6 @@ export default function DashboardPage() {
           )}
 
           {/* =================================================== */}
-          {/* TAB 2: CHAT COM IA                                 */}
-          {/* =================================================== */}
-          {activeNavTab === "chat" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px", height: "calc(100vh - 120px)" }}>
-              
-              <div style={{
-                padding: "16px 20px",
-                borderRadius: "16px",
-                background: "#0F0A1C",
-                border: "1px solid rgba(167, 139, 250, 0.14)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "12px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "10px", background: "rgba(124, 58, 237, 0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "#A78BFA" }}>
-                    <Bot size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF" }}>
-                      Assistente Especialista em Transcrições & Análise
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#9E96B3" }}>
-                      Faça perguntas, extraia resumos, questione pontos-chave e analise fatos da sua gravação.
-                    </div>
-                  </div>
-                </div>
-
-                {history.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "12px", color: "#9E96B3" }}>Documento Ativo:</span>
-                    <select
-                      value={selectedChatDocId}
-                      onChange={(e) => {
-                        setSelectedChatDocId(e.target.value);
-                        setChatMessages([]);
-                      }}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: "8px",
-                        background: "#151026",
-                        border: "1px solid rgba(167, 139, 250, 0.3)",
-                        color: "#FFFFFF",
-                        fontSize: "12px",
-                        outline: "none",
-                        cursor: "pointer",
-                        maxWidth: 240
-                      }}
-                    >
-                      {history.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.title || "Gravação"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div style={{
-                flex: 1,
-                overflowY: "auto",
-                borderRadius: "16px",
-                background: "#0F0A1C",
-                border: "1px solid rgba(167, 139, 250, 0.12)",
-                padding: "20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px"
-              }}>
-                {chatMessages.length === 0 ? (
-                  <div style={{ margin: "auto", textAlign: "center", maxWidth: 440, padding: "20px" }}>
-                    <Sparkles size={36} color="#A78BFA" style={{ margin: "0 auto 12px" }} />
-                    <div style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF", marginBottom: "6px" }}>
-                      Como posso ajudar com a sua gravação?
-                    </div>
-                    <p style={{ fontSize: "13px", color: "#9E96B3", lineHeight: 1.5, marginBottom: "18px" }}>
-                      Selecione um dos prompts rápidos abaixo ou digite sua pergunta sobre o conteúdo:
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {[
-                        "Quais foram os principais pontos abordados nesta reunião?",
-                        "Crie uma síntese executiva com os tópicos acordados.",
-                        "Identifique todos os nomes, prazos e datas citados nesta gravação."
-                      ].map((prompt, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setChatQuery(prompt);
-                          }}
-                          style={{
-                            padding: "10px 14px",
-                            borderRadius: "10px",
-                            background: "rgba(124, 58, 237, 0.1)",
-                            border: "1px solid rgba(124, 58, 237, 0.25)",
-                            color: "#E2D9F3",
-                            fontSize: "12px",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            transition: "all 0.15s ease"
-                          }}
-                        >
-                          "{prompt}"
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  chatMessages.map((msg, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "12px",
-                        maxWidth: "80%",
-                        alignSelf: msg.role === "user" ? "flex-end" : "flex-start"
-                      }}
-                    >
-                      {msg.role === "assistant" && (
-                        <div style={{ width: 28, height: 28, borderRadius: "8px", background: "rgba(124, 58, 237, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#C4B5FD", flexShrink: 0 }}>
-                          <Bot size={15} />
-                        </div>
-                      )}
-                      <div style={{
-                        padding: "12px 16px",
-                        borderRadius: "14px",
-                        background: msg.role === "user" ? "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)" : "#151026",
-                        border: msg.role === "user" ? "none" : "1px solid rgba(167, 139, 250, 0.15)",
-                        color: "#FFFFFF",
-                        fontSize: "13px",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap"
-                      }}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                {isChatLoading && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#A78BFA", fontSize: "13px", padding: "8px 0" }}>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Analisando o documento com Inteligência Artificial...</span>
-                  </div>
-                )}
-              </div>
-
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 14px",
-                borderRadius: "14px",
-                background: "#0F0A1C",
-                border: "1px solid rgba(167, 139, 250, 0.2)"
-              }}>
-                <input
-                  type="text"
-                  value={chatQuery}
-                  onChange={(e) => setChatQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSendChatMessage();
-                  }}
-                  placeholder="Pergunte qualquer dúvida sobre o documento..."
-                  style={{
-                    flex: 1,
-                    background: "none",
-                    border: "none",
-                    color: "#FFFFFF",
-                    fontSize: "13px",
-                    outline: "none"
-                  }}
-                />
-                <button
-                  onClick={handleSendChatMessage}
-                  disabled={!chatQuery.trim() || isChatLoading}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
-                    border: "none",
-                    color: "#FFFFFF",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    cursor: chatQuery.trim() && !isChatLoading ? "pointer" : "default",
-                    opacity: chatQuery.trim() && !isChatLoading ? 1 : 0.5,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <span>Enviar</span>
-                  <Send size={13} />
-                </button>
-              </div>
-
-            </div>
-          )}
-
-          {/* =================================================== */}
           {/* TAB 3: MEUS DOCUMENTOS                             */}
           {/* =================================================== */}
           {activeNavTab === "documentos" && (
@@ -2419,7 +2108,7 @@ export default function DashboardPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Pesquisar por título, texto ou data..."
+                    placeholder={isEn ? "Search by title, text or date..." : "Pesquisar por título, texto ou data..."}
                     style={{
                       background: "none",
                       border: "none",
@@ -2484,11 +2173,11 @@ export default function DashboardPage() {
                           {item.title || "Transcrição de Áudio"}
                         </div>
                         <div style={{ fontSize: "12px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
-                          <span>{item.platform ? item.platform.toUpperCase() : "ÁUDIO"}</span>
+                          <span>{item.platform ? item.platform.toUpperCase() : (isEn ? "AUDIO" : "ÁUDIO")}</span>
                           <span>•</span>
                           <span>{item.duration_seconds ? `${Math.ceil(item.duration_seconds / 60)} min` : "1 min"}</span>
                           <span>•</span>
-                          <span>{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                          <span>{new Date(item.created_at).toLocaleDateString(isEn ? "en-US" : "pt-BR")}</span>
                         </div>
                       </div>
 
@@ -2509,7 +2198,7 @@ export default function DashboardPage() {
                             cursor: "pointer"
                           }}
                         >
-                          Abrir Leitor
+                          {isEn ? "Open Reader" : "Abrir Leitor"}
                         </button>
                         <button
                           onClick={() => handleExportDocx(item)}
@@ -2557,13 +2246,13 @@ export default function DashboardPage() {
                 <div style={{ maxWidth: 640 }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(236, 72, 153, 0.15)", color: "#F472B6", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
                     <Scissors size={12} />
-                    <span>Legendas Profissionais com Timestamps Sincronizados</span>
+                    <span>{isEn ? "Professional Subtitles with Synchronized Timestamps" : "Legendas Profissionais com Timestamps Sincronizados"}</span>
                   </div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
-                    Gerador & Exportador de Legendas (.SRT e .VTT)
+                    {isEn ? "Subtitles (.SRT & .VTT) Generator & Exporter" : "Gerador & Exportador de Legendas (.SRT e .VTT)"}
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
-                    Gere marcações temporais milissegundo a milissegundo prontas para importar com 1 clique no CapCut, Adobe Premiere Pro, DaVinci Resolve ou YouTube Studio.
+                    {isEn ? "Generate millisecond-precise timestamps ready to import with 1 click into CapCut, Adobe Premiere Pro, DaVinci Resolve, or YouTube Studio." : "Gere marcações temporais milissegundo a milissegundo prontas para importar com 1 clique no CapCut, Adobe Premiere Pro, DaVinci Resolve ou YouTube Studio."}
                   </p>
                 </div>
 
@@ -2581,7 +2270,7 @@ export default function DashboardPage() {
                       cursor: "pointer"
                     }}
                   >
-                    Usar Transcrição Existente
+                    {isEn ? "Use Saved Transcript" : "Usar Transcrição Existente"}
                   </button>
                   <button
                     onClick={() => setLegendasMode("new")}
@@ -2596,7 +2285,7 @@ export default function DashboardPage() {
                       cursor: "pointer"
                     }}
                   >
-                    Gerar de Novo Arquivo/Vídeo
+                    {isEn ? "Upload New Media/Link" : "Gerar de Novo Arquivo/Vídeo"}
                   </button>
                 </div>
               </div>
@@ -2607,16 +2296,16 @@ export default function DashboardPage() {
                     <div style={{ padding: "40px", textAlign: "center", borderRadius: "16px", background: "#151026", border: "1px dashed rgba(167, 139, 250, 0.2)" }}>
                       <FileText size={32} color="#EC4899" style={{ margin: "0 auto 12px" }} />
                       <div style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF", marginBottom: "4px" }}>
-                        Nenhuma transcrição disponível para exportar legendas
+                        {isEn ? "No transcriptions available to export subtitles" : "Nenhuma transcrição disponível para exportar legendas"}
                       </div>
                       <div style={{ fontSize: "13px", color: "#9E96B3", marginBottom: "16px" }}>
-                        Alterne para "Gerar de Novo Arquivo/Vídeo" acima para enviar seu primeiro arquivo.
+                        Alterne para "{isEn ? "Upload New Media/Link" : "Gerar de Novo Arquivo/Vídeo"}" acima para enviar seu primeiro arquivo.
                       </div>
                       <button
                         onClick={() => setLegendasMode("new")}
                         style={{ padding: "8px 18px", borderRadius: "10px", background: "#EC4899", border: "none", color: "#FFF", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
                       >
-                        Enviar Vídeo ou Link
+                        {isEn ? "Upload Video or Link" : "Enviar Vídeo ou Link"}
                       </button>
                     </div>
                   ) : (
@@ -2633,7 +2322,7 @@ export default function DashboardPage() {
                         gap: "14px"
                       }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 260 }}>
-                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#FFFFFF" }}>Selecionar Gravação:</span>
+                          <span style={{ fontSize: "13px", fontWeight: 700, color: "#FFFFFF" }}>{isEn ? "Select Recording:" : "Selecionar Gravação:"}</span>
                           <select
                             value={selectedSrtDocId}
                             onChange={(e) => setSelectedSrtDocId(e.target.value)}
@@ -2789,13 +2478,13 @@ export default function DashboardPage() {
                 <div style={{ maxWidth: 640 }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(16, 185, 129, 0.15)", color: "#6EE7B7", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
                     <Globe size={12} />
-                    <span>Tradução Global com Preservação de Contexto</span>
+                    <span>{isEn ? "Global AI Translation with Context Preservation" : "Tradução Global com Preservação de Contexto"}</span>
                   </div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
-                    Tradução Global com Inteligência Artificial
+                    {isEn ? "Global AI Translation" : "Tradução Global com Inteligência Artificial"}
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
-                    Traduza transcrições inteiras ou textos para mais de 10 idiomas com máxima fidelidade e exporte em Word (.DOCX) ou texto puro.
+                    {isEn ? "Translate entire transcripts or custom texts into more than 10 languages with maximum fidelity and export as Word (.DOCX) or plain text." : "Traduza transcrições inteiras ou textos para mais de 10 idiomas com máxima fidelidade e exporte em Word (.DOCX) ou texto puro."}
                   </p>
                 </div>
               </div>
@@ -2813,7 +2502,7 @@ export default function DashboardPage() {
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>Origem:</span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>{isEn ? "Source:" : "Origem:"}</span>
                     <select
                       value={selectedTranslationDocId}
                       onChange={(e) => setSelectedTranslationDocId(e.target.value)}
@@ -2829,7 +2518,7 @@ export default function DashboardPage() {
                         maxWidth: 240
                       }}
                     >
-                      <option value="manual">Digitar / Colar Texto Manualmente</option>
+                      <option value="manual">{isEn ? "Type / Paste Text Manually" : "Digitar / Colar Texto Manualmente"}</option>
                       {history.map((h) => (
                         <option key={h.id} value={h.id}>
                           {h.title || "Gravação"}
@@ -2839,7 +2528,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>Traduzir Para:</span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3" }}>{isEn ? "Translate To:" : "Traduzir Para:"}</span>
                     <select
                       value={targetTranslationLang}
                       onChange={(e) => setTargetTranslationLang(e.target.value)}
@@ -2883,7 +2572,7 @@ export default function DashboardPage() {
                   }}
                 >
                   {isTranslating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                  <span>{isTranslating ? "Traduzindo..." : "Traduzir com IA"}</span>
+                  <span>{isTranslating ? (isEn ? "Translating..." : "Traduzindo...") : (isEn ? "Translate with AI" : "Traduzir com IA")}</span>
                 </button>
               </div>
 
@@ -3120,31 +2809,31 @@ export default function DashboardPage() {
                 <div style={{ maxWidth: 640 }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(16, 185, 129, 0.15)", color: "#6EE7B7", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
                     <Gift size={12} />
-                    <span>Programa Oficial de Indicação de Amigos</span>
+                    <span>{isEn ? "Official Friend Referral Program" : "Programa Oficial de Indicação de Amigos"}</span>
                   </div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
-                    Indique Amigos e Ganhe Minutos Gratuitos
+                    {isEn ? "Refer Friends and Earn Free Minutes" : "Indique Amigos e Ganhe Minutos Gratuitos"}
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
-                    Para cada amigo ou colega que se cadastrar através do seu link, você recebe <strong>+10 minutos</strong> creditados automaticamente no seu saldo, e seu amigo também ganha minutos bônus!
+                    {isEn ? "For every friend or colleague who registers via your link, you get <strong>+10 minutes</strong> automatically credited to your balance, and your friend also gets bonus minutes!" : "Para cada amigo ou colega que se cadastrar através do seu link, você recebe <strong>+10 minutos</strong> creditados automaticamente no seu saldo, e seu amigo também ganha minutos bônus!"}
                   </p>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
                 <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(167, 139, 250, 0.12)" }}>
-                  <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>Total de Convites Confirmados</div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#FFFFFF" }}>{referralStats.total_invites} amigos</div>
+                  <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>{isEn ? "Total Confirmed Invites" : "Total de Convites Confirmados"}</div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#FFFFFF" }}>{referralStats.total_invites} {isEn ? "friends" : "amigos"}</div>
                 </div>
 
                 <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(16, 185, 129, 0.25)" }}>
-                  <div style={{ fontSize: "12px", color: "#6EE7B7", marginBottom: "6px" }}>Minutos Ganhos com Convites</div>
+                  <div style={{ fontSize: "12px", color: "#6EE7B7", marginBottom: "6px" }}>{isEn ? "Minutes Earned with Invites" : "Minutos Ganhos com Convites"}</div>
                   <div style={{ fontSize: "24px", fontWeight: 800, color: "#34D399" }}>+{referralStats.total_minutes_earned} min</div>
                 </div>
 
                 <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(167, 139, 250, 0.12)" }}>
-                  <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>Bônus por Novo Amigo</div>
-                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#A78BFA" }}>+10 min imediatos</div>
+                  <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>{isEn ? "Bonus per New Friend" : "Bônus por Novo Amigo"}</div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#A78BFA" }}>{isEn ? "+10 min instant" : "+10 min imediatos"}</div>
                 </div>
               </div>
 
@@ -3158,7 +2847,7 @@ export default function DashboardPage() {
                 gap: "18px"
               }}>
                 <div style={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF" }}>
-                  Seu Link Exclusivo de Indicação:
+                  {isEn ? "Your Exclusive Referral Link:" : "Seu Link Exclusivo de Indicação:"}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -3272,19 +2961,19 @@ export default function DashboardPage() {
                 <div style={{ maxWidth: 640 }}>
                   <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.2)", color: "#C4B5FD", fontSize: "11px", fontWeight: 700, marginBottom: "8px" }}>
                     <Award size={12} />
-                    <span>Programa Oficial de Afiliados Peguei o Texto</span>
+                    <span>{isEn ? "Official Peguei o Texto Affiliate Program" : "Programa Oficial de Afiliados Peguei o Texto"}</span>
                   </div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 6px" }}>
-                    30% de Comissão Recorrente Mensal
+                    {isEn ? "30% Recurring Monthly Commission" : "30% de Comissão Recorrente Mensal"}
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0, lineHeight: 1.5 }}>
-                    Receba 30% em todos os pagamentos mensais e anuais realizados por clientes que você indicar, enquanto eles continuarem assinando.
+                    {isEn ? "Earn 30% on all monthly and annual subscription payments made by clients you refer, for as long as they stay subscribed." : "Receba 30% em todos os pagamentos mensais e anuais realizados por clientes que você indicar, enquanto eles continuarem assinando."}
                   </p>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "11px", color: "#9E96B3" }}>Pagamentos via PIX</div>
-                  <div style={{ fontSize: "15px", fontWeight: 800, color: "#34D399" }}>Todo dia 10</div>
+                  <div style={{ fontSize: "11px", color: "#9E96B3" }}>{isEn ? "Monthly Payouts via PIX" : "Pagamentos via PIX"}</div>
+                  <div style={{ fontSize: "15px", fontWeight: 800, color: "#34D399" }}>{isEn ? "Every 10th" : "Todo dia 10"}</div>
                 </div>
               </div>
 
@@ -3298,21 +2987,21 @@ export default function DashboardPage() {
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
                     <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
-                      <div style={{ fontSize: "12px", color: "#6EE7B7", marginBottom: "6px" }}>Saldo Disponível para Saque</div>
+                      <div style={{ fontSize: "12px", color: "#6EE7B7", marginBottom: "6px" }}>{isEn ? "Available Balance for Payout" : "Saldo Disponível para Saque"}</div>
                       <div style={{ fontSize: "24px", fontWeight: 800, color: "#34D399" }}>
                         R$ {affiliateMetrics?.balance_available ? Number(affiliateMetrics.balance_available).toFixed(2).replace(".", ",") : "0,00"}
                       </div>
                     </div>
 
                     <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(167, 139, 250, 0.12)" }}>
-                      <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>Total de Ganhos Acumulados</div>
+                      <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>{isEn ? "Total Accumulated Earnings" : "Total de Ganhos Acumulados"}</div>
                       <div style={{ fontSize: "24px", fontWeight: 800, color: "#FFFFFF" }}>
                         R$ {affiliateMetrics?.total_earnings ? Number(affiliateMetrics.total_earnings).toFixed(2).replace(".", ",") : "0,00"}
                       </div>
                     </div>
 
                     <div style={{ padding: "18px 20px", borderRadius: "16px", background: "#151026", border: "1px solid rgba(167, 139, 250, 0.12)" }}>
-                      <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>Assinaturas & Vendas</div>
+                      <div style={{ fontSize: "12px", color: "#9E96B3", marginBottom: "6px" }}>{isEn ? "Subscriptions & Sales" : "Assinaturas & Vendas"}</div>
                       <div style={{ fontSize: "24px", fontWeight: 800, color: "#C4B5FD" }}>
                         {affiliateMetrics?.total_conversions || affiliateConversions.length || 0}
                       </div>
@@ -3411,7 +3100,7 @@ export default function DashboardPage() {
                     }}
                   >
                     <div style={{ fontSize: "15px", fontWeight: 800, color: "#FFFFFF" }}>
-                      Solicitar Saque de Comissões via PIX
+                      {isEn ? "Request Commission Payout via PIX" : "Solicitar Saque de Comissões via PIX"}
                     </div>
 
                     {affiliatePayoutMsg && (
@@ -3429,7 +3118,7 @@ export default function DashboardPage() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
                       <div>
-                        <label style={{ fontSize: "12px", color: "#9E96B3", display: "block", marginBottom: "6px" }}>Chave PIX (CPF, E-mail, Telefone ou Aleatória):</label>
+                        <label style={{ fontSize: "12px", color: "#9E96B3", display: "block", marginBottom: "6px" }}>{isEn ? "PIX Key (CPF, Email, Phone, or Random Key):" : "Chave PIX (CPF, E-mail, Telefone ou Aleatória):"}</label>
                         <input
                           type="text"
                           value={affiliatePixKey}
@@ -3449,7 +3138,7 @@ export default function DashboardPage() {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: "12px", color: "#9E96B3", display: "block", marginBottom: "6px" }}>Valor do Saque (R$ - Mínimo R$ 50,00):</label>
+                        <label style={{ fontSize: "12px", color: "#9E96B3", display: "block", marginBottom: "6px" }}>{isEn ? "Payout Amount (R$ - Minimum R$ 50.00):" : "Valor do Saque (R$ - Mínimo R$ 50,00):"}</label>
                         <input
                           type="text"
                           value={affiliatePayoutAmount}
@@ -3489,7 +3178,7 @@ export default function DashboardPage() {
                       }}
                     >
                       {affiliatePayoutLoading ? <Loader2 size={14} className="animate-spin" /> : <DollarSign size={14} />}
-                      <span>{affiliatePayoutLoading ? "Processando..." : "Confirmar Solicitação de Saque"}</span>
+                      <span>{affiliatePayoutLoading ? (isEn ? "Processing..." : "Processando...") : (isEn ? "Confirm Payout Request" : "Confirmar Solicitação de Saque")}</span>
                     </button>
                   </form>
                 </>
@@ -3508,10 +3197,10 @@ export default function DashboardPage() {
                     <Clock size={28} />
                   </div>
                   <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", marginBottom: "8px" }}>
-                    Sua Candidatura a Afiliado está em Análise
+                    {isEn ? "Your Affiliate Application is Under Review" : "Sua Candidatura a Afiliado está em Análise"}
                   </h3>
                   <p style={{ fontSize: "14px", color: "#9E96B3", lineHeight: 1.6, marginBottom: "20px" }}>
-                    Recebemos seus dados e sua solicitação está em moderação pela nossa equipe. Você receberá um aviso assim que a afiliação for aprovada e seu painel de vendas for liberado!
+                    {isEn ? "We received your application and it is currently being reviewed by our team. You will be notified as soon as your partner account is approved and your sales dashboard is unlocked!" : "Recebemos seus dados e sua solicitação está em moderação pela nossa equipe. Você receberá um aviso assim que a afiliação for aprovada e seu painel de vendas for liberado!"}
                   </p>
 
                   <div style={{
@@ -3547,10 +3236,10 @@ export default function DashboardPage() {
                       <Award size={26} />
                     </div>
                     <h3 style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF", marginBottom: "6px" }}>
-                      Candidatura para o Programa Oficial de Afiliados
+                      {isEn ? "Official Affiliate Program Application" : "Candidatura para o Programa Oficial de Afiliados"}
                     </h3>
                     <p style={{ fontSize: "13px", color: "#9E96B3", lineHeight: 1.5, margin: 0 }}>
-                      Preencha o formulário abaixo para se candidatar. Você terá direito a <strong>30% de comissão recorrente vitalícia</strong> em todas as mensalidades e compras geradas.
+                      {isEn ? "Fill in the form below to apply. You will earn <strong>30% recurring lifetime commission</strong> on all subscription renewals and purchases generated." : "Preencha o formulário abaixo para se candidatar. Você terá direito a <strong>30% de comissão recorrente vitalícia</strong> em todas as mensalidades e compras geradas."}
                     </p>
                   </div>
 
@@ -3571,7 +3260,7 @@ export default function DashboardPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
                       <div>
                         <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
-                          Nome Completo *
+                          {isEn ? "Full Name *" : "Nome Completo *"}
                         </label>
                         <input
                           type="text"
@@ -3594,7 +3283,7 @@ export default function DashboardPage() {
 
                       <div>
                         <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
-                          E-mail de Contato *
+                          {isEn ? "Contact Email *" : "E-mail de Contato *"}
                         </label>
                         <input
                           type="email"
@@ -3619,7 +3308,7 @@ export default function DashboardPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
                       <div>
                         <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
-                          WhatsApp / Telefone com DDD *
+                          {isEn ? "WhatsApp / Phone Number *" : "WhatsApp / Telefone com DDD *"}
                         </label>
                         <input
                           type="tel"
@@ -3843,7 +3532,7 @@ export default function DashboardPage() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#A78BFA" }}>
-                      Plano Ativo no Momento
+                      {isEn ? "Current Active Plan" : "Plano Ativo no Momento"}
                     </span>
                     <span style={{
                       fontSize: "11px",
@@ -3858,22 +3547,22 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div style={{ fontSize: "22px", fontWeight: 800, color: "#FFFFFF" }}>
-                    {credits} minutos disponíveis para degravação
+                    {credits} {isEn ? "minutes available for transcription" : "minutos disponíveis para degravação"}
                   </div>
                   <div style={{ fontSize: "13px", color: "#9E96B3", marginTop: "4px" }}>
                     {!isPaidUser && typeof profile?.days_until_renewal === "number" ? (
                       <span style={{ color: "#34D399", fontWeight: 600 }}>
-                        🔄 Renovação gratuita de 25 min em {profile.days_until_renewal} dias
+                        🔄 {isEn ? `Free 25 min renewal in ${profile.days_until_renewal} days` : `Renovação gratuita de 25 min em ${profile.days_until_renewal} dias`}
                       </span>
                     ) : (
-                      <span>Acesso contínuo sem limites de velocidade</span>
+                      <span>{isEn ? "Continuous access with high-speed priority" : "Acesso contínuo sem limites de velocidade"}</span>
                     )}
                   </div>
                 </div>
 
                 <div style={{ width: 200 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#9E96B3", marginBottom: "6px" }}>
-                    <span>Consumo</span>
+                    <span>{isEn ? "Usage" : "Consumo"}</span>
                     <span>{progressPercent}%</span>
                   </div>
                   <div style={{ width: "100%", height: 8, borderRadius: 100, background: "rgba(255, 255, 255, 0.08)", overflow: "hidden" }}>
@@ -3907,9 +3596,9 @@ export default function DashboardPage() {
                       gap: "6px"
                     }}
                   >
-                    <span>Anual com Desconto</span>
+                    <span>{isEn ? "Annual (Best Value)" : "Anual com Desconto"}</span>
                     <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "100px", background: "rgba(16, 185, 129, 0.25)", color: "#6EE7B7" }}>
-                      3 meses grátis
+                      {isEn ? "3 months free" : "3 meses grátis"}
                     </span>
                   </button>
 
@@ -3926,7 +3615,7 @@ export default function DashboardPage() {
                       cursor: "pointer"
                     }}
                   >
-                    Mensal / Avulso
+                    {isEn ? "Monthly / One-Time" : "Mensal / Avulso"}
                   </button>
                 </div>
               </div>
@@ -3962,7 +3651,7 @@ export default function DashboardPage() {
                         letterSpacing: "0.04em",
                         boxShadow: "0 2px 10px rgba(124, 58, 237, 0.4)"
                       }}>
-                        MAIS POPULAR
+                        {isEn ? "MOST POPULAR" : "MAIS POPULAR"}
                       </div>
                     )}
 
@@ -3977,7 +3666,7 @@ export default function DashboardPage() {
                       <div style={{ marginBottom: "16px" }}>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
                           <span style={{ fontSize: "28px", fontWeight: 900, color: "#FFFFFF" }}>{plan.priceMonthly}</span>
-                          <span style={{ fontSize: "12px", color: "#9E96B3" }}>/ mês</span>
+                          <span style={{ fontSize: "12px", color: "#9E96B3" }}>{isEn ? "/ month" : "/ mês"}</span>
                         </div>
                         <div style={{ fontSize: "12px", color: "#A78BFA", fontWeight: 600, marginTop: "2px" }}>
                           {plan.priceTotal}
@@ -4037,7 +3726,7 @@ export default function DashboardPage() {
                       }}
                     >
                       {loadingCheckoutPlan === plan.id ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
-                      <span>{loadingCheckoutPlan === plan.id ? "Conectando checkout..." : plan.cta}</span>
+                      <span>{loadingCheckoutPlan === plan.id ? (isEn ? "Connecting checkout..." : "Conectando checkout...") : plan.cta}</span>
                     </button>
                   </div>
                 ))}
@@ -4065,18 +3754,18 @@ export default function DashboardPage() {
               }}>
                 <div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#FFFFFF", margin: "0 0 4px" }}>
-                    Configurações da Conta
+                    {isEn ? "Account Settings" : "Configurações da Conta"}
                   </h2>
                   <p style={{ fontSize: "13px", color: "#9E96B3", margin: 0 }}>
-                    Gerencie seus dados de acesso, senha, preferências de transcrição e faturamento.
+                    {isEn ? "Manage your profile, password security, transcription preferences, and billing." : "Gerencie seus dados de acesso, senha, preferências de transcrição e faturamento."}
                   </p>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   {[
-                    { id: "perfil", label: "Meu Perfil" },
-                    { id: "senha", label: "Segurança & Senha" },
-                    { id: "preferencias", label: "Preferências" }
+                    { id: "perfil", label: isEn ? "My Profile" : "Meu Perfil" },
+                    { id: "senha", label: isEn ? "Security & Password" : "Segurança & Senha" },
+                    { id: "preferencias", label: isEn ? "Preferences" : "Preferências" }
                   ].map((sub) => (
                     <button
                       key={sub.id}
@@ -4143,7 +3832,7 @@ export default function DashboardPage() {
 
                     <div>
                       <label style={{ fontSize: "12px", fontWeight: 700, color: "#9E96B3", display: "block", marginBottom: "6px" }}>
-                        Nome Completo de Exibição:
+                        {isEn ? "Full Display Name:" : "Nome Completo de Exibição:"}
                       </label>
                       <input
                         type="text"
@@ -4318,7 +4007,7 @@ export default function DashboardPage() {
                       style={{ cursor: "pointer" }}
                     />
                     <label htmlFor="showPass" style={{ fontSize: "12px", color: "#9E96B3", cursor: "pointer" }}>
-                      Mostrar senhas digitadas
+                      {isEn ? "Show passwords" : "Mostrar senhas digitadas"}
                     </label>
                   </div>
 
@@ -4337,7 +4026,7 @@ export default function DashboardPage() {
                       cursor: configSavingPassword ? "default" : "pointer"
                     }}
                   >
-                    {configSavingPassword ? "Atualizando..." : "Atualizar Senha"}
+                    {configSavingPassword ? (isEn ? "Updating..." : "Atualizando...") : (isEn ? "Update Password" : "Atualizar Senha")}
                   </button>
                 </form>
               )}
@@ -4353,20 +4042,20 @@ export default function DashboardPage() {
                   gap: "18px"
                 }}>
                   <div style={{ fontSize: "16px", fontWeight: 800, color: "#FFFFFF" }}>
-                    Preferências do Sistema de Transcrição
+                    {isEn ? "Transcription Engine Preferences" : "Preferências do Sistema de Transcrição"}
                   </div>
 
                   {prefSavedMessage && (
                     <div style={{ padding: "10px 14px", borderRadius: "10px", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#6EE7B7", fontSize: "12px" }}>
-                      Preferências salvas com sucesso!
+                      {isEn ? "Preferences saved successfully!" : "Preferências salvas com sucesso!"}
                     </div>
                   )}
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderRadius: "12px", background: "#151026" }}>
                       <div>
-                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>Diarização Automática de Oradores</div>
-                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>Identificar quem está falando em reuniões, entrevistas ou depoimentos</div>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>{isEn ? "Automatic Speaker Diarization" : "Diarização Automática de Oradores"}</div>
+                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>{isEn ? "Identify who is speaking in meetings, interviews, or depositions" : "Identificar quem está falando em reuniões, entrevistas ou depoimentos"}</div>
                       </div>
                       <input
                         type="checkbox"
@@ -4378,8 +4067,8 @@ export default function DashboardPage() {
 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderRadius: "12px", background: "#151026" }}>
                       <div>
-                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>Timestamps Sincronizados</div>
-                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>Incluir minutagem precisa a cada início de frase nas transcrições</div>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>{isEn ? "Synchronized Timestamps" : "Timestamps Sincronizados"}</div>
+                        <div style={{ fontSize: "12px", color: "#9E96B3" }}>{isEn ? "Include accurate timestamps at the beginning of each sentence" : "Incluir minutagem precisa a cada início de frase nas transcrições"}</div>
                       </div>
                       <input
                         type="checkbox"
@@ -4407,7 +4096,7 @@ export default function DashboardPage() {
                       cursor: "pointer"
                     }}
                   >
-                    Salvar Preferências
+                    {isEn ? "Save Preferences" : "Salvar Preferências"}
                   </button>
                 </div>
               )}
@@ -4424,8 +4113,8 @@ export default function DashboardPage() {
                 gap: "12px"
               }}>
                 <div>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#FCA5A5" }}>Encerrar Sessão</div>
-                  <div style={{ fontSize: "12px", color: "#9E96B3" }}>Desconectar sua conta neste dispositivo</div>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#FCA5A5" }}>{isEn ? "Sign Out" : "Encerrar Sessão"}</div>
+                  <div style={{ fontSize: "12px", color: "#9E96B3" }}>{isEn ? "Disconnect your account on this device" : "Desconectar sua conta neste dispositivo"}</div>
                 </div>
 
                 <button
@@ -4441,7 +4130,7 @@ export default function DashboardPage() {
                     cursor: "pointer"
                   }}
                 >
-                  Sair da Conta
+                  {isEn ? "Sign Out" : "Sair da Conta"}
                 </button>
               </div>
 
