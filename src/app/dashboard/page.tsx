@@ -1032,38 +1032,28 @@ export default function DashboardPage() {
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden", background: "#0B0814", color: "#F8FAFC" }}>
+    <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden", background: "#0B0814", color: "#F8FAFC", position: "relative" }}>
       
       {/* MOBILE SIDEBAR BACKDROP OVERLAY */}
       {isMobileNavOpen && (
         <div
           onClick={() => setIsMobileNavOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.7)",
-            backdropFilter: "blur(6px)",
-            zIndex: 49,
-          }}
+          className="dashboard-mobile-overlay"
         />
       )}
 
       {/* ======================================================= */}
-      {/* LEFT PERSISTENT SIDEBAR NAVIGATION                      */}
+      {/* LEFT SIDEBAR NAVIGATION (DRAWER ON MOBILE, FIXED DESKTOP) */}
       {/* ======================================================= */}
       <aside
         style={{
-          width: 260,
-          flexShrink: 0,
           background: "#0F0A1C",
           borderRight: "1px solid rgba(167, 139, 250, 0.12)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
           height: "100vh",
-          zIndex: 50,
-          transition: "transform 0.25s ease-in-out",
-          transform: isMobileNavOpen ? "translateX(0)" : undefined,
+          zIndex: 100,
         }}
         className={`dashboard-sidebar ${isMobileNavOpen ? "open" : ""}`}
       >
@@ -1105,8 +1095,9 @@ export default function DashboardPage() {
             {/* Mobile close button */}
             <button
               onClick={() => setIsMobileNavOpen(false)}
-              className="lg:hidden"
-              style={{ background: "none", border: "none", color: "#9E96B3", cursor: "pointer", padding: "4px" }}
+              className="dashboard-mobile-only"
+              style={{ background: "none", border: "none", color: "#9E96B3", cursor: "pointer", padding: "6px" }}
+              title={isEn ? "Close menu" : "Fechar menu"}
             >
               <X size={20} />
             </button>
@@ -1648,43 +1639,57 @@ export default function DashboardPage() {
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", background: "#0B0814", overflow: "hidden" }}>
         
         {/* Top Header Bar */}
-        <header style={{
-          height: 64,
-          flexShrink: 0,
-          padding: "0 28px",
-          borderBottom: "1px solid rgba(167, 139, 250, 0.12)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "rgba(15, 10, 28, 0.8)",
-          backdropFilter: "blur(12px)",
-          zIndex: 30,
-        }}>
+        <header
+          className="dashboard-top-header"
+          style={{
+            height: 64,
+            flexShrink: 0,
+            padding: "0 28px",
+            borderBottom: "1px solid rgba(167, 139, 250, 0.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "rgba(15, 10, 28, 0.8)",
+            backdropFilter: "blur(12px)",
+            zIndex: 30,
+          }}
+        >
           {/* Left Title & Mobile Hamburger */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
             <button
               onClick={() => setIsMobileNavOpen(true)}
-              className="lg:hidden"
+              className="dashboard-mobile-only"
               style={{
-                background: "rgba(255, 255, 255, 0.05)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                background: "rgba(255, 255, 255, 0.06)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
                 color: "#FFFFFF",
                 borderRadius: "8px",
-                padding: "6px",
+                padding: "8px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
+                flexShrink: 0
               }}
+              title={isEn ? "Open navigation" : "Abrir menu"}
             >
-              <Menu size={18} />
+              <Menu size={19} />
             </button>
 
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h1 style={{ fontSize: "17px", fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", margin: 0 }}>
+                <h1 style={{
+                  fontSize: "16px",
+                  fontWeight: 800,
+                  color: "#FFFFFF",
+                  letterSpacing: "-0.02em",
+                  margin: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}>
                   {activeNavTab === "transcrever" && (isEn ? "Transcribe Audio & Video" : "Transcrever Áudio e Vídeo")}
-                                    {activeNavTab === "documentos" && (isEn ? "My Transcription Library" : "Meus Documentos")}
+                  {activeNavTab === "documentos" && (isEn ? "My Transcription Library" : "Meus Documentos")}
                   {activeNavTab === "legendas" && (isEn ? "Subtitles (.SRT & .VTT)" : "Gerador de Legendas (.SRT & .VTT)")}
                   {activeNavTab === "traducao" && (isEn ? "AI Global Translation" : "Tradução Global com IA")}
                   {activeNavTab === "downloader" && (isEn ? "Download Video & MP3" : "Baixar Vídeo & MP3")}
@@ -1694,7 +1699,7 @@ export default function DashboardPage() {
                   {activeNavTab === "configuracoes" && (isEn ? "Account Settings" : "Configurações da Conta")}
                   {activeNavTab === "sugestoes" && (isEn ? "Feedback & Feature Suggestions" : "Envie Sugestões ou Relate Problemas")}
                 </h1>
-                <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.15)", color: "#C4B5FD", border: "1px solid rgba(124, 58, 237, 0.3)" }}>
+                <span className="dashboard-desktop-inline" style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "100px", background: "rgba(124, 58, 237, 0.15)", color: "#C4B5FD", border: "1px solid rgba(124, 58, 237, 0.3)", flexShrink: 0 }}>
                   {isEn ? "AI Engine" : "IA de Alta Fidelidade"}
                 </span>
               </div>
@@ -1702,28 +1707,29 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Header Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
             
             {/* Real-time Credit Pill */}
             <div style={{
               display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "6px 14px",
+              gap: "6px",
+              padding: "5px 12px",
               borderRadius: "100px",
               background: isUnlimited ? "rgba(16, 185, 129, 0.12)" : "rgba(124, 58, 237, 0.12)",
               border: isUnlimited ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(124, 58, 237, 0.3)",
               fontSize: "12px",
               fontWeight: 700,
-              color: isUnlimited ? "#34D399" : "#C4B5FD"
+              color: isUnlimited ? "#34D399" : "#C4B5FD",
+              whiteSpace: "nowrap"
             }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: isUnlimited ? "#10B981" : "#A78BFA" }} />
-              <span>{isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} ${isEn ? "min remaining" : "min disponíveis"}`}</span>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: isUnlimited ? "#10B981" : "#A78BFA", flexShrink: 0 }} />
+              <span>{isUnlimited ? (isEn ? "Unlimited" : "Ilimitado") : `${credits} min`}</span>
             </div>
 
             {/* Weekly Quota indicator (for free accounts) */}
             {!isPaidUser && typeof profile?.days_until_renewal === "number" && (
-              <div className="hidden sm:flex" style={{
+              <div className="dashboard-desktop-inline" style={{
                 alignItems: "center",
                 gap: "6px",
                 padding: "6px 12px",
@@ -1749,7 +1755,7 @@ export default function DashboardPage() {
             {/* Suggestions button (In-dashboard!) */}
             <button
               onClick={() => setActiveNavTab("sugestoes")}
-              className="hidden md:inline-flex"
+              className="dashboard-desktop-inline"
               style={{
                 alignItems: "center",
                 gap: "5px",
@@ -1772,8 +1778,8 @@ export default function DashboardPage() {
               onClick={() => {
                 setActiveNavTab("faturamento");
               }}
+              className="dashboard-desktop-inline"
               style={{
-                display: "inline-flex",
                 alignItems: "center",
                 gap: "6px",
                 padding: "7px 16px",
@@ -1796,7 +1802,10 @@ export default function DashboardPage() {
         </header>
 
         {/* Scrollable Main Workspace */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px 60px" }}>
+        <div
+          className="dashboard-main-content"
+          style={{ flex: 1, overflowY: "auto", padding: "24px 28px 60px" }}
+        >
           
           {/* Payment Success Alert */}
           {paymentSuccess && (
@@ -4953,6 +4962,157 @@ export default function DashboardPage() {
           )}
 
         </div>
+
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <nav className="dashboard-bottom-nav">
+          {/* 1. Transcrever */}
+          <button
+            onClick={() => {
+              setActiveNavTab("transcrever");
+              setIsMobileNavOpen(false);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              color: activeNavTab === "transcrever" ? "#C4B5FD" : "#9E96B3",
+              cursor: "pointer",
+              padding: "6px 8px",
+              position: "relative",
+              flex: 1,
+              height: "100%",
+            }}
+          >
+            <Mic size={19} color={activeNavTab === "transcrever" ? "#A78BFA" : "#9E96B3"} />
+            <span style={{ fontSize: "10px", fontWeight: activeNavTab === "transcrever" ? 700 : 500 }}>
+              {isEn ? "Transcribe" : "Transcrever"}
+            </span>
+            {activeNavTab === "transcrever" && (
+              <span style={{ position: "absolute", bottom: 4, width: 4, height: 4, borderRadius: "50%", background: "#A78BFA" }} />
+            )}
+          </button>
+
+          {/* 2. Meus Documentos */}
+          <button
+            onClick={() => {
+              setActiveNavTab("documentos");
+              setIsMobileNavOpen(false);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              color: activeNavTab === "documentos" ? "#C4B5FD" : "#9E96B3",
+              cursor: "pointer",
+              padding: "6px 8px",
+              position: "relative",
+              flex: 1,
+              height: "100%",
+            }}
+          >
+            <Folder size={19} color={activeNavTab === "documentos" ? "#A78BFA" : "#9E96B3"} />
+            <span style={{ fontSize: "10px", fontWeight: activeNavTab === "documentos" ? 700 : 500 }}>
+              {isEn ? "Docs" : "Documentos"}
+            </span>
+            {activeNavTab === "documentos" && (
+              <span style={{ position: "absolute", bottom: 4, width: 4, height: 4, borderRadius: "50%", background: "#A78BFA" }} />
+            )}
+          </button>
+
+          {/* 3. Baixar Vídeo & MP3 */}
+          <button
+            onClick={() => {
+              setActiveNavTab("downloader");
+              setIsMobileNavOpen(false);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              color: activeNavTab === "downloader" ? "#93C5FD" : "#9E96B3",
+              cursor: "pointer",
+              padding: "6px 8px",
+              position: "relative",
+              flex: 1,
+              height: "100%",
+            }}
+          >
+            <Download size={19} color={activeNavTab === "downloader" ? "#60A5FA" : "#9E96B3"} />
+            <span style={{ fontSize: "10px", fontWeight: activeNavTab === "downloader" ? 700 : 500 }}>
+              {isEn ? "Download" : "Baixar"}
+            </span>
+            {activeNavTab === "downloader" && (
+              <span style={{ position: "absolute", bottom: 4, width: 4, height: 4, borderRadius: "50%", background: "#60A5FA" }} />
+            )}
+          </button>
+
+          {/* 4. Legendas */}
+          <button
+            onClick={() => {
+              setActiveNavTab("legendas");
+              setIsMobileNavOpen(false);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              color: activeNavTab === "legendas" ? "#F472B6" : "#9E96B3",
+              cursor: "pointer",
+              padding: "6px 8px",
+              position: "relative",
+              flex: 1,
+              height: "100%",
+            }}
+          >
+            <FileText size={19} color={activeNavTab === "legendas" ? "#F472B6" : "#9E96B3"} />
+            <span style={{ fontSize: "10px", fontWeight: activeNavTab === "legendas" ? 700 : 500 }}>
+              {isEn ? "Subtitles" : "Legendas"}
+            </span>
+            {activeNavTab === "legendas" && (
+              <span style={{ position: "absolute", bottom: 4, width: 4, height: 4, borderRadius: "50%", background: "#F472B6" }} />
+            )}
+          </button>
+
+          {/* 5. Menu Drawer Trigger */}
+          <button
+            onClick={() => setIsMobileNavOpen(true)}
+            style={{
+              background: "none",
+              border: "none",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              color: isMobileNavOpen ? "#C4B5FD" : "#9E96B3",
+              cursor: "pointer",
+              padding: "6px 8px",
+              flex: 1,
+              height: "100%",
+            }}
+          >
+            <Menu size={19} color={isMobileNavOpen ? "#A78BFA" : "#9E96B3"} />
+            <span style={{ fontSize: "10px", fontWeight: isMobileNavOpen ? 700 : 500 }}>
+              {isEn ? "More" : "Mais"}
+            </span>
+          </button>
+        </nav>
       </main>
 
     </div>

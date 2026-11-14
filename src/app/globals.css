@@ -1526,3 +1526,97 @@ select option {
     padding: 28px 20px;
   }
 }
+
+/* ============================================
+   RESPONSIVE DASHBOARD (MOBILE FIRST & DESKTOP)
+   ============================================ */
+
+/* Desktop rules (>= 1024px) */
+@media (min-width: 1024px) {
+  .dashboard-sidebar {
+    position: relative !important;
+    transform: none !important;
+    width: 260px !important;
+    display: flex !important;
+    visibility: visible !important;
+  }
+  .dashboard-mobile-overlay {
+    display: none !important;
+  }
+  .dashboard-bottom-nav {
+    display: none !important;
+  }
+  .dashboard-mobile-only {
+    display: none !important;
+  }
+  .dashboard-desktop-only {
+    display: flex !important;
+  }
+  .dashboard-desktop-inline {
+    display: inline-flex !important;
+  }
+}
+
+/* Mobile & Tablet rules (< 1024px) */
+@media (max-width: 1023px) {
+  .dashboard-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100dvh !important;
+    z-index: 100 !important;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85) !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+  }
+  .dashboard-sidebar.open {
+    transform: translateX(0) !important;
+  }
+  .dashboard-mobile-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 99 !important;
+  }
+  .dashboard-mobile-only {
+    display: flex !important;
+  }
+  .dashboard-desktop-only {
+    display: none !important;
+  }
+  .dashboard-desktop-inline {
+    display: none !important;
+  }
+  .dashboard-main-content {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-top: 16px !important;
+    padding-bottom: 96px !important; /* space for bottom nav bar */
+  }
+  .dashboard-top-header {
+    padding: 0 14px !important;
+    height: 58px !important;
+  }
+  .dashboard-bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 64px !important;
+    background: rgba(15, 10, 28, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-top: 1px solid rgba(167, 139, 250, 0.15) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    z-index: 80 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0) !important;
+  }
+}
