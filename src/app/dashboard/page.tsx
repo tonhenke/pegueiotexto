@@ -380,17 +380,20 @@ export default function DashboardPage() {
 
         // Fetch User Transcription History
         try {
-          const historyRes = await fetch("/api/transcribe/preview", {
+          const historyRes = await fetch(`/api/transcribe/history?user_id=${user.id}`, {
             headers: authHeaders,
           });
           if (historyRes.ok) {
             const historyData = await historyRes.json();
-            if (Array.isArray(historyData)) {
-              setHistory(historyData);
-              if (historyData.length > 0) {
-                setActiveItem(historyData[0]);
-                setSelectedSrtDocId(historyData[0].id);
-                setSelectedTranslationDocId(historyData[0].id);
+            const list = Array.isArray(historyData)
+              ? historyData
+              : (historyData.history || []);
+            if (Array.isArray(list)) {
+              setHistory(list);
+              if (list.length > 0) {
+                setActiveItem(list[0]);
+                setSelectedSrtDocId(list[0].id);
+                setSelectedTranslationDocId(list[0].id);
               }
             }
           }
@@ -449,7 +452,32 @@ export default function DashboardPage() {
   useEffect(() => {
     loadUserData();
 
+    const handleTranscriptionEvent = (e: any) => {
+      const data = e?.detail;
+      if (data?.title && (data?.text || data?.id)) {
+        const newItem = {
+          id: data.id || `local_${Date.now()}`,
+          title: data.title,
+          platform: data.platform || "Web",
+          duration_seconds: data.duration || 180,
+          minutes_deducted: data.minutes_deducted || 0,
+          created_at: new Date().toISOString(),
+          text_content: data.text || "",
+          srt_content: data.srt || "",
+          vtt_content: data.vtt || "",
+        };
+        setHistory((prev) => [newItem, ...prev.filter((h) => h.id !== newItem.id)]);
+        setActiveItem(newItem);
+        setSelectedSrtDocId(newItem.id);
+        setSelectedTranslationDocId(newItem.id);
+      }
+      loadUserData();
+    };
+
     if (typeof window !== "undefined") {
+      window.addEventListener("credits_updated", handleTranscriptionEvent);
+      window.addEventListener("transcription_created", handleTranscriptionEvent);
+
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab") as NavTab;
       if (tabParam) {
@@ -465,6 +493,13 @@ export default function DashboardPage() {
         }
       } catch {}
     }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("credits_updated", handleTranscriptionEvent);
+        window.removeEventListener("transcription_created", handleTranscriptionEvent);
+      }
+    };
   }, []);
 
   useEffect(() => {
