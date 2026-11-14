@@ -227,6 +227,8 @@ export default function DashboardPage() {
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [platformFilter, setPlatformFilter] = useState("todas");
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
+  const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
 
   // Central Navigation Tab State
   const [activeNavTab, setActiveNavTab] = useState<NavTab>("transcrever");
@@ -577,6 +579,15 @@ export default function DashboardPage() {
       duration: item.duration_seconds,
       platform: item.platform,
     });
+  };
+
+  const handleCopyDocText = (item: any) => {
+    if (!item?.text_content) return;
+    navigator.clipboard.writeText(item.text_content);
+    setCopiedDocId(item.id);
+    setTimeout(() => {
+      setCopiedDocId((prev) => (prev === item.id ? null : prev));
+    }, 2000);
   };
 
   // Subtitles Handlers
@@ -2188,74 +2199,258 @@ export default function DashboardPage() {
                     const matchesPlatform = platformFilter === "todas" || (item.platform && item.platform.toLowerCase() === platformFilter);
                     return matchesSearch && matchesPlatform;
                   })
-                  .map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: "16px 20px",
-                        borderRadius: "14px",
-                        background: "#151026",
-                        border: "1px solid rgba(167, 139, 250, 0.1)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        flexWrap: "wrap",
-                        gap: "14px"
-                      }}
-                    >
-                      <div style={{ minWidth: 260, flex: 1 }}>
-                        <div style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF" }}>
-                          {item.title || "Transcrição de Áudio"}
-                        </div>
-                        <div style={{ fontSize: "12px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
-                          <span>{item.platform ? item.platform.toUpperCase() : (isEn ? "AUDIO" : "ÁUDIO")}</span>
-                          <span>•</span>
-                          <span>{item.duration_seconds ? `${Math.ceil(item.duration_seconds / 60)} min` : "1 min"}</span>
-                          <span>•</span>
-                          <span>{new Date(item.created_at).toLocaleDateString(isEn ? "en-US" : "pt-BR")}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <button
-                          onClick={() => {
-                            setActiveItem(item);
-                            setActiveNavTab("transcrever");
-                          }}
+                  .map((item) => {
+                    const isExpanded = expandedDocId === item.id;
+                    const wordCount = item.text_content ? item.text_content.trim().split(/\s+/).filter(Boolean).length : 0;
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          borderRadius: "14px",
+                          background: isExpanded ? "#130D24" : "#151026",
+                          border: isExpanded ? "1px solid rgba(124, 58, 237, 0.45)" : "1px solid rgba(167, 139, 250, 0.1)",
+                          boxShadow: isExpanded ? "0 8px 24px rgba(124, 58, 237, 0.15)" : "none",
+                          transition: "all 0.2s ease",
+                          overflow: "hidden"
+                        }}
+                      >
+                        {/* Header Row */}
+                        <div
                           style={{
-                            padding: "6px 14px",
-                            borderRadius: "8px",
-                            background: "rgba(124, 58, 237, 0.15)",
-                            border: "1px solid rgba(124, 58, 237, 0.35)",
-                            color: "#C4B5FD",
-                            fontSize: "12px",
-                            fontWeight: 600,
+                            padding: "16px 20px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: "14px",
                             cursor: "pointer"
                           }}
+                          onClick={() => setExpandedDocId((prev) => (prev === item.id ? null : item.id))}
                         >
-                          {isEn ? "Open Reader" : "Abrir Leitor"}
-                        </button>
-                        <button
-                          onClick={() => handleExportDocx(item)}
-                          style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.3)", color: "#93C5FD", cursor: "pointer" }}
-                        >
-                          .DOCX
-                        </button>
-                        <button
-                          onClick={() => handleExportPdf(item)}
-                          style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#FCA5A5", cursor: "pointer" }}
-                        >
-                          .PDF
-                        </button>
-                        <button
-                          onClick={() => handleExportTxt(item)}
-                          style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#E2D9F3", cursor: "pointer" }}
-                        >
-                          .TXT
-                        </button>
+                          <div style={{ minWidth: 260, flex: 1 }}>
+                            <div style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span>{item.title || (isEn ? "Audio Transcription" : "Transcrição de Áudio")}</span>
+                              {isExpanded && (
+                                <span
+                                  style={{
+                                    fontSize: "11px",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    background: "rgba(124, 58, 237, 0.25)",
+                                    color: "#C4B5FD",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {isEn ? "Open" : "Aberto"}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#9E96B3", display: "flex", alignItems: "center", gap: "8px", marginTop: "3px" }}>
+                              <span>{item.platform ? item.platform.toUpperCase() : (isEn ? "AUDIO" : "ÁUDIO")}</span>
+                              <span>•</span>
+                              <span>{item.duration_seconds ? `${Math.ceil(item.duration_seconds / 60)} min` : "1 min"}</span>
+                              <span>•</span>
+                              <span>{new Date(item.created_at).toLocaleDateString(isEn ? "en-US" : "pt-BR")}</span>
+                              {wordCount > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span>{wordCount.toLocaleString(isEn ? "en-US" : "pt-BR")} {isEn ? "words" : "palavras"}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setExpandedDocId((prev) => (prev === item.id ? null : item.id))}
+                              style={{
+                                padding: "6px 14px",
+                                borderRadius: "8px",
+                                background: isExpanded ? "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)" : "rgba(124, 58, 237, 0.15)",
+                                border: isExpanded ? "1px solid #A78BFA" : "1px solid rgba(124, 58, 237, 0.35)",
+                                color: isExpanded ? "#FFFFFF" : "#C4B5FD",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                boxShadow: isExpanded ? "0 0 12px rgba(124, 58, 237, 0.4)" : "none",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s ease" }} />
+                              <span>{isExpanded ? (isEn ? "Close Reader" : "Fechar Leitor") : (isEn ? "Open Reader" : "Abrir Leitor")}</span>
+                            </button>
+                            <button
+                              onClick={() => handleExportDocx(item)}
+                              title={isEn ? "Export DOCX" : "Exportar DOCX"}
+                              style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.3)", color: "#93C5FD", cursor: "pointer" }}
+                            >
+                              .DOCX
+                            </button>
+                            <button
+                              onClick={() => handleExportPdf(item)}
+                              title={isEn ? "Export PDF" : "Exportar PDF"}
+                              style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#FCA5A5", cursor: "pointer" }}
+                            >
+                              .PDF
+                            </button>
+                            <button
+                              onClick={() => handleExportTxt(item)}
+                              title={isEn ? "Export TXT" : "Exportar TXT"}
+                              style={{ fontSize: "12px", padding: "6px 12px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#E2D9F3", cursor: "pointer" }}
+                            >
+                              .TXT
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* EXPANDED INLINE READER */}
+                        {isExpanded && (
+                          <div
+                            style={{
+                              borderTop: "1px solid rgba(167, 139, 250, 0.12)",
+                              background: "#0D081C",
+                              padding: "20px 24px",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "18px",
+                            }}
+                          >
+                            {/* Inner Reader Toolbar */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <span
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    color: "#A78BFA",
+                                    background: "rgba(124, 58, 237, 0.15)",
+                                    border: "1px solid rgba(124, 58, 237, 0.3)",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <Sparkles size={13} color="#C4B5FD" />
+                                  {isEn ? "Synchronized AI Transcript" : "Visualizador Sincronizado de Transcrição"}
+                                </span>
+
+                                {wordCount > 0 && (
+                                  <span style={{ fontSize: "12px", color: "#9E96B3" }}>
+                                    {wordCount.toLocaleString(isEn ? "en-US" : "pt-BR")} {isEn ? "words" : "palavras"}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <button
+                                  onClick={() => handleCopyDocText(item)}
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    background: copiedDocId === item.id ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                                    border: copiedDocId === item.id ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(255, 255, 255, 0.12)",
+                                    color: copiedDocId === item.id ? "#6EE7B7" : "#FFFFFF",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                  }}
+                                >
+                                  {copiedDocId === item.id ? <Check size={13} /> : <Copy size={13} />}
+                                  <span>{copiedDocId === item.id ? (isEn ? "Copied!" : "Copiado!") : (isEn ? "Copy Text" : "Copiar Texto")}</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setSelectedSrtDocId(item.id);
+                                    setActiveNavTab("legendas");
+                                  }}
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    background: "rgba(236, 72, 153, 0.15)",
+                                    border: "1px solid rgba(236, 72, 153, 0.35)",
+                                    color: "#F472B6",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                  }}
+                                >
+                                  <FileText size={13} />
+                                  <span>{isEn ? "Subtitles (.SRT)" : "Legenda (.SRT)"}</span>
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setSelectedTranslationDocId(item.id);
+                                    setActiveNavTab("traducao");
+                                  }}
+                                  style={{
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    background: "rgba(16, 185, 129, 0.15)",
+                                    border: "1px solid rgba(16, 185, 129, 0.35)",
+                                    color: "#6EE7B7",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                  }}
+                                >
+                                  <Globe size={13} />
+                                  <span>{isEn ? "Translate" : "Traduzir com IA"}</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Audio Player if URL exists */}
+                            {item.audio_url && (
+                              <AudioSyncPlayer initialAudioUrl={item.audio_url} title={item.title} />
+                            )}
+
+                            {/* Transcript Content Box */}
+                            <div
+                              style={{
+                                maxHeight: "480px",
+                                overflowY: "auto",
+                                padding: "18px 20px",
+                                borderRadius: "12px",
+                                background: "#151026",
+                                border: "1px solid rgba(167, 139, 250, 0.12)",
+                                fontSize: "14px",
+                                lineHeight: 1.75,
+                                color: "#F1F5F9",
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {item.text_content ? (
+                                <InteractiveTranscript
+                                  text={item.text_content}
+                                  searchQuery={searchQuery}
+                                />
+                              ) : (
+                                <div style={{ color: "#9E96B3", fontStyle: "italic" }}>
+                                  {isEn ? "No text available for this transcription." : "Nenhum texto disponível para esta transcrição."}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
 
             </div>
