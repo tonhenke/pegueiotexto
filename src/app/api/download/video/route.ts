@@ -2,8 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const BACKEND_URL =
-  process.env.BACKEND_URL || "https://pegueiotexto-production.up.railway.app";
+function getCandidateEndpoints(targetUrl: string, download: boolean): string[] {
+  const primaryEnv = process.env.BACKEND_URL?.trim();
+  const rawList = [
+    primaryEnv,
+    "http://127.0.0.1:8000",
+    "https://pegueiotexto-production.up.railway.app",
+  ].filter(Boolean) as string[];
+
+  // Remove duplicates
+  const uniqueBases = Array.from(new Set(rawList));
+  return uniqueBases.map(
+    (base) =>
+      `${base}/api/download/video?url=${encodeURIComponent(targetUrl)}${
+        download ? "&download=true" : ""
+      }`
+  );
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -42,60 +57,57 @@ export async function GET(req: NextRequest) {
     if (clean) filename = `${clean}.mp4`;
   }
 
-  // 2. Fetch processed stream from Railway backend
-  const backendEndpoint = `${BACKEND_URL}/api/download/video?url=${encodeURIComponent(
-    targetUrl
-  )}${download ? "&download=true" : ""}`;
+  const endpoints = getCandidateEndpoints(targetUrl, download);
+  let lastErrorMessage = "";
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for download and merge
+  for (const endpoint of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90s max per backend
 
-    const backendRes = await fetch(backendEndpoint, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (backendRes.ok) {
-      const contentType =
-        backendRes.headers.get("content-type") || "video/mp4";
-      const contentDisposition =
-        backendRes.headers.get("content-disposition") ||
-        `attachment; filename="${filename}"`;
-
-      return new NextResponse(backendRes.body as any, {
-        status: 200,
-        headers: {
-          "Content-Type": contentType,
-          "Content-Disposition": contentDisposition,
-          "Cache-Control": "no-cache",
-        },
+      const backendRes = await fetch(endpoint, {
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
+      if (backendRes.ok) {
+        const contentType =
+          backendRes.headers.get("content-type") || "video/mp4";
+        const contentDisposition =
+          backendRes.headers.get("content-disposition") ||
+          `attachment; filename="${filename}"`;
+
+        return new NextResponse(backendRes.body as any, {
+          status: 200,
+          headers: {
+            "Content-Type": contentType,
+            "Content-Disposition": contentDisposition,
+            "Cache-Control": "no-cache",
+          },
+        });
+      }
+
+      const errJson = await backendRes.json().catch(() => null);
+      if (errJson?.detail) {
+        lastErrorMessage = errJson.detail;
+      }
+    } catch (fetchErr: any) {
+      // Backend offline or timeout, continue to next candidate
+      lastErrorMessage = fetchErr?.message || "Servidor indisponível";
     }
-
-    // Backend returned an error
-    const errJson = await backendRes.json().catch(() => null);
-    let errorMsg =
-      errJson?.detail ||
-      "Não foi possível processar o download do vídeo. Verifique se o vídeo é público e tente novamente.";
-
-    if (/sign in|bot|protect our community|--cookies/i.test(errorMsg)) {
-      errorMsg =
-        "Este vídeo do YouTube possui proteção antibot ativa em servidores de nuvem. Recomendamos utilizar a transcrição direta com inteligência artificial.";
-    }
-
-    return NextResponse.json(
-      { error: errorMsg },
-      { status: backendRes.status || 422 }
-    );
-  } catch (err: any) {
-    console.error("[Download Video Proxy Error]:", err);
-    return NextResponse.json(
-      {
-        error:
-          "Ocorreu uma falha na comunicação com o servidor de download de vídeo.",
-      },
-      { status: 500 }
-    );
   }
+
+  if (/sign in|bot|protect our community|--cookies/i.test(lastErrorMessage)) {
+    lastErrorMessage =
+      "Este vídeo do YouTube possui proteção antibot ativa em servidores de nuvem. Recomendamos utilizar a transcrição direta com inteligência artificial.";
+  }
+
+  return NextResponse.json(
+    {
+      error:
+        lastErrorMessage ||
+        "Não foi possível processar o download do vídeo. Verifique se o vídeo é público e tente novamente.",
+    },
+    { status: 422 }
+  );
 }
