@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { 
   Clock, Zap, Sparkles, ArrowRight, Check, Copy, Gift, 
   Share2, ShieldCheck, FileDown, CheckCircle2, Flame, Loader2 
@@ -18,6 +19,9 @@ export default function DashboardPromoBanner({
   profile,
   currentPlan,
 }: DashboardPromoBannerProps) {
+  const pathname = usePathname();
+  const isEn = pathname?.startsWith("/en");
+
   const [isEligible, setIsEligible] = useState<boolean | null>(null);
   const [timeLeft, setTimeLeft] = useState<{
     hours: string;
@@ -43,8 +47,8 @@ export default function DashboardPromoBanner({
   const userId = user?.id || "";
   const referralCode = userId ? userId.slice(0, 8) : "";
   const referralUrl = typeof window !== "undefined" && referralCode
-    ? `${window.location.origin}/login?ref=${referralCode}`
-    : `https://pegueiotexto.com.br/login?ref=${referralCode}`;
+    ? `${window.location.origin}${isEn ? "/en" : ""}/login?ref=${referralCode}`
+    : `https://pegueiotexto.com.br${isEn ? "/en" : ""}/login?ref=${referralCode}`;
 
   // 1. Check eligibility (Only users who registered without an affiliate or referral link)
   useEffect(() => {
@@ -171,7 +175,9 @@ export default function DashboardPromoBanner({
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Oi! Estou usando o Peguei o Texto para transcrever vídeos e áudios com Inteligência Artificial em segundos. Crie sua conta grátis com meu link e ganhe minutos bônus imediatos: ${referralUrl}`
+      isEn
+        ? `Hey! I'm using Peguei o Texto to transcribe audio and video with AI in seconds. Create your free account with my link and get immediate bonus minutes: ${referralUrl}`
+        : `Oi! Estou usando o Peguei o Texto para transcrever vídeos e áudios com Inteligência Artificial em segundos. Crie sua conta grátis com meu link e ganhe minutos bônus imediatos: ${referralUrl}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   };
@@ -240,7 +246,7 @@ export default function DashboardPromoBanner({
                   letterSpacing: "-0.02em",
                 }}
               >
-                Plano Pro Anual com Desconto
+                {isEn ? "Discounted Pro Annual Plan" : "Plano Pro Anual com Desconto"}
               </h2>
 
               <span
@@ -257,7 +263,7 @@ export default function DashboardPromoBanner({
                   fontWeight: 700,
                 }}
               >
-                Oferta Especial de Boas-Vindas
+                {isEn ? "Special Welcome Offer" : "Oferta Especial de Boas-Vindas"}
               </span>
 
               <span
@@ -312,7 +318,7 @@ export default function DashboardPromoBanner({
                       color: "#A78BFA",
                     }}
                   >
-                    /mês
+                    {isEn ? "/month" : "/mês"}
                   </span>
                   <span
                     style={{
@@ -322,7 +328,9 @@ export default function DashboardPromoBanner({
                       marginLeft: "4px",
                     }}
                   >
-                    no plano anual (cobrado R$ 119,25/ano à vista)
+                    {isEn
+                      ? "on the annual plan (billed R$ 119.25/yr)"
+                      : "no plano anual (cobrado R$ 119,25/ano à vista)"}
                   </span>
                   <span
                     style={{
@@ -348,19 +356,19 @@ export default function DashboardPromoBanner({
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
-                  <span><strong>3.600 minutos</strong> no ano (300 min/mês)</span>
+                  <span>{isEn ? <><strong>3,600 minutes</strong> per year (300 min/mo)</> : <><strong>3.600 minutos</strong> no ano (300 min/mês)</>}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
-                  <span>Transcrição com IA <strong>ultra-rápida e de alta precisão</strong></span>
+                  <span>{isEn ? <>Ultra-fast & high accuracy <strong>AI transcription</strong></> : <>Transcrição com IA <strong>ultra-rápida e de alta precisão</strong></>}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
-                  <span>Downloads em <strong>Word, PDF e Legendas .SRT</strong></span>
+                  <span>{isEn ? <>Exports in <strong>Word, PDF & .SRT Subtitles</strong></> : <>Downloads em <strong>Word, PDF e Legendas .SRT</strong></>}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "var(--text-secondary)" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#A78BFA", flexShrink: 0 }} />
-                  <span><strong>Resumos e atas executivas</strong> com IA</span>
+                  <span>{isEn ? <><strong>Executive summaries & minutes</strong> with AI</> : <><strong>Resumos e atas executivas</strong> com IA</>}</span>
                 </div>
               </div>
 
@@ -402,18 +410,18 @@ export default function DashboardPromoBanner({
                   {isCheckingOut ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      Redirecionando para o Stripe...
+                      {isEn ? "Redirecting to Stripe..." : "Redirecionando para o Stripe..."}
                     </>
                   ) : (
                     <>
                       <Sparkles size={16} />
-                      Atualizar Agora com 25% OFF
+                      {isEn ? "Upgrade Now with 25% OFF" : "Atualizar Agora com 25% OFF"}
                     </>
                   )}
                 </button>
 
                 <Link
-                  href="/precos"
+                  href={isEn ? "/en/pricing" : "/precos"}
                   style={{
                     fontSize: "13px",
                     color: "var(--text-secondary)",
@@ -424,7 +432,7 @@ export default function DashboardPromoBanner({
                   onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
                 >
-                  Ver Todos os Planos
+                  {isEn ? "View All Plans" : "Ver Todos os Planos"}
                 </Link>
               </div>
             </div>
@@ -462,7 +470,7 @@ export default function DashboardPromoBanner({
                   }}
                 >
                   <Clock size={15} color="#A78BFA" />
-                  <span>Oferta por Tempo Limitado</span>
+                  <span>{isEn ? "Limited-Time Offer" : "Oferta por Tempo Limitado"}</span>
                 </div>
 
                 {/* Digital Counter Display */}
@@ -492,7 +500,7 @@ export default function DashboardPromoBanner({
                       {timeLeft.hours}
                     </div>
                     <span style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      horas
+                      {isEn ? "hours" : "horas"}
                     </span>
                   </div>
 
@@ -516,7 +524,7 @@ export default function DashboardPromoBanner({
                       {timeLeft.minutes}
                     </div>
                     <span style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      minutos
+                      {isEn ? "minutes" : "minutos"}
                     </span>
                   </div>
 
@@ -540,13 +548,15 @@ export default function DashboardPromoBanner({
                       {timeLeft.seconds}
                     </div>
                     <span style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      segundos
+                      {isEn ? "seconds" : "segundos"}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ marginTop: "12px", fontSize: "11px", color: "var(--text-muted)" }}>
-                  Válido nas primeiras 5 horas de cadastro
+                  {isEn
+                    ? "Valid for the first 5 hours of registration"
+                    : "Válido nas primeiras 5 horas de cadastro"}
                 </div>
               </div>
             </div>
@@ -600,7 +610,7 @@ export default function DashboardPromoBanner({
                 }}
               >
                 <Gift size={13} />
-                Indique e Ganhe Minutos
+                {isEn ? "Refer & Earn Minutes" : "Indique e Ganhe Minutos"}
               </span>
 
               {referralStats.total_invites > 0 && (
@@ -616,7 +626,7 @@ export default function DashboardPromoBanner({
                     fontSize: "12px",
                   }}
                 >
-                  +{referralStats.total_minutes_earned} min já ganhos
+                  +{referralStats.total_minutes_earned} {isEn ? "min already earned" : "min já ganhos"}
                 </span>
               )}
             </div>
@@ -630,7 +640,7 @@ export default function DashboardPromoBanner({
                 letterSpacing: "-0.02em",
               }}
             >
-              Ganhe Mais Tempo de Transcrição Indicando Amigos!
+              {isEn ? "Earn More Transcription Time by Referring Friends!" : "Ganhe Mais Tempo de Transcrição Indicando Amigos!"}
             </h2>
 
             <p
@@ -642,7 +652,15 @@ export default function DashboardPromoBanner({
                 maxWidth: "540px",
               }}
             >
-              Compartilhe seu link exclusivo com amigos, colegas e equipes. Para cada novo cadastro realizado através do seu convite, você ganha <strong>+10 minutos bônus imediatos</strong> na sua conta e o seu amigo também ganha minutos grátis para testar!
+              {isEn ? (
+                <>
+                  Share your exclusive link with friends, colleagues, and teams. For each new sign-up through your invite, you get <strong>+10 immediate bonus minutes</strong> in your account and your friend also gets free minutes to test!
+                </>
+              ) : (
+                <>
+                  Compartilhe seu link exclusivo com amigos, colegas e equipes. Para cada novo cadastro realizado através do seu convite, você ganha <strong>+10 minutos bônus imediatos</strong> na sua conta e o seu amigo também ganha minutos grátis para testar!
+                </>
+              )}
             </p>
           </div>
 
@@ -701,7 +719,7 @@ export default function DashboardPromoBanner({
                 }}
               >
                 {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copiedLink ? "Copiado!" : "Copiar"}</span>
+                <span>{copiedLink ? (isEn ? "Copied!" : "Copiado!") : (isEn ? "Copy" : "Copiar")}</span>
               </button>
             </div>
 
@@ -729,11 +747,11 @@ export default function DashboardPromoBanner({
                 onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
               >
                 <Share2 size={14} />
-                <span>Convidar no WhatsApp</span>
+                <span>{isEn ? "Invite on WhatsApp" : "Convidar no WhatsApp"}</span>
               </button>
 
               <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Sem limite de indicações
+                {isEn ? "No referral limit" : "Sem limite de indicações"}
               </span>
             </div>
           </div>
