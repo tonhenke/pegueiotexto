@@ -71,6 +71,13 @@ export default function TranscribeForm({ initialPlaceholder, defaultUrl = "" }: 
   const isEnglish = pathname?.startsWith("/en");
   const [mode, setMode] = useState<Mode>("url");
   const [url, setUrl] = useState(defaultUrl);
+
+  useEffect(() => {
+    if (defaultUrl) {
+      setUrl(defaultUrl);
+      setMode("url");
+    }
+  }, [defaultUrl]);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState(0);

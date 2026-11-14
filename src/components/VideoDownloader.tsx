@@ -39,6 +39,8 @@ export default function VideoDownloader({
 }: VideoDownloaderProps = {}) {
   const pathname = usePathname();
   const isEnglish = pathname?.startsWith("/en");
+  const isDashboard = pathname?.includes("/dashboard");
+  const effectiveHideAds = hideAds || isDashboard;
 
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,37 @@ export default function VideoDownloader({
   const [pendingDownloadFilename, setPendingDownloadFilename] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
+  const saveToDownloadHistory = (
+    type: "mp4" | "mp3",
+    filename?: string,
+    targetUrl?: string
+  ) => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("pegueiotexto_download_history");
+        const list = raw ? JSON.parse(raw) : [];
+        const historyItem = {
+          id: `dl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          url: url || targetUrl || "",
+          title: videoInfo?.title || filename || (type === "mp4" ? "Vídeo baixado" : "Áudio extraído"),
+          thumbnail: videoInfo?.thumbnail || "",
+          platform: videoInfo?.platform || "web",
+          format: type,
+          downloadedAt: new Date().toISOString(),
+          duration: videoInfo?.duration,
+        };
+        const updated = [
+          historyItem,
+          ...list.filter((i: any) => i.url !== historyItem.url || i.format !== historyItem.format),
+        ].slice(0, 50);
+        localStorage.setItem("pegueiotexto_download_history", JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent("video_downloaded", { detail: historyItem }));
+      }
+    } catch (err) {
+      console.error("Error saving download history:", err);
+    }
+  };
+
   const startActualDownload = async (
     targetUrl: string,
     type: "mp4" | "mp3",
@@ -86,6 +119,7 @@ export default function VideoDownloader({
 
       if (isDirectExternal) {
         // Direct CDN link (e.g. TikTok, Instagram direct CDN)
+        saveToDownloadHistory(type, filename, targetUrl);
         const a = document.createElement("a");
         a.href = targetUrl;
         a.target = "_blank";
@@ -126,6 +160,7 @@ export default function VideoDownloader({
       }
 
       // Valid media stream: download blob safely!
+      saveToDownloadHistory(type, filename, targetUrl);
       const blob = await res.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -869,10 +904,10 @@ export default function VideoDownloader({
       )}
 
       {/* AdSense In-Feed / Mid-Content Placement (High CTR zone) - Hidden inside dashboard */}
-      {!hideAds && <AdsenseBanner format="rectangle" slot="1000000002" />}
+      {!effectiveHideAds && <AdsenseBanner format="rectangle" slot="1000000002" />}
 
       {/* Trojan Horse Conversion Card: Convert Downloader into AI Transcription User - Hidden inside dashboard */}
-      {!hideAds && (
+      {!effectiveHideAds && (
         <TrojanHorseCard
           videoUrl={url}
           videoTitle={videoInfo?.title}

@@ -15,7 +15,8 @@ import {
   Search, Share2, ExternalLink, X, Filter, Award, Settings, User, Gift, Menu, 
   Languages, Globe, RotateCcw, Mic, Upload, MessageSquare, ChevronRight,
   Folder, Send, Bot, CheckCircle2, ChevronDown, Scale, DollarSign,
-  TrendingUp, Users, Scissors, Lock, EyeOff, Play, AlertCircle, Layout, Bug, HelpCircle
+  TrendingUp, Users, Scissors, Lock, EyeOff, Play, AlertCircle, Layout, Bug, HelpCircle,
+  Trash2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -229,6 +230,12 @@ export default function DashboardPage() {
   const [platformFilter, setPlatformFilter] = useState("todas");
   const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+
+  // Download History State
+  const [downloadHistory, setDownloadHistory] = useState<any[]>([]);
+  const [transcribePreloadUrl, setTranscribePreloadUrl] = useState<string>("");
+  const [downloadingHistoryId, setDownloadingHistoryId] = useState<string | null>(null);
+  const [copiedLinkUrl, setCopiedLinkUrl] = useState<string | null>(null);
 
   // Central Navigation Tab State
   const [activeNavTab, setActiveNavTab] = useState<NavTab>("transcrever");
@@ -588,6 +595,80 @@ export default function DashboardPage() {
     setTimeout(() => {
       setCopiedDocId((prev) => (prev === item.id ? null : prev));
     }, 2000);
+  };
+
+  // Download History Sync & Handlers
+  useEffect(() => {
+    const loadDownloadHistory = () => {
+      try {
+        if (typeof window !== "undefined") {
+          const raw = localStorage.getItem("pegueiotexto_download_history");
+          if (raw) {
+            setDownloadHistory(JSON.parse(raw));
+          }
+        }
+      } catch (e) {
+        console.error("Error loading download history:", e);
+      }
+    };
+    loadDownloadHistory();
+
+    const handleNewDownload = () => loadDownloadHistory();
+    window.addEventListener("video_downloaded", handleNewDownload);
+    return () => window.removeEventListener("video_downloaded", handleNewDownload);
+  }, []);
+
+  const handleClearDownloadHistory = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("pegueiotexto_download_history");
+      setDownloadHistory([]);
+    }
+  };
+
+  const handleRemoveDownloadItem = (id: string) => {
+    if (typeof window !== "undefined") {
+      const updated = downloadHistory.filter((item) => item.id !== id);
+      setDownloadHistory(updated);
+      localStorage.setItem("pegueiotexto_download_history", JSON.stringify(updated));
+    }
+  };
+
+  const handleReDownload = async (item: any) => {
+    setDownloadingHistoryId(item.id);
+    try {
+      const endpoint = item.format === "mp3" ? "/api/download/mp3" : "/api/download/video";
+      const targetUrl = `${endpoint}?url=${encodeURIComponent(item.url)}`;
+      const res = await fetch(targetUrl);
+      if (!res.ok) throw new Error("Falha no download");
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      const cleanTitle = (item.title || "arquivo").replace(/[^\w\s\u00C0-\u00FF-]/gi, "").trim().slice(0, 40);
+      a.download = `${cleanTitle}.${item.format || "mp4"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30000);
+    } catch (e: any) {
+      alert(isEn ? "Could not re-download this media." : "Não foi possível baixar novamente este arquivo.");
+    } finally {
+      setDownloadingHistoryId(null);
+    }
+  };
+
+  const handleTranscribeFromDownload = (item: any) => {
+    setTranscribePreloadUrl(item.url);
+    setActiveNavTab("transcrever");
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleCopyDownloadLink = (item: any) => {
+    navigator.clipboard.writeText(item.url);
+    setCopiedLinkUrl(item.url);
+    setTimeout(() => setCopiedLinkUrl(null), 2000);
   };
 
   // Subtitles Handlers
@@ -1881,7 +1962,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                <TranscribeForm />
+                <TranscribeForm defaultUrl={transcribePreloadUrl} />
               </div>
 
               {/* RECENT TRANSCRIPTIONS SECTION */}
@@ -3034,48 +3115,299 @@ export default function DashboardPage() {
                 boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4)"
               }}>
                 <VideoDownloader
+                  hideAds={true}
                   placeholder={isEn ? "Paste YouTube, TikTok, Instagram Reels, MP4 or MP3 URL..." : "Cole o link do YouTube, TikTok, Reels do Instagram, MP4 ou MP3..."}
                 />
               </div>
 
-              <div style={{
-                padding: "18px 24px",
-                borderRadius: "14px",
-                background: "rgba(124, 58, 237, 0.08)",
-                border: "1px solid rgba(124, 58, 237, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "14px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Sparkles size={20} color="#A78BFA" />
-                  <div>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#FFFFFF" }}>
-                      Deseja transcrever este áudio após o download?
+              {/* HISTÓRICO DE DOWNLOADS */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "8px" }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  paddingBottom: "12px",
+                  borderBottom: "1px solid rgba(167, 139, 250, 0.12)"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "10px",
+                      background: "rgba(59, 130, 246, 0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#93C5FD"
+                    }}>
+                      <Download size={18} />
                     </div>
-                    <div style={{ fontSize: "12px", color: "#9E96B3" }}>
-                      Basta clicar na aba <strong>Transcrever</strong> para gerar sua ata ou texto completo em segundos.
+                    <div>
+                      <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#FFFFFF", margin: 0 }}>
+                        {isEn ? "Download History" : "Histórico de Vídeos & Áudios Baixados"}
+                      </h3>
+                      <p style={{ fontSize: "12px", color: "#9E96B3", margin: "2px 0 0" }}>
+                        {isEn
+                          ? "Access your recently downloaded media, download again or transcribe directly with AI"
+                          : "Acesse suas mídias baixadas recentemente, baixe novamente ou transcreva direto com IA"}
+                      </p>
                     </div>
                   </div>
+
+                  {downloadHistory.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#93C5FD",
+                        background: "rgba(59, 130, 246, 0.12)",
+                        padding: "4px 10px",
+                        borderRadius: "20px"
+                      }}>
+                        {downloadHistory.length} {downloadHistory.length === 1 ? (isEn ? "file" : "arquivos") : (isEn ? "files" : "arquivos")}
+                      </span>
+
+                      <button
+                        onClick={handleClearDownloadHistory}
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color: "#FCA5A5",
+                          background: "rgba(239, 68, 68, 0.12)",
+                          border: "1px solid rgba(239, 68, 68, 0.25)",
+                          padding: "5px 12px",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px"
+                        }}
+                      >
+                        <Trash2 size={12} />
+                        <span>{isEn ? "Clear History" : "Limpar Histórico"}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  onClick={() => setActiveNavTab("transcrever")}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
-                    background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)",
-                    border: "none",
-                    color: "#FFFFFF",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
-                >
-                  Ir para Transcrever →
-                </button>
+                {downloadHistory.length === 0 ? (
+                  <div style={{
+                    borderRadius: "16px",
+                    background: "#151026",
+                    border: "1px dashed rgba(167, 139, 250, 0.2)",
+                    padding: "40px 24px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}>
+                    <div style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      background: "rgba(124, 58, 237, 0.12)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#A78BFA"
+                    }}>
+                      <Download size={24} />
+                    </div>
+                    <div style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF" }}>
+                      {isEn ? "No downloaded videos yet" : "Nenhum download recente ainda"}
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#9E96B3", maxWidth: "440px", lineHeight: 1.5 }}>
+                      {isEn
+                        ? "Videos and audio files you download with the tool above will be safely recorded here for quick re-downloading and 1-click transcription."
+                        : "Os vídeos e áudios que você baixar utilizando a ferramenta acima ficarão salvos aqui no seu painel para baixar novamente ou transcrever com 1 clique."}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {downloadHistory.map((item) => {
+                      const isMp3 = item.format === "mp3";
+                      const isDownloadingThis = downloadingHistoryId === item.id;
+                      const isCopied = copiedLinkUrl === item.url;
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            borderRadius: "14px",
+                            background: "#151026",
+                            border: "1px solid rgba(167, 139, 250, 0.1)",
+                            padding: "16px 20px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: "14px",
+                            transition: "all 0.15s ease"
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 260, flex: 1 }}>
+                            {item.thumbnail ? (
+                              <img
+                                src={item.thumbnail}
+                                alt={item.title}
+                                style={{
+                                  width: 56,
+                                  height: 42,
+                                  borderRadius: "8px",
+                                  objectFit: "cover",
+                                  flexShrink: 0,
+                                  border: "1px solid rgba(255, 255, 255, 0.1)"
+                                }}
+                              />
+                            ) : (
+                              <div style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: "10px",
+                                background: isMp3 ? "rgba(124, 58, 237, 0.2)" : "rgba(16, 185, 129, 0.2)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: isMp3 ? "#C4B5FD" : "#6EE7B7",
+                                flexShrink: 0
+                              }}>
+                                <Download size={20} />
+                              </div>
+                            )}
+
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{
+                                fontSize: "14px",
+                                fontWeight: 700,
+                                color: "#FFFFFF",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap"
+                              }} title={item.title}>
+                                {item.title || (isEn ? "Downloaded Media" : "Mídia Baixada")}
+                              </div>
+
+                              <div style={{
+                                fontSize: "12px",
+                                color: "#9E96B3",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                marginTop: "3px",
+                                flexWrap: "wrap"
+                              }}>
+                                <span style={{
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  background: isMp3 ? "rgba(124, 58, 237, 0.25)" : "rgba(16, 185, 129, 0.25)",
+                                  color: isMp3 ? "#C4B5FD" : "#6EE7B7",
+                                  fontWeight: 700,
+                                  fontSize: "11px"
+                                }}>
+                                  {isMp3 ? "MP3 ÁUDIO" : "MP4 VÍDEO"}
+                                </span>
+                                <span>•</span>
+                                <span style={{ textTransform: "uppercase" }}>{item.platform || "WEB"}</span>
+                                <span>•</span>
+                                <span>{new Date(item.downloadedAt).toLocaleDateString(isEn ? "en-US" : "pt-BR")} {new Date(item.downloadedAt).toLocaleTimeString(isEn ? "en-US" : "pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                            {/* Transcribe with AI */}
+                            <button
+                              onClick={() => handleTranscribeFromDownload(item)}
+                              title={isEn ? "Transcribe with AI" : "Transcrever este vídeo com IA"}
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                padding: "7px 14px",
+                                borderRadius: "8px",
+                                background: "linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(109, 40, 217, 0.3) 100%)",
+                                border: "1px solid rgba(167, 139, 250, 0.4)",
+                                color: "#E2D9F3",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px"
+                              }}
+                            >
+                              <Sparkles size={13} color="#C4B5FD" />
+                              <span>{isEn ? "Transcribe with AI" : "Transcrever com IA"}</span>
+                            </button>
+
+                            {/* Download again */}
+                            <button
+                              onClick={() => handleReDownload(item)}
+                              disabled={isDownloadingThis}
+                              title={isEn ? "Download again" : "Baixar novamente"}
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                padding: "7px 12px",
+                                borderRadius: "8px",
+                                background: "rgba(59, 130, 246, 0.15)",
+                                border: "1px solid rgba(59, 130, 246, 0.35)",
+                                color: "#93C5FD",
+                                cursor: isDownloadingThis ? "not-allowed" : "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              {isDownloadingThis ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                              <span>{isDownloadingThis ? (isEn ? "Downloading..." : "Baixando...") : (isEn ? "Download" : "Baixar Novamente")}</span>
+                            </button>
+
+                            {/* Copy URL */}
+                            <button
+                              onClick={() => handleCopyDownloadLink(item)}
+                              title={isEn ? "Copy URL" : "Copiar Link original"}
+                              style={{
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                padding: "7px 10px",
+                                borderRadius: "8px",
+                                background: isCopied ? "rgba(16, 185, 129, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                                border: isCopied ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
+                                color: isCopied ? "#6EE7B7" : "#cbd5e1",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                            </button>
+
+                            {/* Remove item */}
+                            <button
+                              onClick={() => handleRemoveDownloadItem(item.id)}
+                              title={isEn ? "Remove from history" : "Remover do histórico"}
+                              style={{
+                                fontSize: "12px",
+                                padding: "7px 10px",
+                                borderRadius: "8px",
+                                background: "rgba(239, 68, 68, 0.08)",
+                                border: "1px solid rgba(239, 68, 68, 0.2)",
+                                color: "#FCA5A5",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center"
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
             </div>
