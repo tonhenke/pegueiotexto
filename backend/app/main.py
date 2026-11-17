@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -5,6 +6,11 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
+
+# Ensure venv bin directory (containing ffmpeg) is in PATH
+VENV_BIN = BASE_DIR / "venv" / "bin"
+if VENV_BIN.exists() and str(VENV_BIN) not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{str(VENV_BIN)}:{os.environ.get('PATH', '')}"
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI

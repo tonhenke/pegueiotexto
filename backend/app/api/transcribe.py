@@ -402,7 +402,10 @@ async def transcribe_from_upload(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao transcrever arquivo: {str(e)}")
+        err_str = str(e)
+        if "413" in err_str or "request_too_large" in err_str.lower() or "Request Entity Too Large" in err_str:
+            err_str = "O arquivo de mídia excede o limite aceito pela IA. Nosso sistema compacta o arquivo automaticamente, mas se for um vídeo extremamente longo em alta resolução, envie o áudio extraído (MP3/M4A)."
+        raise HTTPException(status_code=500, detail=f"Erro ao transcrever arquivo: {err_str}")
     finally:
         if temp_file_path:
             secure_delete_file(temp_file_path)
