@@ -100,6 +100,9 @@ export async function GET(req: NextRequest) {
   if (/sign in|bot|protect our community|--cookies/i.test(lastErrorMessage)) {
     lastErrorMessage =
       "Este vídeo do YouTube possui proteção antibot ativa em servidores de nuvem. Recomendamos utilizar a transcrição direta com inteligência artificial.";
+  } else if (!lastErrorMessage || /fetch failed|failed to fetch|econnrefused|servidor indisponível/i.test(lastErrorMessage)) {
+    lastErrorMessage =
+      "O servidor de processamento de vídeo está temporariamente indisponível. Por favor, tente novamente em instantes.";
   }
 
   return NextResponse.json(

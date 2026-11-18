@@ -172,12 +172,17 @@ export default function VideoDownloader({
       setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30000);
     } catch (err: any) {
       console.error("[Download Error]:", err);
-      setError(
-        err?.message ||
-          (isEnglish
-            ? "Could not download the file."
-            : "Não foi possível baixar o arquivo.")
-      );
+      const rawMsg = err?.message || "";
+      const friendlyMsg =
+        /fetch failed|failed to fetch|network|load failed/i.test(rawMsg)
+          ? (isEnglish
+              ? "Download service is temporarily unavailable or still processing. Please try again in a few moments."
+              : "O servidor de download está temporariamente indisponível ou processando. Tente novamente em instantes.")
+          : rawMsg ||
+            (isEnglish
+              ? "Could not download the file."
+              : "Não foi possível baixar o arquivo.");
+      setError(friendlyMsg);
     } finally {
       if (type === "mp4") setDownloadingVideo(false);
       if (type === "mp3") setDownloadingAudio(false);
@@ -324,12 +329,17 @@ export default function VideoDownloader({
 
       setVideoInfo(json.data || json);
     } catch (err: any) {
-      setError(
-        err.message ||
-          (isEnglish
-            ? "An error occurred while fetching the video. Please check the URL and your connection."
-            : "Ocorreu um erro ao buscar o vídeo. Verifique a URL e sua conexão.")
-      );
+      const rawMsg = err?.message || "";
+      const friendlyMsg =
+        /fetch failed|failed to fetch|network|load failed/i.test(rawMsg)
+          ? (isEnglish
+              ? "Could not connect to the video service. Please check your connection and try again."
+              : "Não foi possível conectar ao serviço de busca. Verifique sua conexão e tente novamente.")
+          : rawMsg ||
+            (isEnglish
+              ? "An error occurred while fetching the video. Please check the URL and your connection."
+              : "Ocorreu um erro ao buscar o vídeo. Verifique a URL e sua conexão.");
+      setError(friendlyMsg);
     } finally {
       setLoading(false);
     }
